@@ -5,11 +5,12 @@ import * as FaceDetector from "expo-face-detector";
 import { useSelector } from "react-redux";
 import { useNavigation } from "@react-navigation/native";
 import FormData from "form-data";
+import Toast from "react-native-toast-message";
 
 export default function Face() {
   const [camera, setCamera] = React.useState(null);
   const [detectCount, setDetectCount] = React.useState(0);
-  const [isProcessing, setIsProcessing] = React.useState(true);
+  const [isProcessing, setIsProcessing] = React.useState(false);
   const [status, setStatus] = React.useState(
     "Allow  AttendEase to access your camera"
   );
@@ -18,6 +19,7 @@ export default function Face() {
   const API_URL = useSelector((e) => e.appApiUrl);
 
   const uploadImage = (pictureuri) => {
+    if (isProcessing) return;
     setStatus("Connecting to server");
     let url = `${API_URL}/face_match`;
     var data = new FormData();
@@ -37,21 +39,29 @@ export default function Face() {
     })
       .then((response) =>
         response.json().then((data) => {
-          console.log("Recieved Response");
           setStatus("Recieved Response");
-          if (data.status) navigation.navigate("Status");
-          else setIsProcessing(false);
+          if (data.status) {
+            Toast.show({
+              type: "success",
+              text1: "success",
+              text2: `Attendance ${data.status} 👋`,
+            });
+          }
         })
       )
       .catch((err) => {
         setStatus("Something went wrong");
-        console.log(err);
+        // console.log(err);
+        // setIsProcessing(false);
+      }).finally(()=>{
         setIsProcessing(false);
-      });
+      })
   };
 
   const takePicture = async () => {
+    if (isProcessing) return;
     if (camera) {
+      setIsProcessing(true);
       await camera
         .takePictureAsync({
           quality: 0.1,
@@ -59,7 +69,7 @@ export default function Face() {
         })
         .then((data) => {
           uploadImage(data.uri);
-          setIsProcessing(true);
+          // setIsProcessing(true);
         });
     }
   };
@@ -86,23 +96,23 @@ export default function Face() {
 
   return (
     <View style={styles.nav}>
-      {isProcessing ? (
+      {/* {isProcessing ? (
         <></>
-      ) : (
-        <Camera
-          style={styles.camera}
-          ref={(ref) => setCamera(ref)}
-          type={Camera.Constants.Type.front}
-          onFacesDetected={handleFacesDetected}
-          faceDetectorSettings={{
-            mode: FaceDetector.FaceDetectorMode.fast,
-            detectLandmarks: FaceDetector.FaceDetectorLandmarks.none,
-            runClassifications: FaceDetector.FaceDetectorClassifications.none,
-            minDetectionInterval: 500,
-            tracking: true,
-          }}
-        />
-      )}
+      ) : ( */}
+      <Camera
+        style={styles.camera}
+        ref={(ref) => setCamera(ref)}
+        type={Camera.Constants.Type.front}
+        onFacesDetected={handleFacesDetected}
+        faceDetectorSettings={{
+          mode: FaceDetector.FaceDetectorMode.fast,
+          detectLandmarks: FaceDetector.FaceDetectorLandmarks.none,
+          runClassifications: FaceDetector.FaceDetectorClassifications.none,
+          minDetectionInterval: 500,
+          tracking: true,
+        }}
+      />
+      {/* )} */}
       <View style={styles.status}>
         <ActivityIndicator size="large" color="green" />
         <Text style={styles.text}>{status}</Text>

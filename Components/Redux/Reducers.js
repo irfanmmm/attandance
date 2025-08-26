@@ -18,7 +18,7 @@ const userName = (state = "", action) => {
   }
 };
 
-const appApiUrl = (state = "http://192.168.200.192:5001/", action) => {
+const appApiUrl = (state = "http://10.25.25.104:5001/", action) => {
   switch (action.type) {
     default:
       return state;
