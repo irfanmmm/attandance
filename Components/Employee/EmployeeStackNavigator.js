@@ -4,6 +4,7 @@ import { Image, Text, View } from "react-native";
 import Scan from "./Screens/Scan";
 import Status from "./Screens/Status";
 import Avatar from "../Assets/icon.png";
+import onBoarding from "./OnBoarding";
 function LogoTitle() {
   return (
     <View
@@ -26,11 +27,13 @@ const EmployeeStackNavigator = () => {
   return (
     <Stack.Navigator
       initialRouteName="Scan"
-      screenOptions={{ headerShown: true }}
+      screenOptions={{ headerShown: false }}
     >
       <Stack.Group>
         <Stack.Screen name="Scan" component={Scan} />
         <Stack.Screen name="Status" component={Status} />
+        <Stack.Screen name="onBoarding" component={onBoarding} />
+        
       </Stack.Group>
     </Stack.Navigator>
   );

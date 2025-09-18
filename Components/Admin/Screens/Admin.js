@@ -118,7 +118,7 @@ function Admin() {
         </>
       ) : (
         <View style={styles.status}>
-          <ActivityIndicator size="large" color="green" />
+          <ActivityIndicator size="large" color="#ffffff" />
           <Text style={styles.text}>{"Entering information"}</Text>
         </View>
       )}
