@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useContext } from "react";
 import {
   StyleSheet,
   Text,
@@ -17,6 +17,8 @@ import ErrorIcon from "../../../assets/svg/error.svg";
 import ScanIcon from "../../../assets/svg/scan.svg";
 import CheckInScreen from "./Status";
 import { useIsFocused } from "@react-navigation/native";
+import { BASE_URL } from "../../utils/urls";
+import { Context } from "../../Redux/Store";
 
 export default function Face({ navigation }) {
   const [camera, setCamera] = useState(null);
@@ -26,7 +28,10 @@ export default function Face({ navigation }) {
   const [status, setStatus] = useState("Requesting camera permission...");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
-  const [isCameraReady, setIsCameraReady] = useState(false); // Add camera ready state
+  const [isCameraReady, setIsCameraReady] = useState(false);
+
+  
+
 
   // Use useIsFocused to track screen focus
   const isFocused = useIsFocused();
@@ -35,9 +40,11 @@ export default function Face({ navigation }) {
   const detectCountRef = useRef(0);
   const isUploadingRef = useRef(false);
 
-  const status_1 = useSelector((state) => state.statusInOut);
-  const API_URL = useSelector((state) => state.appApiUrl);
-  const isLogged = useSelector((state) => state.logIn);
+
+
+  
+
+
 
   // Reset states when screen comes into focus
   useEffect(() => {
@@ -102,17 +109,17 @@ export default function Face({ navigation }) {
         const formData = new FormData();
         formData.append("file", {
           uri: pictureUri,
-          name: `${status_1}.jpg`,
+          name: `image.jpg`,
           type: "image/jpeg",
         });
-        formData.append("compony_code", isLogged);
+        formData.append("compony_code", code);
 
         // Use AbortController for timeout handling
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
         // Make request with optimized headers and timeout
-        const response = await fetch(`${API_URL}compare-face`, {
+        const response = await fetch(`${BASE_URL}compare-face`, {
           method: "POST",
           body: formData,
           signal: controller.signal,
@@ -158,7 +165,7 @@ export default function Face({ navigation }) {
         isUploadingRef.current = false;
       }
     },
-    [API_URL, status_1, navigation, isLogged]
+    [ navigation]
   );
 
   const takePicture = useCallback(async () => {
@@ -377,7 +384,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   cameraLoadingText: {
-    color: '#fff',
+    color: '#ffffff',
     fontSize: SIZE(16),
     marginTop: SIZE(10),
     fontFamily: Fonts?.Regular,
@@ -396,7 +403,7 @@ const styles = StyleSheet.create({
   },
   bottom: {},
   mainText: {
-    color: "#000",
+    color: "#000000",
     fontSize: SIZE(20),
     fontWeight: "600",
     textAlign: "center",

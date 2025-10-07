@@ -1,22 +1,41 @@
-import React, { useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ImageBackground } from "react-native";
+import React, { useContext, useEffect } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, ImageBackground, BackHandler } from "react-native";
 import CheckIcon from "../../../assets/svg/tick.svg";
 import { Fonts, SIZE } from "../../utils/Styles";
 import { useSelector } from "react-redux";
 import { useNavigation } from "@react-navigation/native";
 // import { BlurView } from "expo-blur";
 import { Image } from "react-native";
+import { Context } from "../../Redux/Store";
 
 
 const CheckInScreen = ({navigation}) => {
-  const status = useSelector((e) => e.statusInOut);
+    const { state } = useContext(Context);
+
+   const empName = state.userData.empName
+
     useEffect(()=>{
       setTimeout(() => {
         navigation.navigate('AddEmployee')
         
-      }, 5000);
+      }, 3000);
   
     },[])
+
+        // useEffect(() => {
+        //   const backAction = () => {
+        //     // Navigate to the login page
+        //     navigation.navigate('AddEmployee'); // Replace 'Login' with your login screen name
+        //     return true; // Prevent default back action (e.g., exiting the app)
+        //   };
+        //   const backHandler = BackHandler.addEventListener(
+        //     'hardwareBackPress',
+        //     backAction
+        //   );
+        //   return () => {
+        //     backHandler.remove(); // Cleanup when the component unmounts
+        //   };
+        // }, [navigation]);
 
   // const navigation = useNavigation();
   // React.useEffect(() => {
@@ -24,18 +43,20 @@ const CheckInScreen = ({navigation}) => {
   // });
 
   return (
-    <ImageBackground source={require('../../../assets/backround.jpg')} style={styles.container}>
+    // <ImageBackground source={require('../../../assets/backround.jpg')} style={styles.container}>
+    <View style={styles.container}>
       <View style={styles.blurContainer}>
         <View style={styles.checkButton}>
           <CheckIcon width={SIZE(84)} height={SIZE(84)} />
         </View>
         <View style={styles.content}>
-          <Text style={styles.greeting}>Employee AddedSuccessfully!</Text>
-          <Text style={styles.status}><Text style={{fontFamily:Fonts.Bold}}>{`EMP001, John`}</Text> has been added to your organization. </Text>
+          <Text style={styles.greeting}>Employee Added Successfully!</Text>
+          <Text style={styles.status}><Text style={{fontFamily:Fonts.Bold}}>{empName}</Text> has been added to your organization. </Text>
           
         </View>
       </View>
-    </ImageBackground>
+      </View>
+    // </ImageBackground>
   );
 };
 
@@ -63,7 +84,7 @@ const styles = StyleSheet.create({
   },
   greeting: {
     fontSize: SIZE(24),
-    color: "#fff",
+    color: "#ffffff",
     fontFamily: Fonts.Semibold,
     lineHeight: SIZE(32),
     marginBottom: SIZE(8),
@@ -75,7 +96,7 @@ const styles = StyleSheet.create({
     fontSize: SIZE(16),
     lineHeight: SIZE(18),
     fontFamily: Fonts.Medium,
-    color: "#fff",
+    color: "#ffffff",
     marginBottom: SIZE(16),
     textAlign:'center'
   },

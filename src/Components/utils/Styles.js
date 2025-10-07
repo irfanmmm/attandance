@@ -14,7 +14,7 @@ export const SIZE_HW = {
 
 // custom size
 const SIZE = value => {
-  return wp(value / 4.2);
+  return wp(value / 4);
 };
 
 //size in percentage
@@ -24,10 +24,10 @@ const SIZES = {
 };
 
 const Fonts = {
-  Regular: 'Inter-Regular',
-  Medium: 'Inter-Medium',
-  Semibold: 'Inter-Semibold',
-  Bold: 'Inter-Bold',
+  Regular: 'inter_regular',
+  Medium: 'inter_medium',
+  Semibold: 'inter_semibold',
+  Bold: 'inter_bold',
 };
 
 // export const loadFonts = async () => {

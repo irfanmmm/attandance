@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Fonts, SIZE } from '../utils/Styles';
 import CommonButton from '../CommonButton';
 
-export default function OnBoarding() {
+export default function OnBoarding({resumeCamera}) {
   const insets = useSafeAreaInsets();
   return (
     <View style={styles.container}>
@@ -18,12 +18,12 @@ export default function OnBoarding() {
           </Text>
         </View>
         <View style={styles.imageBackround}>
-          {/* <Image
+          <Image
             width={'100%'}
             height={'100%'}
             resizeMode="contain"
             source={require("../../assets/onboarding.png")}
-          /> */}
+          />
         </View>
       </View>
       <View style={styles.bottomButtonContainer}>
@@ -31,9 +31,7 @@ export default function OnBoarding() {
           scan={true}
           backgroundColor={'#153CD8'}
           title={'Start Scan'}
-          onPress={() => {
-            handleNavigate();
-          }}
+          onPress={resumeCamera}
           color={'#FFFFFF'}
         />
       </View>
@@ -72,6 +70,7 @@ const styles = StyleSheet.create({
   imageBackround: {
     width: 10,
     height: 10,
+
     // position:'absolute',
     // left:0,
 

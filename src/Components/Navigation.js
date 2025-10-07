@@ -10,12 +10,19 @@ import Login from './Login';
 import { useSelector } from 'react-redux';
 import Register from './Register';
 import { useContext } from 'react';
+import Store, { Context } from "./Redux/Store"
+
+ 
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
 export default function BottomTabNavigator() {
-  const isLogged = useSelector(state => state.logIn);
+  
+
+   const { state } = useContext(Context);
+
+   const isLogged = state.userData.is_logged
 
   return (
     <NavigationContainer>
@@ -33,10 +40,10 @@ export default function BottomTabNavigator() {
               },
             }}
           >
-            <Stack.Screen
+            {/* <Stack.Screen
               name="EmployeeStackNavigator"
               component={EmployeeStackNavigator}
-            />
+            /> */}
             <Stack.Screen
               name="AdminStackNavigator"
               component={AdminStackNavigator}

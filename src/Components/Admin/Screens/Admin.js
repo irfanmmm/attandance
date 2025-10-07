@@ -11,10 +11,11 @@ import React from "react";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { useNavigation } from "@react-navigation/native";
 import { useDispatch, useSelector } from "react-redux";
+import { BASE_URL } from "../../utils/urls";
 
 function Admin() {
   const navigation = useNavigation();
-  const dispatch = useDispatch();
+
   // React.useEffect(() => {
   //   (async () => {
   //     const { status } = await Camera.requestCameraPermissionsAsync();
@@ -24,11 +25,11 @@ function Admin() {
   const [text, setText] = React.useState("");
   const [hasPermisstion, setHasPerminnsion] = React.useState();
   const [camera, setCamera] = React.useState(null);
-  const API_URL = useSelector((e) => e.appApiUrl);
+
   const [isProcessing, setIsProcessing] = React.useState(true);
   const uploadImage = (pictureuri) => {
     setIsProcessing(false);
-    let apiUrl = `${API_URL}/add_face`;
+    let apiUrl = `${BASE_URL}/add_face`;
 
     var data = new FormData();
     data.append("file1", {
@@ -50,7 +51,7 @@ function Admin() {
         response.json().then((data) => {
           console.log(data);
           if (data.status) {
-            dispatch({ type: "updateStatus", data: "true" });
+
             navigation.navigate("Status");
           } else {
             setIsProcessing(true);

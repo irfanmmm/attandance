@@ -7,6 +7,8 @@ const loadInitialState = () => ({
     is_logged: false,
     access_token: null,
     refresh_token: null,
+    company_code:'',
+    empName:''
   },
 });
 const Store = ({ children }) => {

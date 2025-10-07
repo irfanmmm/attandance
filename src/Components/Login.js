@@ -7,36 +7,45 @@ import {
   TextInput,
   TouchableWithoutFeedback,
   Keyboard,
+  StatusBar,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import React, { useContext, useRef, useState } from 'react';
 import { Fonts, SIZE } from './utils/Styles';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CommonButton from './CommonButton';
-import { useDispatch, useSelector } from 'react-redux';
+import { Context } from './Redux/Store';
+import { API_URL } from './utils/urls';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 export default function Login({ navigation }) {
   const insets = useSafeAreaInsets();
   const inputRef2 = useRef(null);
   const [code, setCode] = useState('');
   const [error, setError] = useState(false);
-  const API_URL = useSelector(state => state.appApiUrl);
+
   const [status, setStatus] = useState('*Please enter code');
-  const dispatch = useDispatch();
+  const { state, dispatch } = useContext(Context);
 
   const handleLogin = async () => {
-    console.log('hii');
-
     setError(false);
     if (!code.trim()) {
       setError(true);
       return;
     }
+    // dispatch({
+    //   type: 'UPDATE_USER_DATA',
+    //   userData: {
+    //     ...state.userData,
+    //     is_logged: true,
+    //     company_code: code,
+    //   },
+    // });
     //  dispatch({ type: "loginSuccess", data: true });
 
     // navigation.navigate("EmployeeStackNavigator");
     try {
-      console.log('h');
-
       if (!code.trim()) {
         setError(true);
         return;
@@ -52,29 +61,51 @@ export default function Login({ navigation }) {
           code: code,
         }),
       });
-      console.log('haaai');
+      console.log(response.status,'dddd');
+      
 
       const data = await response.json();
-      console.log(data, 'messa');
-      dispatch({ type: 'loginSuccess', data: code });
+      if (data.message === 'success') {
+        dispatch({
+          type: 'UPDATE_USER_DATA',
+          userData: {
+            ...state.userData,
+            is_logged: true,
+            company_code: code,
+          },
+        });
+      } else {
+        setError(true);
+        setStatus('something went wrong');
+      }
 
-      navigation.navigate('EmployeeStackNavigator');
+      // navigation.navigate('EmployeeStackNavigator');
     } catch (err) {
-      console.log('hfhfhhfhffh');
-
+      setStatus('something went wrong');
       setError(true);
-      console.error('Login error:', err.message);
+      console.log('Login error:', err.message);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <TouchableWithoutFeedback
-        onPress={() => {
-          Keyboard.dismiss();
-        }}
-      >
-        <View style={{ paddingTop: insets.top }}>
+    <View
+      style={{ ...styles.container }}
+
+
+    >
+           <StatusBar
+        translucent
+        backgroundColor={'transparent'}
+        barStyle={'dark-content'}
+      />
+      {/* <TouchableWithoutFeedback onPress={Keyboard.dismiss}> */}
+        <KeyboardAwareScrollView
+        extraScrollHeight={Platform.OS=='android'?SIZE(-100):SIZE(100)}
+        enableOnAndroid
+        showsVerticalScrollIndicator={false}
+        style={{ paddingTop: insets.top}}
+
+        >
           <View style={styles.brandIconContainer}>
             <Image
               source={require('../assets/brand.png')}
@@ -102,7 +133,7 @@ export default function Login({ navigation }) {
                 <Text style={styles.uerNameText}>Company Code</Text>
                 <TextInput
                   ref={inputRef2}
-                  style={{ fontSize: SIZE(14), lineHeight: SIZE(16) }}
+                  style={styles.input}
                   placeholderTextColor={'#2C436433'}
                   value={code}
                   placeholder="Enter code"
@@ -112,21 +143,23 @@ export default function Login({ navigation }) {
                 />
               </View>
             </TouchableOpacity>
+
             {error && <Text style={styles.errorText}>{status}</Text>}
             <View style={{ marginTop: SIZE(20) }}>
               <CommonButton
                 arrow={true}
                 backgroundColor={'#153CD8'}
-                title={'Sign in'}
+                title={'Get Started'}
                 onPress={() => {
                   handleLogin();
                 }}
                 color={'#FFFFFF'}
               />
             </View>
+            {/* <Text style={styles.registerText}>New User? <Text style={{color:'#153CD8'}} onPress={()=>{navigation.navigate('Register')}}>Create an account</Text></Text> */}
           </View>
-        </View>
-      </TouchableWithoutFeedback>
+        </KeyboardAwareScrollView>
+      {/* </TouchableWithoutFeedback> */}
     </View>
   );
 }
@@ -135,15 +168,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#ffffff',
-    paddingHorizontal: SIZE(25),
-    paddingTop: SIZE(140),
-    // alignItems: 'center',
+    paddingHorizontal: SIZE(20),
     // justifyContent: 'center',
   },
   brandIconContainer: {
     width: SIZE(220),
     height: SIZE(46),
     marginBottom: SIZE(60),
+    marginTop:SIZE(150)
   },
   brandIcon: {
     width: '100%',
@@ -151,7 +183,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {},
   employyText: {
-    fontSize: SIZE(26),
+    fontSize: SIZE(28),
     fontFamily: Fonts.Semibold,
     lineHeight: SIZE(28),
     color: '#000000',
@@ -159,29 +191,56 @@ const styles = StyleSheet.create({
   subText: {
     marginTop: SIZE(12),
     marginBottom: SIZE(40),
-    fontSize: SIZE(14),
+    fontSize: SIZE(16),
     lineHeight: SIZE(20),
     fontFamily: Fonts.Regular,
     color: '#272727',
   },
-  inputContainer: {
-    height: SIZE(64),
-    width: '100%',
-    borderWidth: 1,
-    borderColor: '#B9BED5',
-    borderRadius: SIZE(40),
-    flexDirection: 'row',
-    paddingVertical: SIZE(10),
-    paddingHorizontal: SIZE(30),
+
+  uerNameText: {
+  fontSize: SIZE(14),
+    lineHeight: SIZE(18),
+    fontFamily: Fonts.Regular,
+    color: '#515978',
+    marginBottom:Platform.OS==='ios'?SIZE(5):0
   },
   errorText: {
     marginTop: SIZE(6),
-    fontSize: SIZE(12),
+    fontSize: SIZE(14),
     lineHeight: SIZE(20),
     color: '#DF0202',
     fontFamily: Fonts.Regular,
     alignSelf: 'flex-start',
     marginLeft: SIZE(30),
     // marginLeft: SIZE(-120),
+  },
+  registerText: {
+    fontSize: SIZE(16),
+    textAlign: 'center',
+    marginTop: SIZE(20),
+    color: '#000000',
+    lineHeight: SIZE(18),
+  },
+    inputContainer: {
+   justifyContent:'center',
+    height: SIZE(70),
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#B9BED5',
+    borderRadius: SIZE(40),
+    // paddingVertical: SIZE(10),
+    paddingHorizontal: SIZE(30),
+        overflow:'hidden',
+  },
+  input: {
+    // flex:1,
+// marginLeft:SIZE(2),
+  // height:SIZE(40),
+    fontSize: SIZE(14),
+    lineHeight: SIZE(16),
+    // padding: 0,
+    // margin: 0,
+    color: '#000000',
+    // backgroundColor:'red'
   },
 });
