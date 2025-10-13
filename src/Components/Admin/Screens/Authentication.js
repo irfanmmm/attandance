@@ -427,4 +427,5 @@ const styles = StyleSheet.create({
     lineHeight: SIZE(16),
     // backgroundColor:'red'
   },
+  
 });

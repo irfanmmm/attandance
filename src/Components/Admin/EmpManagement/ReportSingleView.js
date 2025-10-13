@@ -39,22 +39,22 @@ export default function ReportSingleView({ route, navigation }) {
   const code = state.userData.company_code;
 
   // Format date for API (YYYY-MM-DD)
-//   const formatDateForAPI = date => {
-//     return date.toISOString().split('T')[0]; // e.g., '2025-10-01'
-//   };
+  //   const formatDateForAPI = date => {
+  //     return date.toISOString().split('T')[0]; // e.g., '2025-10-01'
+  //   };
 
-const formatDateForAPI = date => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
+  const formatDateForAPI = date => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
   // Format date for display (DD/MM/YYYY)
   const formatDateForDisplay = date => {
-    return date.toLocaleDateString('en-GB'); // e.g., '01/10/2025'
+    return date.toLocaleDateString('en-GB');
   };
 
-  const getReport = async (startDate, endDate) => {  
+  const getReport = async (startDate, endDate) => {
     try {
       const response = await fetch(`${BASE_URL}attandance-report`, {
         method: 'POST',
@@ -124,7 +124,6 @@ const formatDateForAPI = date => {
   };
 
   // Create new functions for opening pickers:
-
 
   return (
     <View style={styles.container}>
@@ -210,7 +209,7 @@ const formatDateForAPI = date => {
               onPress={async () => {
                 if (isFilter) {
                   await getReport(startDate, endDate);
-                  setFilter(false); 
+                  setFilter(false);
                 }
               }}
             >
@@ -314,7 +313,6 @@ const formatDateForAPI = date => {
           setShowStartDatePicker(false);
         }}
         maximumDate={endDate}
-     
       />
       {/* )} */}
       {/* {showEndDatePicker && (

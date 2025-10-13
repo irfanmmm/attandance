@@ -18,13 +18,15 @@ import CommonButton from './CommonButton';
 import { Context } from './Redux/Store';
 import { API_URL } from './utils/urls';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { useToast } from 'react-native-toast-notifications';
 
 export default function Login({ navigation }) {
   const insets = useSafeAreaInsets();
-  const inputRef2 = useRef(null);
+  const inputRef2 = useRef(null); 
   const [code, setCode] = useState('');
   const [error, setError] = useState(false);
 
+    const toast = useToast();
   const [status, setStatus] = useState('*Please enter code');
   const { state, dispatch } = useContext(Context);
 
@@ -65,7 +67,7 @@ export default function Login({ navigation }) {
       
 
       const data = await response.json();
-      if (data.message === 'success') {
+      if (data?.message === 'success') {
         dispatch({
           type: 'UPDATE_USER_DATA',
           userData: {
@@ -75,12 +77,20 @@ export default function Login({ navigation }) {
           },
         });
       } else {
-        setError(true);
-        setStatus('something went wrong');
+         toast.show(data?.message, {
+            type: 'danger',
+            duration: 2000,
+          });
+        // setError(true);
+        // setStatus('something went wrong');
       }
 
       // navigation.navigate('EmployeeStackNavigator');
     } catch (err) {
+        toast.show('Something went wrong', {
+            type: 'danger',
+            duration: 2000,
+          });
       setStatus('something went wrong');
       setError(true);
       console.log('Login error:', err.message);
@@ -156,7 +166,7 @@ export default function Login({ navigation }) {
                 color={'#FFFFFF'}
               />
             </View>
-            {/* <Text style={styles.registerText}>New User? <Text style={{color:'#153CD8'}} onPress={()=>{navigation.navigate('Register')}}>Create an account</Text></Text> */}
+            <Text style={styles.registerText}>New User? <Text style={{color:'#153CD8'}} onPress={()=>{navigation.navigate('Register')}}>Create an account</Text></Text>
           </View>
         </KeyboardAwareScrollView>
       {/* </TouchableWithoutFeedback> */}

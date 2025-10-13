@@ -74,16 +74,14 @@ export default function EmpManagement({ navigation }) {
         hitSlop={10}
         onPress={() => {
           navigation.navigate('AddEmployee');
-              setLogOut(false)
+          setLogOut(false);
         }}
         style={styles.AddEmpContainer}
       >
         <Plus width={SIZE(24)} height={SIZE(24)} />
       </TouchableOpacity>
-      <TouchableWithoutFeedback
-  onPress={() => setLogOut(false)}
-      
-      >
+      <TouchableWithoutFeedback onPress={() => setLogOut(false)}>
+        
         <LinearGradient
           colors={['#022E95', '#4B87EE']}
           style={{ ...styles.topContainer }}
@@ -147,6 +145,7 @@ export default function EmpManagement({ navigation }) {
             </View>
           </View>
         </LinearGradient>
+  
       </TouchableWithoutFeedback>
       <View style={styles.bottomContainer}>
         <FlatList
@@ -160,7 +159,7 @@ export default function EmpManagement({ navigation }) {
               style={styles.tabContainer}
               onPress={() => {
                 handleNavigate(item);
-                setLogOut(false)
+                setLogOut(false);
               }}
             >
               <View style={styles.iconContainer}>{item.icon}</View>

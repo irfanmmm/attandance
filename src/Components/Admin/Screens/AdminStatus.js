@@ -9,14 +9,17 @@ import { Image } from "react-native";
 import { Context } from "../../Redux/Store";
 
 
-const CheckInScreen = ({navigation}) => {
+const CheckInScreen = ({navigation,route}) => {
     const { state } = useContext(Context);
+  const { isEdit } = route?.params || {};
+
 
    const empName = state.userData.empName
 
     useEffect(()=>{
       setTimeout(() => {
-        navigation.navigate('AddEmployee')
+        
+        navigation.navigate(isEdit?'EmployeeManagement':'AddEmployee')
         
       }, 3000);
   

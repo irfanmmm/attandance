@@ -21,15 +21,20 @@ import LogoutIcon from '../../../assets/svg/logOut.svg';
 import Log from '../../../assets/svg/log.svg';
 import { Context } from '../../Redux/Store';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { BASE_URL } from '../../utils/urls';
 
 export default function AddEmployee({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const { state, dispatch } = useContext(Context);
+  const { isEdit } = route?.params || {};
+  const { selectedData } = route?.params || {};
+  const code = state?.userData?.company_code;
+
 
   const inputRef1 = useRef(null);
   const inputRef2 = useRef(null);
 
-  const [input, setInput] = useState({ username: '', password: '' });
+  const [input, setInput] = useState({ username: isEdit?selectedData?.fullname:'', password:isEdit?selectedData?.employee_code: '' });
   const [error, setError] = useState({
     usernameErr: false,
     passwordErr: false,
@@ -40,21 +45,49 @@ export default function AddEmployee({ navigation, route }) {
     setInput(prev => ({ ...prev, [name]: value }));
   };
 
-  // useEffect(() => {
-  //   const backAction = () => {
-  //     // Navigate to the login page
+const saveChanges = async () => {
+    try {
+      const formData = new FormData();
+      formData.append('compony_code', code);
+      const editableDetails = JSON.stringify([
+        {
+          employee_id: input?.password,
+          action: 'E',
+          full_name: input?.username,
+        },
+      ]);
+      formData.append('editable_details', editableDetails);
 
-  //     navigation.navigate('EmpManagement'); // Replace 'Login' with your login screen name
-  //     return true; // Prevent default back action (e.g., exiting the app)
-  //   };
-  //   const backHandler = BackHandler.addEventListener(
-  //     'hardwareBackPress',
-  //     backAction,
-  //   );
-  //   return () => {
-  //     backHandler.remove(); // Cleanup when the component unmounts
-  //   };
-  // }, [navigation]);
+      const response = await fetch(`${BASE_URL}edit-user`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        body: formData,
+      });
+
+
+      if (!response.ok) {
+        throw new Error(
+          'Authentication failed. Please check your credentials.',
+        );
+      }
+
+      const data = await response.json();
+      console.log(data.data, 'deleteemol');
+
+      if (data?.message === 'success') {
+        // setData(data?.data);
+        navigation.goBack()
+       
+      } else {
+      }
+    } catch (err) {
+      // setData([]);
+
+      console.log('Authentication error:', err?.message);
+    }
+  };
 
   // const handleNavigate = async () => {
   //     const newError = { usernameErr: !input.username.trim(), passwordErr: !input.password.trim() };
@@ -101,7 +134,11 @@ export default function AddEmployee({ navigation, route }) {
         bounces={false}
         extraScrollHeight={0}
       >
-        <TouchableWithoutFeedback onPress={() => {setLogOut(false)}}>
+        <TouchableWithoutFeedback
+          onPress={() => {
+            setLogOut(false);
+          }}
+        >
           <ImageBackground
             source={require('../../../assets/employyeBackround.png')}
             style={{ flex: 1 }}
@@ -116,8 +153,10 @@ export default function AddEmployee({ navigation, route }) {
                     activeOpacity={0.8}
                     hitSlop={5}
                     onPress={() => {
-                      navigation.navigate('EmpManagement');
-                      setLogOut(false)
+                      isEdit?navigation.goBack():navigation.navigate('EmpManagement');
+                      
+                      
+                      setLogOut(false);
                     }}
                   >
                     <BackIcon width={SIZE(32)} height={SIZE(32)} />
@@ -166,104 +205,133 @@ export default function AddEmployee({ navigation, route }) {
               </View>
             </View>
             <TouchableWithoutFeedback
-            onPress={()=>{setLogOut(false),Keyboard.dismiss()}}
-            >
-            <View
-              style={{
-                ...styles.bottomContainer,
+              onPress={() => {
+                setLogOut(false), Keyboard.dismiss();
               }}
             >
-              <View style={styles.contentContainer}>
-                <Text style={styles.employyText}>Employee Info</Text>
-                <Text style={styles.subText}>
-                  Fill in your details below. This helps us {'\n'}register your
-                  profile securely.
-                </Text>
+              <View
+                style={{
+                  ...styles.bottomContainer,
+                }}
+              >
+                <View style={styles.contentContainer}>
+                  <Text style={styles.employyText}>Employee Info</Text>
+                  <Text style={styles.subText}>
+                    Fill in your details below. This helps us {'\n'}register
+                    your profile securely.
+                  </Text>
+                </View>
+
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  hitSlop={10}
+                  onPress={() => {
+                    inputRef1.current?.focus();
+                    setError(prev => ({ ...prev, usernameErr: false }));
+                  }}
+                  style={styles.inputContainer}
+                >
+                  <ProfileIcon
+                    width={SIZE(20)}
+                    height={SIZE(20)}
+                    style={{ marginRight: SIZE(10) }}
+                  />
+
+                  <View style={{ width: '90%', justifyContent: 'center' }}>
+                    <Text style={styles.uerNameText}>Employee Name</Text>
+                    <TextInput
+                      ref={inputRef1}
+                      style={{
+                        // flex:1,
+                        fontSize: SIZE(14),
+                        lineHeight: SIZE(16),
+                        color: '#000000',
+                      }}
+                      placeholderTextColor={'#2C436433'}
+                      value={input.username}
+                      placeholder="Enter name"
+                      onChangeText={text => {
+                        handleChange('username', text);
+                      }}
+                    />
+                  </View>
+                </TouchableOpacity>
+                {error.usernameErr && (
+                  <Text style={styles.errorText}>*Please enter name</Text>
+                )}
+
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  hitSlop={10}
+                  onPress={() => {
+                    inputRef2.current?.focus();
+                    setError(prev => ({ ...prev, passwordErr: false }));
+                  }}
+                  style={{ ...styles.inputContainer, marginTop: SIZE(16) }}
+                >
+                  <LockIcon
+                    width={SIZE(20)}
+                    height={SIZE(20)}
+                    style={{ marginRight: SIZE(10) }}
+                  />
+
+                  <View style={{ width: '90%', justifyContent: 'center' }}>
+                    <Text style={styles.uerNameText}>Employee Code</Text>
+                    <TextInput
+                      ref={inputRef2}
+                      style={{
+                        fontSize: SIZE(14),
+                        lineHeight: SIZE(16),
+                        // flex: 1,
+                        color: '#000000',
+                      }}
+                      placeholderTextColor={'#2C436433'}
+                      value={input.password}
+                      placeholder="Enter code"
+                      onChangeText={text => {
+                        handleChange('password', text);
+                      }}
+                    />
+                  </View>
+                </TouchableOpacity>
+                {error.passwordErr && (
+                  <Text style={styles.errorText}>*Please enter code</Text>
+                )}
               </View>
-
-              <TouchableOpacity
-                activeOpacity={0.8}
-                hitSlop={10}
-                onPress={() => {
-                  inputRef1.current?.focus();
-                  setError(prev => ({ ...prev, usernameErr: false }));
-                }}
-                style={styles.inputContainer}
-              >
-                <ProfileIcon
-                  width={SIZE(20)}
-                  height={SIZE(20)}
-                  style={{ marginRight: SIZE(10) }}
-                />
-
-                <View style={{ width: '90%', justifyContent: 'center' }}>
-                  <Text style={styles.uerNameText}>Employee Name</Text>
-                  <TextInput
-                    ref={inputRef1}
-                    style={{
-                      // flex:1,
-                      fontSize: SIZE(14),
-                      lineHeight: SIZE(16),
-                      color: '#000000',
-                    }}
-                    placeholderTextColor={'#2C436433'}
-                    value={input.username}
-                    placeholder="Enter name"
-                    onChangeText={text => {
-                      handleChange('username', text);
-                    }}
-                  />
-                </View>
-              </TouchableOpacity>
-              {error.usernameErr && (
-                <Text style={styles.errorText}>*Please enter name</Text>
-              )}
-
-              <TouchableOpacity
-                activeOpacity={0.8}
-                hitSlop={10}
-                onPress={() => {
-                  inputRef2.current?.focus();
-                  setError(prev => ({ ...prev, passwordErr: false }));
-                }}
-                style={{ ...styles.inputContainer, marginTop: SIZE(16) }}
-              >
-                <LockIcon
-                  width={SIZE(20)}
-                  height={SIZE(20)}
-                  style={{ marginRight: SIZE(10) }}
-                />
-
-                <View style={{ width: '90%', justifyContent: 'center' }}>
-                  <Text style={styles.uerNameText}>Employee Code</Text>
-                  <TextInput
-                    ref={inputRef2}
-                    style={{
-                      fontSize: SIZE(14),
-                      lineHeight: SIZE(16),
-                      // flex: 1,
-                      color: '#000000',
-                    }}
-                    placeholderTextColor={'#2C436433'}
-                    value={input.password}
-                    placeholder="Enter code"
-                    onChangeText={text => {
-                      handleChange('password', text);
-                    }}
-                  />
-                </View>
-              </TouchableOpacity>
-              {error.passwordErr && (
-                <Text style={styles.errorText}>*Please enter code</Text>
-              )}
-            </View>
             </TouchableWithoutFeedback>
           </ImageBackground>
         </TouchableWithoutFeedback>
       </KeyboardAwareScrollView>
 
       <View style={styles.bottomButtonContainer}>
-        <CommonButton
+        {isEdit?(
+                  <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            hitSlop={10}
+            onPress={()=>{
+              navigation.navigate('AdminScan', {
+              fullname: input.username,
+              employeecode: input.password,
+              isEdit
+            });
+            }}
+            style={styles.buttonCont}
+          >
+            <Text style={styles.buttonTxt}>Retake Face</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+          onPress={saveChanges}
+            activeOpacity={0.8}
+            hitSlop={10}
+            style={{...styles.buttonCont,backgroundColor:'#153CD8'}}
+          >
+            <Text style={{...styles.buttonTxt,color:'#FFFFFF'}}>Save Changes</Text>
+          </TouchableOpacity>
+        </View>
+
+        ):(
+               <CommonButton
           backgroundColor={'#153CD8'}
           title={'Next'}
           onPress={() => {
@@ -279,7 +347,7 @@ export default function AddEmployee({ navigation, route }) {
               employeecode: input.password,
             });
             Keyboard.dismiss();
-           setLogOut(false)
+            setLogOut(false);
             dispatch({
               type: 'UPDATE_USER_DATA',
               userData: {
@@ -290,6 +358,10 @@ export default function AddEmployee({ navigation, route }) {
           }}
           color={'#FFFFFF'}
         />
+        )}
+
+
+   
       </View>
     </View>
   );
@@ -308,7 +380,6 @@ const styles = StyleSheet.create({
     marginTop: SIZE(16),
     marginBottom: SIZE(38),
     justifyContent: 'space-between',
-
   },
 
   titleText: {
@@ -413,5 +484,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
 
     // justifyContent:'space-between'
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent:'space-between'
+  },
+  buttonCont: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderColor: '#153CD8',
+    borderWidth: 1,
+    width: SIZE(170),
+    height:SIZE(44),
+    borderRadius:SIZE(30)
+  },
+  buttonTxt: {
+    color: '#153CD8',
+    fontSize: SIZE(14),
+    lineHeight: SIZE(18),
+    fontFamily: Fonts.Regular,
   },
 });

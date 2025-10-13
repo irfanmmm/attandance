@@ -31,6 +31,8 @@ export default function Report({ navigation }) {
   const [data, setData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
 
+
+
   const code = state.userData.company_code;
 
   const dismissKeyboard = () => {

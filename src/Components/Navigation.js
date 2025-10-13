@@ -9,6 +9,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Login from './Login';
 import { useSelector } from 'react-redux';
 import Register from './Register';
+import VerifyEmail from './VerifyEmail';
 import { useContext } from 'react';
 import Store, { Context } from "./Redux/Store"
 
@@ -64,6 +65,7 @@ export default function BottomTabNavigator() {
           >
             <Stack.Screen name="Login" component={Login} />
             <Stack.Screen name="Register" component={Register} />
+            <Stack.Screen name="VerifyEmail" component={VerifyEmail} />
           </Stack.Navigator>
         )}
       </>

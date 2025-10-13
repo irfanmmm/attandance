@@ -39,10 +39,60 @@ export default function AdminScan({ navigation, route }) {
   const [failed, setFailed] = useState(false);
 
   const { state } = useContext(Context);
-  const code = state.userData.company_code;
-  const { fullname, employeecode } = route.params || {}; // Safely handle missing params
+  const code = state?.userData?.company_code;
+  const { fullname, employeecode } = route.params || {};
+  const { isEdit } = route?.params || {};
 
   const isUploadingRef = useRef(false);
+
+  const isEdite = async pictureUri => {
+    try {
+      const formData = new FormData();
+
+      formData.append('compony_code', code);
+      formData.append('file_0', {
+        uri: `file://${pictureUri}`,
+        name: `image.jpg`,
+        type: 'image/jpeg',
+      });
+      const editableDetails = JSON.stringify([
+        {
+          employee_id: employeecode,
+          action: 'E',
+          full_name: fullname,
+        },
+      ]);
+      formData.append('editable_details', editableDetails);
+
+      const response = await fetch(`${BASE_URL}edit-user`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          'Authentication failed. Please check your credentials.',
+        );
+      }
+
+      const data = await response.json();
+   
+
+      if (data?.message === 'success') {
+           navigation.navigate('AdminStatus',{isEdit});
+        // setData(data?.data);
+        // navigation.goBack()
+      } else {
+      }
+    } catch (err) {
+      // setData([]);
+
+      console.log('Authentication error:', err?.message);
+    }
+  };
 
   // Handle camera permissions
   useEffect(() => {
@@ -210,7 +260,7 @@ export default function AdminScan({ navigation, route }) {
         enableShutterSound: false,
       });
       console.log('Photo taken:', photo);
-      await uploadImage(photo.path);
+      isEdit ? await isEdite(photo?.path) : await uploadImage(photo?.path);
     } catch (error) {
       console.log('Picture taking error:', error);
       setStatus('Failed to verify, try again!');

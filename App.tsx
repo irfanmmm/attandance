@@ -12,6 +12,8 @@ import Navigation from './src/Components/Navigation';
 
 import allReducers from './src/Components/Redux/Reducer';
 import Store, { Context } from './src/Components/Redux/Store';
+import { SIZES } from './src/Components/utils/Styles';
+import { ToastProvider } from 'react-native-toast-notifications';
 
 
 // import BootSplash from 'react-native-bootsplash';
@@ -57,7 +59,27 @@ const App = () => {
         barStyle={'light-content'}
       />
       <Store>
+          <ToastProvider
+            animationDuration={1000}
+            placement="bottom"
+            successColor="#191C21"
+            dangerColor="red"
+            duration={1600}
+            warningColor="#FFC745"
+            offsetBottom={140}
+            style={{
+              width: SIZES.wp('90%'),
+              alignSelf: 'center',
+              borderRadius: SIZES.wp('2%'),
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 100,
+            }}
+            textStyle={{ fontSize: SIZES.wp('3.6%') }}
+          >
         <Navigation />
+        </ToastProvider>
       </Store>
     </View>
   );
