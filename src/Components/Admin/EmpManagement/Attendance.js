@@ -9,6 +9,7 @@ import {
   View,
   FlatList,
   ScrollView,
+  BackHandler,
 } from 'react-native';
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import LinearGradient from 'react-native-linear-gradient';
@@ -77,6 +78,25 @@ export default function Attendance({ navigation }) {
 
   const { state, dispatch } = useContext(Context);
   const code = state?.userData?.company_code;
+
+
+
+
+
+    useEffect(() => {
+      const backAction = () => {
+        // Navigate to the login page
+        navigation.navigate('EmpManagement'); // Replace 'Login' with your login screen name
+        return true; // Prevent default back action (e.g., exiting the app)
+      };
+      const backHandler = BackHandler.addEventListener(
+        'hardwareBackPress',
+        backAction,
+      );
+      return () => {
+        backHandler.remove(); // Cleanup when the component unmounts
+      };
+    }, [navigation]);
 
   const getEmpDetails = async date => {
     try {
@@ -236,38 +256,8 @@ export default function Attendance({ navigation }) {
         Keyboard.dismiss();
       }}
     >
+      
       <View style={styles.container}>
-        <LinearGradient
-          start={{ x: 0, y: 0 }}
-          end={{ x: 2, y: 0 }}
-          colors={['#022E95', '#4B87EE']}
-          style={{ ...styles.topContainer, paddingTop: insets.top + SIZE(20) }}
-        >
-          <View style={styles.topLeftContainer}>
-            <TouchableOpacity
-              activeOpacity={0.8}
-              hitSlop={8}
-              onPress={() => {
-                navigation.goBack();
-              }}
-            >
-              <BackIcon width={SIZE(24)} height={SIZE(24)} />
-            </TouchableOpacity>
-            <View style={{ marginLeft: SIZE(12) }}>
-              <Text style={styles.titleText}>Attendance Report</Text>
-              <Text style={styles.subTxt}>View or download reports</Text>
-            </View>
-          </View>
-          <View style={{ position: 'relative' }}>
-            <TouchableOpacity
-              activeOpacity={0.8}
-              hitSlop={8}
-              onPress={() => {
-                setLogOut(!isLogOut);
-              }}
-            >
-              <LogoutIcon width={SIZE(40)} height={SIZE(40)} />
-            </TouchableOpacity>
             {isLogOut && (
               <View style={styles.logOutContainer}>
                 <TouchableOpacity
@@ -297,6 +287,40 @@ export default function Attendance({ navigation }) {
                 </TouchableOpacity>
               </View>
             )}
+        <LinearGradient
+          start={{ x: 0, y: 0 }}
+          end={{ x: 2, y: 0 }}
+          colors={['#022E95', '#4B87EE']}
+          style={{ ...styles.topContainer,  }}
+        >
+          <View style={{...styles.topMidContainer,paddingTop: insets.top + SIZE(20)}}>
+          <View style={styles.topLeftContainer}>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              hitSlop={8}
+              onPress={() => {
+            navigation.navigate('EmpManagement'); 
+              }}
+            >
+              <BackIcon width={SIZE(24)} height={SIZE(24)} />
+            </TouchableOpacity>
+            <View style={{ marginLeft: SIZE(12) }}>
+              <Text style={styles.titleText}>Attendance Report</Text>
+              <Text style={styles.subTxt}>View or download reports</Text>
+            </View>
+          </View>
+          <View >
+            <TouchableOpacity
+              activeOpacity={0.8}
+              hitSlop={8}
+              onPress={() => {
+                setLogOut(!isLogOut);
+              }}
+            >
+              <LogoutIcon width={SIZE(40)} height={SIZE(40)} />
+            </TouchableOpacity>
+        
+          </View>
           </View>
         </LinearGradient>
         <View style={styles.bottomContainer}>
@@ -578,11 +602,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   topContainer: {
-    height: SIZE(150),
-    paddingHorizontal: SIZE(20),
+    // height: SIZE(150),
+  
+  },
+  topMidContainer:{
+      paddingHorizontal: SIZE(20),
     justifyContent: 'space-between',
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom:SIZE(25)
   },
   topLeftContainer: {
     flexDirection: 'row',
@@ -606,8 +634,8 @@ const styles = StyleSheet.create({
     height: SIZE(90),
     backgroundColor: '#ffffff',
     position: 'absolute',
-    top: 55,
-    right: 0,
+    top: 140,
+    right: 20,
     borderRadius: SIZE(20),
     padding: SIZE(20),
     justifyContent: 'center',

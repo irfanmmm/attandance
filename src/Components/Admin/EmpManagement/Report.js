@@ -8,6 +8,7 @@ import {
   Keyboard,
   TouchableWithoutFeedback,
   Platform,
+  BackHandler,
 } from 'react-native';
 import React, { useRef, useState, useContext, useEffect } from 'react';
 import { Fonts, SIZE } from '../../utils/Styles';
@@ -31,9 +32,26 @@ export default function Report({ navigation }) {
   const [data, setData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
 
-
-
   const code = state.userData.company_code;
+
+
+
+   useEffect(() => {
+      const backAction = () => {
+        // Navigate to the login page
+        navigation.navigate('EmpManagement'); // Replace 'Login' with your login screen name
+        return true; // Prevent default back action (e.g., exiting the app)
+      };
+      const backHandler = BackHandler.addEventListener(
+        'hardwareBackPress',
+        backAction,
+      );
+      return () => {
+        backHandler.remove(); 
+      };
+    }, [navigation]);
+
+
 
   const dismissKeyboard = () => {
     Keyboard.dismiss();
@@ -97,37 +115,36 @@ export default function Report({ navigation }) {
 
   return (
     <View style={styles.container}>
-      {isLogOut && (
-        <View style={styles.logOutContainers}>
-          <TouchableOpacity
-            hitSlop={8}
-            activeOpacity={0.8}
-            onPress={() => {
-              dispatch({
-                type: 'UPDATE_USER_DATA',
-                userData: {
-                  ...state.userData,
-                  is_logged: false,
-                },
-              });
-            }}
-            style={styles.logContaienr}
-          >
-            <Log width={SIZE(16)} height={SIZE(16)} />
-            <Text
-              style={{
-                color: '#1C54D7',
-                fontSize: SIZE(14),
-                marginLeft: SIZE(5),
-              }}
-            >
-              Logout
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
       {/* Wrap header in TouchableWithoutFeedback to dismiss keyboard */}
+          {isLogOut && (
+                  <View style={styles.logOutContainers}>
+                    <TouchableOpacity
+                      hitSlop={8}
+                      activeOpacity={0.8}
+                      onPress={() => {
+                        dispatch({
+                          type: 'UPDATE_USER_DATA',
+                          userData: {
+                            ...state.userData,
+                            is_logged: false,
+                          },
+                        });
+                      }}
+                      style={styles.logContaienr}
+                    >
+                      <Log width={SIZE(16)} height={SIZE(16)} />
+                      <Text
+                        style={{
+                          color: '#1C54D7',
+                          fontSize: SIZE(14),
+                          marginLeft: SIZE(5),
+                        }}
+                      >
+                        Logout
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
 
       <TouchableWithoutFeedback
         onPress={() => {
@@ -141,44 +158,46 @@ export default function Report({ navigation }) {
             style={styles.topContainer}
           >
             <TouchableWithoutFeedback
-            onPress={()=>{
-                    setLogOut(false);
-            }}
-            >
-            <View
-              style={{
-                ...styles.headerContainer,
-                paddingTop: insets.top + SIZE(40),
+              onPress={() => {
+                setLogOut(false);
               }}
             >
-              <View style={styles.subHead}>
+              <View
+                style={{
+                  ...styles.headerContainer,
+                  paddingTop: insets.top + SIZE(40),
+                }}
+              >
+                <View style={styles.subHead}>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    hitSlop={8}
+                    onPress={() => {
+                             navigation.navigate('EmpManagement'); // Replace 'Login' with your login screen name
+
+                      setLogOut(false);
+                    }}
+                  >
+                    <BackIcon width={SIZE(32)} height={SIZE(32)} />
+                  </TouchableOpacity>
+                  <View style={styles.headerContent}>
+                    <Text style={styles.titleTxt}>Attendance Report</Text>
+                    <Text style={styles.titleSubTxt}>
+                      View or download reports
+                    </Text>
+                  </View>
+                </View>
                 <TouchableOpacity
                   activeOpacity={0.8}
                   hitSlop={8}
                   onPress={() => {
-                    navigation.goBack();
-                          setLogOut(false)
+                    setLogOut(!isLogOut);
                   }}
                 >
-                  <BackIcon width={SIZE(32)} height={SIZE(32)} />
+                  <LogoutIcon width={SIZE(40)} height={SIZE(40)} />
                 </TouchableOpacity>
-                <View style={styles.headerContent}>
-                  <Text style={styles.titleTxt}>Attendance Report</Text>
-                  <Text style={styles.titleSubTxt}>
-                    View or download reports
-                  </Text>
-                </View>
+            
               </View>
-              <TouchableOpacity
-                activeOpacity={0.8}
-                hitSlop={8}
-                onPress={() => {
-                  setLogOut(!isLogOut);
-                }}
-              >
-                <LogoutIcon width={SIZE(40)} height={SIZE(40)} />
-              </TouchableOpacity>
-            </View>
             </TouchableWithoutFeedback>
           </LinearGradient>
         </View>
@@ -270,6 +289,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: SIZE(20),
     paddingBottom: SIZE(30),
+
   },
   subHead: {
     flexDirection: 'row',
@@ -295,7 +315,7 @@ const styles = StyleSheet.create({
     height: SIZE(90),
     backgroundColor: '#ffffff',
     position: 'absolute',
-    top: 120,
+    top: 150,
     right: 20,
     borderRadius: SIZE(20),
     padding: SIZE(20),

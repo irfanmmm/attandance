@@ -7,6 +7,7 @@ import {
   FlatList,
   StatusBar,
   Platform,
+  BackHandler,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 
@@ -42,6 +43,26 @@ export default function ReportSingleView({ route, navigation }) {
   //   const formatDateForAPI = date => {
   //     return date.toISOString().split('T')[0]; // e.g., '2025-10-01'
   //   };
+
+
+
+
+     useEffect(() => {
+        const backAction = () => {
+          // Navigate to the login page
+          navigation.navigate('Report'); // Replace 'Login' with your login screen name
+          return true; // Prevent default back action (e.g., exiting the app)
+        };
+        const backHandler = BackHandler.addEventListener(
+          'hardwareBackPress',
+          backAction,
+        );
+        return () => {
+          backHandler.remove(); 
+        };
+      }, [navigation]);
+
+
 
   const formatDateForAPI = date => {
     const year = date.getFullYear();
@@ -143,7 +164,7 @@ export default function ReportSingleView({ route, navigation }) {
             <TouchableOpacity
               activeOpacity={0.8}
               hitSlop={8}
-              onPress={() => navigation.goBack()}
+              onPress={() =>    navigation.navigate('Report')}
             >
               <BackArrow width={SIZE(24)} height={SIZE(24)} />
             </TouchableOpacity>

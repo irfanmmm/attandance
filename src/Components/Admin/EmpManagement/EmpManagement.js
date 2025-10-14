@@ -34,20 +34,20 @@ export default function EmpManagement({ navigation }) {
     navigation.navigate(Navigations[item.title]);
   };
 
-  // useEffect(() => {
-  //   const backAction = () => {
-  //     // Navigate to the login page
-  //     navigation.navigate('EmployeeStackNavigator'); // Replace 'Login' with your login screen name
-  //     return true; // Prevent default back action (e.g., exiting the app)
-  //   };
-  //   const backHandler = BackHandler.addEventListener(
-  //     'hardwareBackPress',
-  //     backAction,
-  //   );
-  //   return () => {
-  //     backHandler.remove(); // Cleanup when the component unmounts
-  //   };
-  // }, [navigation]);
+  useEffect(() => {
+    const backAction = () => {
+      // Navigate to the login page
+      navigation.navigate('Authentication'); // Replace 'Login' with your login screen name
+      return true; // Prevent default back action (e.g., exiting the app)
+    };
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      backAction,
+    );
+    return () => {
+      backHandler.remove(); 
+    };
+  }, [navigation]);
 
   const data = [
     {
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
     height: SIZE(90),
     backgroundColor: '#ffffff',
     position: 'absolute',
-    top: 105,
+    top: 130,
     right: 20,
     borderRadius: SIZE(20),
     padding: SIZE(20),

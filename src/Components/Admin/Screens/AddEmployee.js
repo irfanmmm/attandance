@@ -89,6 +89,27 @@ const saveChanges = async () => {
     }
   };
 
+
+         useEffect(() => {
+            const backAction = () => {
+              // Navigate to the login page
+              if(isEdit){
+              navigation.navigate('EmployeeManagement')
+              }else{
+
+                navigation.navigate('EmpManagement'); // Replace 'Login' with your login screen name
+              }
+              return true; // Prevent default back action (e.g., exiting the app)
+            };
+            const backHandler = BackHandler.addEventListener(
+              'hardwareBackPress',
+              backAction,
+            );
+            return () => {
+              backHandler.remove(); 
+            };
+          }, [navigation]);
+
   // const handleNavigate = async () => {
   //     const newError = { usernameErr: !input.username.trim(), passwordErr: !input.password.trim() };
   //     setError(newError);
@@ -153,7 +174,7 @@ const saveChanges = async () => {
                     activeOpacity={0.8}
                     hitSlop={5}
                     onPress={() => {
-                      isEdit?navigation.goBack():navigation.navigate('EmpManagement');
+                      isEdit?navigation.navigate('EmployeeManagement'):navigation.navigate('EmpManagement');
                       
                       
                       setLogOut(false);
@@ -252,6 +273,7 @@ const saveChanges = async () => {
                       placeholder="Enter name"
                       onChangeText={text => {
                         handleChange('username', text);
+                        setError(prev => ({ ...prev, usernameErr: false }));
                       }}
                     />
                   </View>
@@ -290,6 +312,7 @@ const saveChanges = async () => {
                       placeholder="Enter code"
                       onChangeText={text => {
                         handleChange('password', text);
+                         setError(prev => ({ ...prev, passwordErr: false }));
                       }}
                     />
                   </View>
@@ -313,7 +336,8 @@ const saveChanges = async () => {
               navigation.navigate('AdminScan', {
               fullname: input.username,
               employeecode: input.password,
-              isEdit
+              isEdit,
+              selectedData:selectedData
             });
             }}
             style={styles.buttonCont}
@@ -335,17 +359,27 @@ const saveChanges = async () => {
           backgroundColor={'#153CD8'}
           title={'Next'}
           onPress={() => {
+          
+            
             const newError = {
+            
+              
               usernameErr: !input.username.trim(),
               passwordErr: !input.password.trim(),
             };
+              console.log(newError?.passwordErr,'ddd');
             if (newError.usernameErr || newError.passwordErr) {
-              return;
-            }
+               setError({ 
+                usernameErr:newError.usernameErr,
+                passwordErr:newError.passwordErr
+               } )
+            }else{
             navigation.navigate('AdminScan', {
               fullname: input.username,
               employeecode: input.password,
             });
+            }
+           
             Keyboard.dismiss();
             setLogOut(false);
             dispatch({

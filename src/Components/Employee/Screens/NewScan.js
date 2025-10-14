@@ -255,6 +255,8 @@ const NewScan = ({ navigation }) => {
       updateState({ status: 'Response received', loading: false });
 
       if (data.message === 'success') {
+   
+        
         navigation.navigate('Status', {
           username: data?.details?.fullname,
           direction: data?.details?.direction,

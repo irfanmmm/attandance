@@ -40,7 +40,7 @@ const AdminStackNavigator = () => {
   const Stack = createNativeStackNavigator();
   return (
     <Stack.Navigator
-      initialRouteName="EmployeeManagement"
+      initialRouteName="NewScan"
       screenOptions={{ headerShown: true }}
     >
       <Stack.Group>

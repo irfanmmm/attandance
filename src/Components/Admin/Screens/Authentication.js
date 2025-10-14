@@ -108,6 +108,26 @@ export default function Authentication() {
     }
   };
 
+
+
+    useEffect(() => {
+      const backAction = () => {
+        // Navigate to the login page
+        navigation.navigate('NewScan'); // Replace 'Login' with your login screen name
+        return true; // Prevent default back action (e.g., exiting the app)
+      };
+      const backHandler = BackHandler.addEventListener(
+        'hardwareBackPress',
+        backAction
+      );
+      return () => {
+        backHandler.remove(); // Cleanup when the component unmounts
+      };
+    }, [navigation]);
+
+
+
+
   return (
     <View
       // source={require('../../../assets/adminBackround.png')}
@@ -138,7 +158,7 @@ export default function Authentication() {
               <View style={styles.haederContainer}>
                 <TouchableOpacity
                   onPress={() => {
-                    navigation.goBack();
+                      navigation.navigate('NewScan'); 
                           setLogOut(false)
                   }}
                 >

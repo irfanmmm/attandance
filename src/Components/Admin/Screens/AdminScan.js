@@ -42,6 +42,8 @@ export default function AdminScan({ navigation, route }) {
   const code = state?.userData?.company_code;
   const { fullname, employeecode } = route.params || {};
   const { isEdit } = route?.params || {};
+  const { selectedData } = route?.params || {};
+
 
   const isUploadingRef = useRef(false);
 
@@ -93,6 +95,34 @@ export default function AdminScan({ navigation, route }) {
       console.log('Authentication error:', err?.message);
     }
   };
+
+
+
+
+           useEffect(() => {
+              const backAction = () => {
+                // Navigate to the login page
+                if(isEdit){
+                 navigation.navigate('AddEmployee',{
+                isEdit,
+                selectedData:selectedData
+                })
+                }else{
+                  navigation.navigate('AddEmployee')
+                }
+               
+                return true; // Prevent default back action (e.g., exiting the app)
+              };
+              const backHandler = BackHandler.addEventListener(
+                'hardwareBackPress',
+                backAction,
+              );
+              return () => {
+                backHandler.remove(); 
+              };
+            }, [navigation]);
+
+
 
   // Handle camera permissions
   useEffect(() => {

@@ -9,8 +9,15 @@ import {
   TextInput,
   ScrollView,
   Modal,
+  BackHandler,
 } from 'react-native';
-import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import { Fonts, SIZE } from '../../utils/Styles';
@@ -95,8 +102,6 @@ export default function EmployeeManagement({ navigation }) {
     }
   };
 
-  
-
   const deleteEmployee = async () => {
     try {
       const formData = new FormData();
@@ -118,7 +123,6 @@ export default function EmployeeManagement({ navigation }) {
         body: formData,
       });
 
-
       if (!response.ok) {
         throw new Error(
           'Authentication failed. Please check your credentials.',
@@ -130,7 +134,7 @@ export default function EmployeeManagement({ navigation }) {
 
       if (data?.message === 'success') {
         // setData(data?.data);
-        getEmpDetails()
+        getEmpDetails();
       } else {
       }
     } catch (err) {
@@ -139,13 +143,27 @@ export default function EmployeeManagement({ navigation }) {
       console.log('Authentication error:', err?.message);
     }
   };
-  
 
-useFocusEffect(
-  useCallback(() => {
-    getEmpDetails();
-  }, [])
-);
+  useEffect(() => {
+    const backAction = () => {
+      // Navigate to the login page
+      navigation.navigate('EmpManagement'); // Replace 'Login' with your login screen name
+      return true; // Prevent default back action (e.g., exiting the app)
+    };
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      backAction,
+    );
+    return () => {
+      backHandler.remove();
+    };
+  }, [navigation]);
+
+  useFocusEffect(
+    useCallback(() => {
+      getEmpDetails();
+    }, []),
+  );
 
   return (
     <TouchableWithoutFeedback
@@ -155,66 +173,73 @@ useFocusEffect(
       }}
     >
       <View style={styles.container}>
+        {isLogOut && (
+          <View style={styles.logOutContainer}>
+            <TouchableOpacity
+              hitSlop={8}
+              activeOpacity={0.8}
+              onPress={() => {
+                dispatch({
+                  type: 'UPDATE_USER_DATA',
+                  userData: {
+                    ...state.userData,
+                    is_logged: false,
+                  },
+                });
+              }}
+              style={styles.logContaienr}
+            >
+              <Log width={SIZE(16)} height={SIZE(16)} />
+              <Text
+                style={{
+                  color: '#1C54D7',
+                  fontSize: SIZE(14),
+                  marginLeft: SIZE(5),
+                }}
+              >
+                Logout
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
         <LinearGradient
           start={{ x: 0, y: 0 }}
           end={{ x: 2, y: 0 }}
           colors={['#022E95', '#4B87EE']}
-          style={{ ...styles.topContainer, paddingTop: insets.top + SIZE(20) }}
+          style={{ ...styles.topContainer }}
         >
-          <View style={styles.topLeftContainer}>
-            <TouchableOpacity
-              activeOpacity={0.8}
-              hitSlop={8}
-              onPress={() => {
-                navigation.navigate('EmpManagement');
-              }}
-            >
-              <BackIcon width={SIZE(24)} height={SIZE(24)} />
-            </TouchableOpacity>
-            <View style={{ marginLeft: SIZE(12) }}>
-              <Text style={styles.titleText}>Employee Management</Text>
-              <Text style={styles.subTxt}>Manage employee details.</Text>
-            </View>
-          </View>
-          <View style={{ position: 'relative' }}>
-            <TouchableOpacity
-              activeOpacity={0.8}
-              hitSlop={8}
-              onPress={() => {
-                setLogOut(!isLogOut);
-              }}
-            >
-              <LogoutIcon width={SIZE(40)} height={SIZE(40)} />
-            </TouchableOpacity>
-            {isLogOut && (
-              <View style={styles.logOutContainer}>
-                <TouchableOpacity
-                  hitSlop={8}
-                  activeOpacity={0.8}
-                  onPress={() => {
-                    dispatch({
-                      type: 'UPDATE_USER_DATA',
-                      userData: {
-                        ...state.userData,
-                        is_logged: false,
-                      },
-                    });
-                  }}
-                  style={styles.logContaienr}
-                >
-                  <Log width={SIZE(16)} height={SIZE(16)} />
-                  <Text
-                    style={{
-                      color: '#1C54D7',
-                      fontSize: SIZE(14),
-                      marginLeft: SIZE(5),
-                    }}
-                  >
-                    Logout
-                  </Text>
-                </TouchableOpacity>
+          <View
+            style={{
+              ...styles.topMidContainer,
+              paddingTop: insets.top + SIZE(20),
+            }}
+          >
+            <View style={styles.topLeftContainer}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                hitSlop={8}
+                onPress={() => {
+                  navigation.navigate('EmpManagement');
+                }}
+              >
+                <BackIcon width={SIZE(24)} height={SIZE(24)} />
+              </TouchableOpacity>
+              <View style={{ marginLeft: SIZE(12) }}>
+                <Text style={styles.titleText}>Employee Management</Text>
+                <Text style={styles.subTxt}>Manage employee details.</Text>
               </View>
-            )}
+            </View>
+            <View>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                hitSlop={8}
+                onPress={() => {
+                  setLogOut(!isLogOut);
+                }}
+              >
+                <LogoutIcon width={SIZE(40)} height={SIZE(40)} />
+              </TouchableOpacity>
+            </View>
           </View>
         </LinearGradient>
         <View style={styles.contentContainer}>
@@ -238,67 +263,69 @@ useFocusEffect(
               onChangeText={handleSearch}
             />
           </TouchableOpacity>
-          <View style={{ flex: 1 }}>
+          {/* <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}> */}
             <ScrollView
+            bounces={false}
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={
-                {
-                  // paddingHorizontal: SIZE(20),
-                  // paddingBottom: SIZE(20),
-                }
-              }
+           contentContainerStyle={{
+             flexGrow: 1,
+              backgroundColor: '#FFFFFF'
+             }}
             >
-              {filteredData?.length > 0 ? (
-                filteredData.map((item, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.tabContainer}
-                    activeOpacity={1}
-                    hitSlop={5}
-                    onPress={() => {
-                      Keyboard.dismiss();
-                      setLogOut(false);
-                    }}
-                  >
-                    <View style={styles.tabLeft}>
-                      <EmpIcon width={SIZE(44)} height={SIZE(44)} />
-                      <View style={styles.content}>
-                        <Text style={styles.empName}>{item?.fullname}</Text>
-                        <Text style={styles.empId}>{item?.employee_code}</Text>
-                      </View>
+            {filteredData?.length > 0 ? (
+              filteredData.map((item, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.tabContainer}
+                  activeOpacity={1}
+                  hitSlop={5}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    setLogOut(false);
+                  }}
+                >
+                  <View style={styles.tabLeft}>
+                    <EmpIcon width={SIZE(44)} height={SIZE(44)} />
+                    <View style={styles.content}>
+                      <Text style={styles.empName}>{item?.fullname}</Text>
+                      <Text style={styles.empId}>{item?.employee_code}</Text>
                     </View>
-                    <View style={styles.tabRight}>
-                      <TouchableOpacity
-                        onPress={() => {
-                          navigation.navigate('AddEmployee', { isEdit: true,selectedData:item });
-                        }}
-                        activeOpacity={0.8}
-                        hitSlop={8}
-                      >
-                        <EditIcon width={SIZE(22)} height={SIZE(22)} />
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        onPress={() => {
-                          setModal(true);
-                          setSelectedData(item);
-                        }}
-                        activeOpacity={0.8}
-                        hitSlop={8}
-                      >
-                        <DeleteIcon width={SIZE(22)} height={SIZE(22)} />
-                      </TouchableOpacity>
-                    </View>
-                  </TouchableOpacity>
-                ))
-              ) : (
-                <View style={{ alignItems: 'center', marginTop: SIZE(50) }}>
-                  <Text style={{ fontSize: SIZE(16), color: '#484848' }}>
-                    No records found
-                  </Text>
-                </View>
-              )}
+                  </View>
+                  <View style={styles.tabRight}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        navigation.navigate('AddEmployee', {
+                          isEdit: true,
+                          selectedData: item,
+                        });
+                      }}
+                      activeOpacity={0.8}
+                      hitSlop={8}
+                    >
+                      <EditIcon width={SIZE(22)} height={SIZE(22)} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setModal(true);
+                        setSelectedData(item);
+                      }}
+                      activeOpacity={0.8}
+                      hitSlop={8}
+                    >
+                      <DeleteIcon width={SIZE(22)} height={SIZE(22)} />
+                    </TouchableOpacity>
+                  </View>
+                </TouchableOpacity>
+              ))
+            ) : (
+              <View style={{ alignItems: 'center', marginTop: SIZE(50) }}>
+                <Text style={{ fontSize: SIZE(16), color: '#484848' }}>
+                  No records found
+                </Text>
+              </View>
+            )}
             </ScrollView>
-          </View>
+          {/* </View> */}
         </View>
 
         {/* Modal - Moved outside ScrollView */}
@@ -355,14 +382,21 @@ useFocusEffect(
 
 const styles = StyleSheet.create({
   container: {
-    // flex: 1,
+    flex: 1,
   },
   topContainer: {
-    height: SIZE(150),
-    paddingHorizontal: SIZE(20),
+    // height: SIZE(150),
+  
+    // paddingHorizontal: SIZE(20),
+
+    // alignItems: 'center',
+  },
+  topMidContainer: {
     justifyContent: 'space-between',
     flexDirection: 'row',
-    alignItems: 'center',
+    paddingHorizontal: SIZE(20),
+    marginBottom:SIZE(25)
+    
   },
   topLeftContainer: {
     flexDirection: 'row',
@@ -386,8 +420,8 @@ const styles = StyleSheet.create({
     height: SIZE(90),
     backgroundColor: '#ffffff',
     position: 'absolute',
-    top: 55,
-    right: 0,
+    top: 130,
+    right: 20,
     borderRadius: SIZE(20),
     padding: SIZE(20),
     justifyContent: 'center',
