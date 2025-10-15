@@ -38,6 +38,9 @@ export default function EmployeeManagement({ navigation }) {
   const { state, dispatch } = useContext(Context);
   const code = state?.userData?.company_code;
 
+  console.log(code,'ddd');
+  
+
   const inputRef = useRef(null);
 
   const [isLogOut, setLogOut] = useState(false);
@@ -55,12 +58,13 @@ export default function EmployeeManagement({ navigation }) {
     } else {
       // Filter data based on search query
       const filtered = data.filter(item => {
-        const fullname = item.fullname?.toLowerCase() || '';
-        const employeeCode = item.employee_code?.toLowerCase() || '';
+        const fullname = item?.fullname?.toLowerCase() || '';
+        const employeeCode = item?.employee_code?.toLowerCase() || '';
+        const branch = item?.branch?.toLowerCase() || '';
         const searchText = text.toLowerCase();
 
         return (
-          fullname.includes(searchText) || employeeCode.includes(searchText)
+          fullname.includes(searchText) || employeeCode.includes(searchText)||branch.includes(searchText)
         );
       });
       setFilteredData(filtered);
@@ -91,6 +95,8 @@ export default function EmployeeManagement({ navigation }) {
 
       if (data?.message === 'success') {
         setFilteredData(data?.data);
+        console.log(data?.data,'data?.datadata?.datadata?.datadata?.data');
+        
 
         // setData(data?.data);
       } else {
@@ -102,7 +108,12 @@ export default function EmployeeManagement({ navigation }) {
     }
   };
 
+  console.log('selec',selectedData);
+  
+
   const deleteEmployee = async () => {
+    console.log('fhfhfh');
+    
     try {
       const formData = new FormData();
       formData.append('compony_code', code);
@@ -111,9 +122,12 @@ export default function EmployeeManagement({ navigation }) {
           employee_id: selectedData?.employee_code,
           action: 'D',
           full_name: selectedData?.fullname,
+          branch:selectedData?.branch
         },
       ]);
+      
       formData.append('editable_details', editableDetails);
+      console.log(formData);
 
       const response = await fetch(`${BASE_URL}edit-user`, {
         method: 'POST',
@@ -123,14 +137,13 @@ export default function EmployeeManagement({ navigation }) {
         body: formData,
       });
 
-      if (!response.ok) {
-        throw new Error(
-          'Authentication failed. Please check your credentials.',
-        );
-      }
-
+      // if (!response.ok) {
+      //   throw new Error(
+      //     'Authentication failed. Please check your credentials.',,
+      //   );
+      // }
       const data = await response.json();
-      // console.log(data.data, 'deleteemol');
+      console.log(data.data, 'deleteemol');
 
       if (data?.message === 'success') {
         // setData(data?.data);
@@ -139,6 +152,8 @@ export default function EmployeeManagement({ navigation }) {
       }
     } catch (err) {
       // setData([]);
+      console.log('dhdhdh',JSON.stringify(err));
+      
 
       console.log('Authentication error:', err?.message);
     }
@@ -289,6 +304,7 @@ export default function EmployeeManagement({ navigation }) {
                     <View style={styles.content}>
                       <Text style={styles.empName}>{item?.fullname}</Text>
                       <Text style={styles.empId}>{item?.employee_code}</Text>
+                  
                     </View>
                   </View>
                   <View style={styles.tabRight}>

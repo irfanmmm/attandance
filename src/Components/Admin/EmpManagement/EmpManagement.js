@@ -24,6 +24,7 @@ const Navigations = {
   Attendance: 'Attendance',
   'Attendance Report': 'Report',
   'Employee Management': 'EmployeeManagement',
+  'Add Branches':'AddBranch'
 };
 export default function EmpManagement({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -52,7 +53,7 @@ export default function EmpManagement({ navigation }) {
   const data = [
     {
       title: 'Attendance',
-      subTxt: 'Mark attendance and leaves.',
+      subTxt: 'Mark attendance and leaves',
       icon: <Profiles width={SIZE(20)} height={SIZE(20)} />,
     },
     {
@@ -62,7 +63,12 @@ export default function EmpManagement({ navigation }) {
     },
     {
       title: 'Employee Management',
-      subTxt: 'Manage employee details.',
+      subTxt: 'Manage employee details',
+      icon: <Employee width={SIZE(20)} height={SIZE(20)} />,
+    },
+       {
+      title: 'Add Branches',
+      subTxt: 'Create and manage company branches.',
       icon: <Employee width={SIZE(20)} height={SIZE(20)} />,
     },
   ];

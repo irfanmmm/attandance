@@ -15,6 +15,7 @@ import NewScan from "../Employee/Screens/NewScan";
 import Status from '../Employee/Screens/Status';
 import OnBoarding from "../Employee/OnBoarding";
 import ReportSingleView from "./EmpManagement/ReportSingleView";
+import AddBranch from "./EmpManagement/AddBranch";
 
 
 
@@ -54,10 +55,11 @@ const AdminStackNavigator = () => {
         <Stack.Screen options={{headerShown:false}} name="ReportStatus" component={ReportStatus} />
         <Stack.Screen options={{headerShown:false}} name="Attendance" component={Attendance} />
         <Stack.Screen options={{headerShown:false}} name="EmployeeManagement" component={EmployeeManagement} />
-         <Stack.Screen  options={{headerShown:false}} name="NewScan" component={NewScan} />
+         <Stack.Screen options={{headerShown:false}} name="NewScan" component={NewScan} />
         <Stack.Screen options={{headerShown:false}} name="Status" component={Status} />
         <Stack.Screen options={{headerShown:false}} name="onBoarding" component={OnBoarding} />
         <Stack.Screen options={{headerShown:false}} name="ReportSingleView" component={ReportSingleView} />
+        <Stack.Screen options={{headerShown:false}} name="AddBranch" component={AddBranch} />
       
       </Stack.Group>
     </Stack.Navigator>

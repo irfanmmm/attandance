@@ -40,10 +40,14 @@ export default function AdminScan({ navigation, route }) {
 
   const { state } = useContext(Context);
   const code = state?.userData?.company_code;
-  const { fullname, employeecode } = route.params || {};
-  const { isEdit } = route?.params || {};
-  const { selectedData } = route?.params || {};
+  const { fullname, employeecode, isEdit, selectedData, branch,isNewScan } =
+    route.params || {};
+  // const { isEdit } = route?.params || {};
+  // const { selectedData } = route?.params || {};
+  // const { branch } = route?.params || {};
 
+  console.log('isdhdhsca',isNewScan);
+  
 
   const isUploadingRef = useRef(false);
 
@@ -62,6 +66,7 @@ export default function AdminScan({ navigation, route }) {
           employee_id: employeecode,
           action: 'E',
           full_name: fullname,
+          branch: branch,
         },
       ]);
       formData.append('editable_details', editableDetails);
@@ -81,10 +86,9 @@ export default function AdminScan({ navigation, route }) {
       }
 
       const data = await response.json();
-   
 
       if (data?.message === 'success') {
-           navigation.navigate('AdminStatus',{isEdit});
+        navigation.navigate('AdminStatus', { isEdit });
         // setData(data?.data);
         // navigation.goBack()
       } else {
@@ -96,33 +100,32 @@ export default function AdminScan({ navigation, route }) {
     }
   };
 
+  useEffect(() => {
+    const backAction = () => {
+      // Navigate to the login page
+      if (isEdit) {
+        navigation.navigate('AddEmployee', {
+          isEdit,
+          selectedData: selectedData,
+          
+         
+        });
+      } else {
+        navigation.navigate('AddEmployee',{
+          isNewScan
+        });
+      }
 
-
-
-           useEffect(() => {
-              const backAction = () => {
-                // Navigate to the login page
-                if(isEdit){
-                 navigation.navigate('AddEmployee',{
-                isEdit,
-                selectedData:selectedData
-                })
-                }else{
-                  navigation.navigate('AddEmployee')
-                }
-               
-                return true; // Prevent default back action (e.g., exiting the app)
-              };
-              const backHandler = BackHandler.addEventListener(
-                'hardwareBackPress',
-                backAction,
-              );
-              return () => {
-                backHandler.remove(); 
-              };
-            }, [navigation]);
-
-
+      return true; // Prevent default back action (e.g., exiting the app)
+    };
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      backAction,
+    );
+    return () => {
+      backHandler.remove();
+    };
+  }, [navigation]);
 
   // Handle camera permissions
   useEffect(() => {
@@ -240,6 +243,7 @@ export default function AdminScan({ navigation, route }) {
       formData.append('fullname', fullname);
       formData.append('employeecode', employeecode);
       formData.append('compony_code', code);
+      formData.append('branch', branch);
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000);

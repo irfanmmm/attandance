@@ -30,6 +30,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
 import { SystemBars } from 'react-native-edge-to-edge';
 import OnBoarding from '../OnBoarding';
+import Geolocation from '@react-native-community/geolocation';
 
 const xyzFrameProcessor = VisionCameraProxy.initFrameProcessorPlugin('xyz', {
   model: 'fast',
@@ -38,9 +39,15 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 const NewScan = ({ navigation }) => {
   const device = useCameraDevice('front');
+  const refLocation = useRef(null);
   const [isActive, setIsActive] = useState(false);
   const [permission, setPermission] = useState(null);
+  const [locationPermission, setLocationPermission] = useState(null);
+  const [locationLoad, setLocationLoad] = useState(false);
   const camera = useRef(null);
+  const latituderef = useRef(null);
+  const longituderef = useRef(null);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
   const [isFrameProcessorEnabled, setIsFrameProcessorEnabled] = useState(true);
@@ -52,6 +59,7 @@ const NewScan = ({ navigation }) => {
   const { state } = useContext(Context);
   const code = state.userData.company_code;
   const [showModal, setShowModal] = useState(false);
+  const [hasAskedPermission, setHasAskedPermission] = useState(false);
   const [landMarks, setLandMarks] = useState({
     left: 0,
     top: 0,
@@ -59,8 +67,13 @@ const NewScan = ({ navigation }) => {
     height: 0,
     right: 0,
     bottom: 0,
-
   });
+
+  // const [currentLocation, setCurrentLocation] = useState({
+  //   latitude:null,
+  //   longitude:null,
+
+  // });
 
   const abortControllerRef = useRef(null);
   // const inactivityTimer = useRef(null);
@@ -96,8 +109,7 @@ const NewScan = ({ navigation }) => {
   //   );
   //   return () => backHandler.remove();
   // }, []);
-
-
+  // console.log(currentLocation, 'Fetching current location');
 
   // Handle camera permission
   useEffect(() => {
@@ -113,13 +125,17 @@ const NewScan = ({ navigation }) => {
         console.log('Camera permission status:', status);
 
         if (status === RESULTS.GRANTED) {
+          getLocationPermission()
           setPermission('authorized');
         } else if (status === RESULTS.DENIED) {
           // Request permission
           const result = await request(cameraPermission);
           console.log('Permission request result:', result);
+          getLocationPermission()
+
           setPermission(result === RESULTS.GRANTED ? 'authorized' : result);
           if (result === RESULTS.DENIED || result === RESULTS.BLOCKED) {
+            getLocationPermission()
             Alert.alert(
               'Camera Permission Required',
               'Please enable camera access in settings to use this feature.',
@@ -133,6 +149,7 @@ const NewScan = ({ navigation }) => {
             );
           }
         } else if (status === RESULTS.BLOCKED) {
+          getLocationPermission()
           setPermission('blocked');
           Alert.alert(
             'Camera Permission Blocked',
@@ -152,15 +169,141 @@ const NewScan = ({ navigation }) => {
     checkCameraPermission();
   }, []);
 
+  const getLocationPermission = async () => {
+    try {
+      const locationPermission =
+        Platform.OS === 'ios'
+          ? PERMISSIONS.IOS.LOCATION_WHEN_IN_USE
+          : PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION;
+
+      const status = await check(locationPermission);
+
+      if (status === RESULTS.GRANTED) {
+        setLocationPermission('authorized');
+   
+        
+        getCurrentLocation();
+
+      } else if (status === RESULTS.DENIED) {
+        const result = await request(locationPermission);
+         setHasAskedPermission(true);
+
+        //  getLocationPermission()
+
+        if (result === RESULTS.GRANTED) {
+          getCurrentLocation();
+        }
+
+        setLocationPermission(
+          result === RESULTS.GRANTED ? 'authorized' : result,
+        );
+
+        if (result === RESULTS.DENIED || result === RESULTS.BLOCKED) {
+          Alert.alert(
+            'Location Permission Required',
+            'Please enable location access in settings to use this feature.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              {
+                text: 'Open Settings',
+                onPress: () => Linking.openSettings(),
+              },
+            ],
+          );
+        }
+      } else if (status === RESULTS.BLOCKED) {
+           setHasAskedPermission(true);
+        setLocationPermission('blocked');
+        Alert.alert(
+          'Location Permission Blocked',
+          'Location access is blocked. Please enable it in settings.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => Linking.openSettings() },
+          ],
+        );
+      }
+    } catch (err) {
+      console.log('Permission check error:', err);
+      setLocationPermission('error');
+    }
+  };
+
+  const getCurrentLocation = () => {
+    console.log('🌍 Starting location tracking...');
+    updateState({
+      loading: true,
+      status: 'Reading your locaion',
+    });
+
+    // Get immediate location first
+    Geolocation.getCurrentPosition(
+      position => {
+        const { latitude, longitude } = position.coords;
+        console.log('login', latitude);
+
+        updateState({ status: 'Verifying identity...' });
+
+        latituderef.current = latitude;
+        longituderef.current = longitude;
+
+        //  longitude });
+      },
+      error => {
+        console.log('❌ getCurrentPosition error:', error);
+        updateState({ status: 'your location not capture' });
+        getCurrentLocation()
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 20000,
+        // // fastestInterval: 0,
+        // // useSignificantChanges:true,
+        // interval:1,
+        maximumAge: 10,
+        //  distanceFilter: 0
+      },
+    );
+
+    // Then watch for continuous updates
+    // if (refLocation.current) {
+    //   Geolocation.clearWatch(refLocation.current);
+    // }
+
+    // refLocation.current = Geolocation.watchPosition(
+    //   position => {
+    //     const { latitude, longitude } = position.coords;
+    //     console.log('📍 Location updated:', latitude, longitude);
+    //     setCurrentLocation({ latitude, longitude });
+    //   },
+    //   error => {
+    //     console.log('❌ watchPosition error:', error);
+    //   },
+    //   {
+    //     enableHighAccuracy: true,
+    //     timeout: 5000,
+    //     maximumAge: 0,
+    //     distanceFilter: 0, // Get updates on every change
+    //   }
+    // );
+  };
+
+ 
+useEffect(() => {
+  if (!hasAskedPermission) {
+    getLocationPermission();
+  }
+}, [hasAskedPermission]);
+
   useFocusEffect(
     React.useCallback(() => {
       setIsActive(true);
       // startTimer();
       return () => {
         setIsActive(false);
-        // if (inactivityTimer.current) {
-        //   clearTimeout(inactivityTimer.current);
-        // }
+        if (refLocation.current) {
+          Geolocation.clearWatch(refLocation.current);
+        }
 
         if (abortControllerRef.current) {
           abortControllerRef.current.abort();
@@ -185,21 +328,40 @@ const NewScan = ({ navigation }) => {
         case 'processing':
           setIsProcessing(value);
           break;
+        default:
       }
     });
   };
 
+
+
+  useEffect(() => {
+  const backAction = () => {
+    // Exit the app directly
+    BackHandler.exitApp();
+    return true; // prevent default navigation behavior
+  };
+
+  const backHandler = BackHandler.addEventListener(
+    'hardwareBackPress',
+    backAction
+  );
+
+  return () => backHandler.remove(); // cleanup on unmount
+}, []);
+
+
   const drawFaceBox = (face, frameWidth, frameHeight) => {
     if (!device) return { left: 0, top: 0, width: 0, height: 0 };
-  return {
-    left: face.left ,                 // ML Kit already gives correct left
-    top:  face.top,
-    right:  face.right,                  // ML Kit already gives correct top
-    bottom:  face.bottom,                  // ML Kit already gives correct top
-                      // ML Kit already gives correct top
-    width: face.width,
-    height: face.height
-  };
+    return {
+      left: face.left, // ML Kit already gives correct left
+      top: face.top,
+      right: face.right, // ML Kit already gives correct top
+      bottom: face.bottom, // ML Kit already gives correct top
+      // ML Kit already gives correct top
+      width: face.width,
+      height: face.height,
+    };
   };
 
   const captureFrame = Worklets.createRunOnJS(async facelandmarks => {
@@ -209,13 +371,12 @@ const NewScan = ({ navigation }) => {
     }
 
     // console.log(facelandmarks);
-    
 
     isCapturingRef.current = true;
 
     try {
       setLoading(true);
-      updateState({ status: 'Verifying identity...'});
+      updateState({ status: 'Verifying identity...' });
 
       // if(Platform.OS === 'ios')
       setIsFrameProcessorEnabled(false);
@@ -236,9 +397,16 @@ const NewScan = ({ navigation }) => {
       });
       formData.append('compony_code', code);
 
+      console.log(latituderef.current, 'currentLocation?.latitude');
+      formData.append('latitude', latituderef.current ?? '');
+      formData.append('longitude', longituderef.current ?? '');
+
       // const controller = new AbortController();
       abortControllerRef.current = new AbortController();
-      const timeoutId = setTimeout(() => abortControllerRef?.current?.abort(), 15000);
+      const timeoutId = setTimeout(
+        () => abortControllerRef?.current?.abort(),
+        15000,
+      );
 
       const response = await fetch(`${BASE_URL}compare-face`, {
         method: 'POST',
@@ -250,13 +418,11 @@ const NewScan = ({ navigation }) => {
 
       const data = await response.json();
 
-      
       console.log(data?.details?.direction, 'fgh');
       updateState({ status: 'Response received', loading: false });
 
-      if (data.message === 'success') {
    
-        
+      if (data.message === 'success') {
         navigation.navigate('Status', {
           username: data?.details?.fullname,
           direction: data?.details?.direction,
@@ -267,7 +433,7 @@ const NewScan = ({ navigation }) => {
       } else {
         updateState({
           error: true,
-          status: 'Face not recognized. Try again.',
+          status: data?.message || 'Face not recognized. Try again.',
           processing: false,
         });
         setLoading(false);
@@ -290,7 +456,6 @@ const NewScan = ({ navigation }) => {
       isCapturingRef.current = false;
     } finally {
       setTimeout(() => {
-        
         setIsFrameProcessorEnabled(true);
       }, 2000);
     }
@@ -300,8 +465,8 @@ const NewScan = ({ navigation }) => {
     'worklet';
     const result = xyzFrameProcessor?.call(frame);
     console.log(result);
-    
-    if(result.faces === 1){
+
+    if (result.faces === 1) {
       captureFrame(result);
     }
   }, []);
@@ -312,7 +477,9 @@ const NewScan = ({ navigation }) => {
   }, [isFrameProcessorEnabled]);
 
   const navigateToAdmin = () => {
-    navigation.navigate('Authentication');
+    navigation.navigate('AddEmployee',{
+      isNewScan:true
+    });
     setIsActive(false);
   };
 
@@ -341,7 +508,6 @@ const NewScan = ({ navigation }) => {
       </View>
     );
   }
-
   if (!permission || permission === 'denied' || permission === 'blocked') {
     return (
       <View style={styles.cameraLoadingContainer}>
@@ -377,11 +543,8 @@ const NewScan = ({ navigation }) => {
     );
   }
 
-
-
-
   return (
-    <View style={{ flex:1}}>
+    <View style={{ flex: 1 }}>
       <Camera
         device={device}
         format={format}
@@ -415,12 +578,28 @@ const NewScan = ({ navigation }) => {
       <View style={styles.header}>
         <TouchableOpacity
           hitSlop={10}
-          onPress={navigateToAdmin}
+          onPress={()=>{
+            navigation.navigate('Authentication')
+          }}
           style={styles.adminButton}
           activeOpacity={0.7}
         >
           <Text allowFontScaling={false} style={styles.adminText}>
             Admin
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+
+        <View style={{...styles.header,left: 20, right: undefined }}>
+        <TouchableOpacity
+          hitSlop={10}
+          onPress={navigateToAdmin}
+          style={styles.adminButton}
+          activeOpacity={0.7}
+        >
+          <Text allowFontScaling={false} style={styles.adminText}>
+            Add Face
           </Text>
         </TouchableOpacity>
       </View>
