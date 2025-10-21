@@ -46,7 +46,6 @@ export default function AdminScan({ navigation, route }) {
   // const { selectedData } = route?.params || {};
   // const { branch } = route?.params || {};
 
-  console.log('isdhdhsca',isNewScan);
   
 
   const isUploadingRef = useRef(false);
@@ -361,18 +360,13 @@ export default function AdminScan({ navigation, route }) {
         isActive={isActive && hasPermission}
         device={device}
       />
+      <View style={styles.frameContainer}>
       <View style={styles.titileContainer}>
         <Text allowFontScaling={false} style={styles.scanFaceText}>
           Scan your Face
         </Text>
       </View>
-      <View style={styles.scanStatus}>
-        <ScanIcon width={SIZE(16)} height={SIZE(16)} />
-        <Text style={styles.scanText}>
-          Please align your face within the frame
-        </Text>
-      </View>
-      <View style={styles.frameContainer}>
+         <View >
         <View style={styles.frame}>
           <View style={[styles.corner, styles.topLeft]} />
           <View style={[styles.corner, styles.topRight]} />
@@ -380,6 +374,13 @@ export default function AdminScan({ navigation, route }) {
           <View style={[styles.corner, styles.bottomRight]} />
         </View>
       </View>
+      <View style={styles.scanStatus}>
+        <ScanIcon width={SIZE(16)} height={SIZE(16)} />
+        <Text style={styles.scanText}>
+          Please align your face within the frame
+        </Text>
+      </View>
+   </View>
       <View style={styles.bottomButtonContainer}>
         <CommonButton
           loader={loading}
@@ -466,10 +467,10 @@ const styles = StyleSheet.create({
     marginBottom: SIZE(30),
   },
   titileContainer: {
-    position: 'absolute',
+    // position: 'absolute',
     alignSelf: 'center',
     zIndex: 20,
-    top: 200, // Responsive positioning
+    top: -20, // Responsive positioning
   },
   scanFaceText: {
     fontSize: SIZE(20),
@@ -479,15 +480,15 @@ const styles = StyleSheet.create({
   },
   scanStatus: {
     flexDirection: 'row',
-    position: 'absolute',
+    // position: 'absolute',
     alignSelf: 'center',
     zIndex: 20,
-    bottom: 200,
+    bottom: -20,
   },
   scanText: {
     fontSize: SIZE(16),
     fontFamily: Fonts.Regular,
-    lineHeight: SIZE(16),
+    lineHeight: SIZE(18),
     color: '#FFFFFF',
     marginLeft: SIZE(5),
   },

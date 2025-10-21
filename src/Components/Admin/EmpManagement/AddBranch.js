@@ -31,6 +31,7 @@ import { API_URL, BASE_URL } from '../../utils/urls';
 import Geolocation from '@react-native-community/geolocation';
 import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
 import { useToast } from 'react-native-toast-notifications';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function AddBranch({ navigation, route }) {
   const insets = useSafeAreaInsets();
@@ -42,6 +43,7 @@ export default function AddBranch({ navigation, route }) {
   const [permission, setPermission] = useState(null);
   const [locationLoad, setLocationLoad] = useState(false);
   const [currentLocation, setCurrentLocation] = useState(null);
+  const [isHighAccuracy, setIsHighAccuracy] = useState(true);
 
   const toast = useToast();
 
@@ -62,7 +64,7 @@ export default function AddBranch({ navigation, route }) {
   });
   const [isLogOut, setLogOut] = useState(false);
   const [hasAskedPermission, setHasAskedPermission] = useState(false);
-
+  const [loader, setLoader] = useState(false);
 
   const handleChange = (name, value) => {
     setInput(prev => ({ ...prev, [name]: value }));
@@ -80,7 +82,7 @@ export default function AddBranch({ navigation, route }) {
       if (status === RESULTS.GRANTED) {
         setPermission('authorized');
       } else if (status === RESULTS.DENIED) {
-           setHasAskedPermission(true);
+        setHasAskedPermission(true);
 
         const result = await request(locationPermission);
         console.log(result, 'resff');
@@ -88,7 +90,7 @@ export default function AddBranch({ navigation, route }) {
         setPermission(result === RESULTS.GRANTED ? 'authorized' : result);
 
         if (result === RESULTS.DENIED || result === RESULTS.BLOCKED) {
-                 setHasAskedPermission(true);
+          setHasAskedPermission(true);
           Alert.alert(
             'Location Permission Required',
             'Please enable location access in settings to use this feature.',
@@ -118,31 +120,66 @@ export default function AddBranch({ navigation, route }) {
     }
   };
 
+  const handleLocationFetch = () => {
+    // If store already has location data, use it
+    if (state?.userData?.latitude && state?.userData?.longitude) {
+      console.log('Using stored location from state');
+      setInput(prev => ({
+        ...prev,
+        latitude: state?.userData?.latitude,
+        longitude: state?.userData?.longitude,
+      }));
+      setCurrentLocation(prev => ({
+        ...prev,
+        latitude: state?.userData?.latitude,
+        longitude: state?.userData?.longitude,
+      }));
+      return;
+    } else {
+      getCurrentLocation();
+    }
+
+    // Otherwise, fetch current location
+  };
+
+   useFocusEffect(
+      React.useCallback(() => {
+        setIsHighAccuracy(true);
+        return () => {
+      
+        };
+      }, []),
+    );
 
   const getCurrentLocation = () => {
     setLocationLoad(true);
     setError(prev => ({ ...prev, locationErr: false }));
-    console.log('Fetching current location');
+    console.log('Fetching fresh current location');
+
     Geolocation.getCurrentPosition(
       position => {
         setLocationLoad(false);
         const { latitude, longitude } = position.coords;
         setCurrentLocation(prev => ({ ...prev, latitude, longitude }));
         setInput(prev => ({ ...prev, latitude, longitude }));
-        console.log({ latitude, longitude }, 'currentLocation');
+        console.log({ latitude, longitude }, 'Fresh location fetched');
       },
       error => {
-        setLocationLoad(false);
-        setError(prev => ({ ...prev, locationErr: true }));
-        console.log(error, 'Geolocation error');
-        // Alert.alert('Error', error.message || 'Unable to get location');
+        console.log('timouted', error.code);
+        if (error.code === 3) {
+          setIsHighAccuracy(false);
+        }
+        reject(error.message);
       },
-      { enableHighAccuracy: true, timeout: 200000, maximumAge: 10 },
+      {
+        enableHighAccuracy: isHighAccuracy,
+        timeout: 2000,
+        maximumAge: 0,
+        interval: 0,
+        distanceFilter: 0,
+      },
     );
   };
-
-
-
 
   const openMaps = () => {
     if (currentLocation?.latitude && currentLocation?.longitude) {
@@ -214,14 +251,15 @@ export default function AddBranch({ navigation, route }) {
     };
   }, [navigation]);
 
-useEffect(() => {
-  if (!hasAskedPermission) {
-   getPermission()
-  }
-}, [hasAskedPermission]);
+  useEffect(() => {
+    if (!hasAskedPermission) {
+      getPermission();
+    }
+  }, [hasAskedPermission]);
 
   const handleNavigate = async () => {
     //  navigation.navigate("AdminScan");
+    setLoader(true);
 
     try {
       const response = await fetch(`${API_URL}add-branch`, {
@@ -266,6 +304,8 @@ useEffect(() => {
       });
 
       console.error('Add employee error:', err.message);
+    } finally {
+      setLoader(false);
     }
   };
 
@@ -469,40 +509,64 @@ useEffect(() => {
                         alignItems: 'center',
                       }}
                     >
-                      <View style={{ flexDirection: 'row' }}>
+                      <View style={{ flexDirection: 'row', flex: 1 }}>
                         <TextInput
-                          editable={false}
-                          //   ref={inputRef2}
+                          editable={true}
+                          keyboardType="numeric"
                           style={{
                             fontSize: SIZE(14),
                             lineHeight: SIZE(16),
-                            // flex: 1,
+                            flex: 1,
                             color: '#000000',
+                            borderBottomWidth: 1,
+                            borderBottomColor: error?.latitudeErr
+                              ? '#FF0000'
+                              : '#E0E0E0',
+                            paddingVertical: SIZE(4),
                           }}
                           placeholderTextColor={'#2C436433'}
-                          value={String(input?.latitude)}
-                          placeholder="latitude "
+                          value={String(input?.latitude || '')}
+                          placeholder="Latitude"
                           onChangeText={text => {
-                            handleChange('latitude', text);
+                            // Allow only numbers, decimal point, and minus sign
+                            const sanitized = text.replace(/[^0-9.-]/g, '');
+                            handleChange('latitude', sanitized);
                             setError(prev => ({ ...prev, latitudeErr: false }));
                           }}
                         />
 
+                        <Text
+                          style={{
+                            fontSize: SIZE(14),
+                            marginHorizontal: SIZE(4),
+                            alignSelf: 'center',
+                            color: '#666',
+                          }}
+                        >
+                          ,
+                        </Text>
+
                         <TextInput
-                          editable={false}
-                          //   ref={inputRef2}
+                          editable={true}
+                          keyboardType="numeric"
                           style={{
                             fontSize: SIZE(14),
                             lineHeight: SIZE(16),
-                            marginLeft: SIZE(-5),
-                            // flex: 1,
+                            flex: 1,
                             color: '#000000',
+                            borderBottomWidth: 1,
+                            borderBottomColor: error?.longitudeErr
+                              ? '#FF0000'
+                              : '#E0E0E0',
+                            paddingVertical: SIZE(4),
                           }}
                           placeholderTextColor={'#2C436433'}
-                          value={String(input?.longitude)}
-                          placeholder=",  longitude"
+                          value={String(input?.longitude || '')}
+                          placeholder="Longitude"
                           onChangeText={text => {
-                            handleChange('longitude', text);
+                            // Allow only numbers, decimal point, and minus sign
+                            const sanitized = text.replace(/[^0-9.-]/g, '');
+                            handleChange('longitude', sanitized);
                             setError(prev => ({
                               ...prev,
                               longitudeErr: false,
@@ -510,6 +574,7 @@ useEffect(() => {
                           }}
                         />
                       </View>
+
                       <TouchableOpacity
                         onPress={() => {
                           if (
@@ -519,12 +584,12 @@ useEffect(() => {
                           ) {
                             getPermission();
                           } else {
-                            getCurrentLocation();
-                            
+                            handleLocationFetch();
                           }
                         }}
                         activeOpacity={0.8}
                         hitSlop={8}
+                        style={{ marginLeft: SIZE(8) }}
                       >
                         {locationLoad ? (
                           <ActivityIndicator size={'small'} color={'#153CD8'} />
@@ -549,6 +614,7 @@ useEffect(() => {
       <View style={styles.bottomButtonContainer}>
         <CommonButton
           backgroundColor={'#153CD8'}
+          loader={loader}
           title={'Submit'}
           onPress={() => {
             const newError = {

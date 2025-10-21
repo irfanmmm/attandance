@@ -34,6 +34,9 @@ export default function AddEmployee({ navigation, route }) {
   const { isNewScan } = route?.params || {};
   const { selectedData } = route?.params || {};
 
+    
+  
+
 
 
   const code = state?.userData?.company_code;

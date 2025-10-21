@@ -39,6 +39,7 @@ export default function Register({ navigation }) {
 
   // Error state
   const [errors, setErrors] = useState({});
+  const [loader,setLoader]=useState(false)
 
   // Input configuration array
   const inputFields = [
@@ -176,6 +177,7 @@ export default function Register({ navigation }) {
   };
 
   const register = async () => {
+    setLoader(true)
     try {
       const response = await fetch(`${BASE_URL}signup`, {
         headers: {
@@ -225,8 +227,11 @@ export default function Register({ navigation }) {
         type: 'danger',
         duration: 2000,
       });
+   
 
       console.log('Authentication error:', err?.message);
+    }finally{
+      setLoader(false)
     }
   };
 
@@ -318,6 +323,7 @@ export default function Register({ navigation }) {
           title={'Register'}
           onPress={handleRegister}
           color={'#FFFFFF'}
+          loader={loader}
         />
         <TouchableOpacity
           onPress={handleNavigateToCompanyCode}

@@ -29,8 +29,11 @@ export default function Login({ navigation }) {
     const toast = useToast();
   const [status, setStatus] = useState('*Please enter code');
   const { state, dispatch } = useContext(Context);
+    const [loader,setLoader]=useState(false)
+  
 
   const handleLogin = async () => {
+    setLoader(true)
     setError(false);
     if (!code.trim()) {
       setError(true);
@@ -94,6 +97,8 @@ export default function Login({ navigation }) {
       setStatus('something went wrong');
       setError(true);
       console.log('Login error:', err.message);
+    }finally{
+          setLoader(false)
     }
   };
 
@@ -157,6 +162,7 @@ export default function Login({ navigation }) {
             {error && <Text style={styles.errorText}>{status}</Text>}
             <View style={{ marginTop: SIZE(20) }}>
               <CommonButton
+              loader={loader}
                 arrow={true}
                 backgroundColor={'#153CD8'}
                 title={'Get Started'}

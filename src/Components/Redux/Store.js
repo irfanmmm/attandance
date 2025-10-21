@@ -8,7 +8,10 @@ const loadInitialState = () => ({
     access_token: null,
     refresh_token: null,
     company_code:'',
-    empName:''
+    empName:'',
+    latitude:'', 
+    longitude :''
+    
   },
 });
 const Store = ({ children }) => {

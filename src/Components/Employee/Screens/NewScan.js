@@ -5,6 +5,7 @@ import {
   Dimensions,
   Linking,
   Modal,
+  PermissionsAndroid,
   Platform,
   StatusBar,
   StyleSheet,
@@ -13,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import BackgroundService from 'react-native-background-actions';
 import {
   Camera,
   useCameraDevice,
@@ -37,6 +39,13 @@ const xyzFrameProcessor = VisionCameraProxy.initFrameProcessorPlugin('xyz', {
 });
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
+Geolocation.setRNConfiguration({
+  skipPermissionRequests: false,
+  authorizationLevel: 'always',
+  enableBackgroundLocationUpdates: true,
+  locationProvider: 'auto',
+});
+
 const NewScan = ({ navigation }) => {
   const device = useCameraDevice('front');
   const refLocation = useRef(null);
@@ -56,10 +65,11 @@ const NewScan = ({ navigation }) => {
     'Please align your face within the frame',
   );
   const [isProcessing, setIsProcessing] = useState(true);
-  const { state } = useContext(Context);
+  const { state,dispatch } = useContext(Context);
   const code = state.userData.company_code;
   const [showModal, setShowModal] = useState(false);
   const [hasAskedPermission, setHasAskedPermission] = useState(false);
+  const [hasBackgroundPermission, setHasBackgroundPermission] = useState(false);
   const [landMarks, setLandMarks] = useState({
     left: 0,
     top: 0,
@@ -69,241 +79,235 @@ const NewScan = ({ navigation }) => {
     bottom: 0,
   });
 
-  // const [currentLocation, setCurrentLocation] = useState({
-  //   latitude:null,
-  //   longitude:null,
 
-  // });
+
+  const [isHighAccuracy, setIsHighAccuracy] = useState(true);
+
+  const sleep = time =>
+    new Promise(resolve => setTimeout(() => resolve(), time));
 
   const abortControllerRef = useRef(null);
-  // const inactivityTimer = useRef(null);
 
-  // Function to start/reset the inactivity timer
-  // const startTimer = () => {
-  //   if (inactivityTimer.current) {
-  //     clearTimeout(inactivityTimer.current);
-  //   }
-  //   inactivityTimer.current = setTimeout(() => {
-  //     setIsActive(false);
-  //     setShowModal(true);
-  //   }, 60000);
-  // };
+  const veryIntensiveTask = async taskDataArguments => {
+    console.log('thanish');
 
-  // useEffect(() => {
-  //   return () => {
-  //     if (inactivityTimer.current) {
-  //       clearTimeout(inactivityTimer.current);
-  //     }
-  //   };
-  // }, []);
-
-  // useEffect(() => {
-  //   const backAction = () => {
-  //     BackHandler.exitApp();
-  //     setIsActive(false);
-  //     return true;
-  //   };
-  //   const backHandler = BackHandler.addEventListener(
-  //     'hardwareBackPress',
-  //     backAction,
-  //   );
-  //   return () => backHandler.remove();
-  // }, []);
-  // console.log(currentLocation, 'Fetching current location');
-
-  // Handle camera permission
-  useEffect(() => {
-    const checkCameraPermission = async () => {
+    while (BackgroundService.isRunning()) {
+      console.log('task  running fine ----');
       try {
-        const cameraPermission =
-          Platform.OS === 'ios'
-            ? PERMISSIONS.IOS.CAMERA
-            : PERMISSIONS.ANDROID.CAMERA;
+        const location = await getCurrentLocation();
+      
+        console.log('locatin', location);
 
-        // Check permission status
-        const status = await check(cameraPermission);
-        console.log('Camera permission status:', status);
+        const { latitude, longitude } = location.coords;
+     
 
-        if (status === RESULTS.GRANTED) {
-          getLocationPermission()
-          setPermission('authorized');
-        } else if (status === RESULTS.DENIED) {
-          // Request permission
-          const result = await request(cameraPermission);
-          console.log('Permission request result:', result);
-          getLocationPermission()
-
-          setPermission(result === RESULTS.GRANTED ? 'authorized' : result);
-          if (result === RESULTS.DENIED || result === RESULTS.BLOCKED) {
-            getLocationPermission()
-            Alert.alert(
-              'Camera Permission Required',
-              'Please enable camera access in settings to use this feature.',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                  text: 'Open Settings',
-                  onPress: () => Linking.openSettings(),
-                },
-              ],
-            );
-          }
-        } else if (status === RESULTS.BLOCKED) {
-          getLocationPermission()
-          setPermission('blocked');
-          Alert.alert(
-            'Camera Permission Blocked',
-            'Camera access is blocked. Please enable it in settings.',
-            [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Open Settings', onPress: () => Linking.openSettings() },
-            ],
-          );
-        }
-      } catch (err) {
-        console.log('Permission check error:', err);
-        setPermission('error');
+        console.log(`📍 Background Location: ${latitude}, ${longitude}`);
+        latituderef.current = latitude;
+        longituderef.current = longitude;
+          dispatch({
+          type: 'UPDATE_USER_DATA',
+          userData: {
+            ...state.userData,
+            latitude: latituderef.current ,
+            longitude: longituderef.current
+          },
+        });
+        // await new Promise(resolve => setTimeout(resolve, 5000)); // Update every 5s
+        await sleep(5000);
+      } catch (error) {
+        console.log('❌ Background location error:', error);
       }
-    };
-
-    checkCameraPermission();
-  }, []);
-
-  const getLocationPermission = async () => {
-    try {
-      const locationPermission =
-        Platform.OS === 'ios'
-          ? PERMISSIONS.IOS.LOCATION_WHEN_IN_USE
-          : PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION;
-
-      const status = await check(locationPermission);
-
-      if (status === RESULTS.GRANTED) {
-        setLocationPermission('authorized');
-   
-        
-        getCurrentLocation();
-
-      } else if (status === RESULTS.DENIED) {
-        const result = await request(locationPermission);
-         setHasAskedPermission(true);
-
-        //  getLocationPermission()
-
-        if (result === RESULTS.GRANTED) {
-          getCurrentLocation();
-        }
-
-        setLocationPermission(
-          result === RESULTS.GRANTED ? 'authorized' : result,
-        );
-
-        if (result === RESULTS.DENIED || result === RESULTS.BLOCKED) {
-          Alert.alert(
-            'Location Permission Required',
-            'Please enable location access in settings to use this feature.',
-            [
-              { text: 'Cancel', style: 'cancel' },
-              {
-                text: 'Open Settings',
-                onPress: () => Linking.openSettings(),
-              },
-            ],
-          );
-        }
-      } else if (status === RESULTS.BLOCKED) {
-           setHasAskedPermission(true);
-        setLocationPermission('blocked');
-        Alert.alert(
-          'Location Permission Blocked',
-          'Location access is blocked. Please enable it in settings.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Open Settings', onPress: () => Linking.openSettings() },
-          ],
-        );
-      }
-    } catch (err) {
-      console.log('Permission check error:', err);
-      setLocationPermission('error');
     }
   };
 
-  const getCurrentLocation = () => {
-    console.log('🌍 Starting location tracking...');
-    updateState({
-      loading: true,
-      status: 'Reading your locaion',
-    });
+  const getLocationPermission = async () => {
+    console.log('Requesting location and camera permissions...');
 
-    // Get immediate location first
-    Geolocation.getCurrentPosition(
-      position => {
-        const { latitude, longitude } = position.coords;
-        console.log('login', latitude);
+    try {
+      if (Platform.OS === 'android') {
+        // Request camera and location permissions
+        const granted = await PermissionsAndroid.requestMultiple([
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+          PermissionsAndroid.PERMISSIONS.CAMERA,
+        ]);
 
-        updateState({ status: 'Verifying identity...' });
+        const locationGranted =
+          granted['android.permission.ACCESS_FINE_LOCATION'] === 'granted';
+        const cameraGranted =
+          granted['android.permission.CAMERA'] === 'granted';
 
-        latituderef.current = latitude;
-        longituderef.current = longitude;
+        if (locationGranted && cameraGranted) {
+          setPermission('authorized');
+          console.log('✅ Camera and location permissions granted');
 
-        //  longitude });
-      },
-      error => {
-        console.log('❌ getCurrentPosition error:', error);
-        updateState({ status: 'your location not capture' });
-        getCurrentLocation()
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 20000,
-        // // fastestInterval: 0,
-        // // useSignificantChanges:true,
-        // interval:1,
-        maximumAge: 10,
-        //  distanceFilter: 0
-      },
-    );
+          // Request background location permission
+          const backgroundResult = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.ACCESS_BACKGROUND_LOCATION,
+            {
+              title: 'Background Location Access',
+              message:
+                'Allow this app to access your location even when the app is closed or not in use?',
+              buttonPositive: 'Allow',
+              buttonNegative: 'Deny',
+            },
+          );
 
-    // Then watch for continuous updates
-    // if (refLocation.current) {
-    //   Geolocation.clearWatch(refLocation.current);
-    // }
+          // if (backgroundResult === 'granted') {
+          //   console.log('✅ Background location permission granted');
+          //   setHasBackgroundPermission(true);
+          // } else {
+          //   console.log('⚠️ Background location permission denied');
+          //   setHasBackgroundPermission(false);
+          // }
 
-    // refLocation.current = Geolocation.watchPosition(
-    //   position => {
-    //     const { latitude, longitude } = position.coords;
-    //     console.log('📍 Location updated:', latitude, longitude);
-    //     setCurrentLocation({ latitude, longitude });
-    //   },
-    //   error => {
-    //     console.log('❌ watchPosition error:', error);
-    //   },
-    //   {
-    //     enableHighAccuracy: true,
-    //     timeout: 5000,
-    //     maximumAge: 0,
-    //     distanceFilter: 0, // Get updates on every change
-    //   }
-    // );
+          // Start background service only if permissions are granted
+          try {
+            await BackgroundService.start(veryIntensiveTask, {
+              taskName: 'LocationTracking',
+              taskTitle: 'Location Tracking',
+              taskDesc: 'Tracking your location for attendance',
+              taskIcon: {
+                name: 'ic_launcher',
+                type: 'mipmap',
+              },
+              color: '#153CD8',
+              linkingURI: '',
+            });
+            console.log('✅ Background Service Started');
+          } catch (bgError) {
+            console.log(
+              '❌ Failed to start background service:',
+              bgError.message,
+            );
+          }
+        } else {
+          setPermission('blocked');
+          console.log('❌ Camera or location permission denied');
+          console.log('Location granted:', locationGranted);
+          console.log('Camera granted:', cameraGranted);
+        }
+      } else {
+        // iOS permission handling
+        try {
+          const cameraPermission = await check(PERMISSIONS.IOS.CAMERA);
+          const locationPermission = await check(
+            PERMISSIONS.IOS.LOCATION_WHEN_IN_USE,
+          );
+
+          if (
+            cameraPermission === RESULTS.GRANTED &&
+            locationPermission === RESULTS.GRANTED
+          ) {
+            setPermission('authorized');
+            console.log('✅ iOS permissions already granted');
+
+            // Start background service for iOS
+            try {
+              await BackgroundService.start(veryIntensiveTask, {
+                taskName: 'LocationTracking',
+                taskTitle: 'Location Tracking',
+                taskDesc: 'Tracking your location for attendance',
+                taskIcon: {
+                  name: 'ic_launcher',
+                  type: 'mipmap',
+                },
+                color: '#153CD8',
+                linkingURI: '',
+              });
+              console.log('✅ Background Service Started on iOS');
+            } catch (bgError) {
+              console.log(
+                '❌ Failed to start background service on iOS:',
+                bgError.message,
+              );
+            }
+          } else {
+            // Request permissions if not granted
+            const cameraResult = await request(PERMISSIONS.IOS.CAMERA);
+            const locationResult = await request(
+              PERMISSIONS.IOS.LOCATION_WHEN_IN_USE,
+            );
+
+            if (
+              cameraResult === RESULTS.GRANTED &&
+              locationResult === RESULTS.GRANTED
+            ) {
+              setPermission('authorized');
+              console.log('✅ iOS permissions granted after request');
+
+              // Start background service
+              try {
+                await BackgroundService.start(veryIntensiveTask, {
+                  taskName: 'LocationTracking',
+                  taskTitle: 'Location Tracking',
+                  taskDesc: 'Tracking your location for attendance',
+                  taskIcon: {
+                    name: 'ic_launcher',
+                    type: 'mipmap',
+                  },
+                  color: '#153CD8',
+                  linkingURI: '',
+                });
+                console.log('✅ Background Service Started on iOS');
+              } catch (bgError) {
+                console.log(
+                  '❌ Failed to start background service on iOS:',
+                  bgError.message,
+                );
+              }
+            } else {
+              setPermission('blocked');
+              console.log('❌ iOS permissions denied');
+            }
+          }
+        } catch (iosError) {
+          console.log('❌ iOS permission error:', iosError.message);
+          setPermission('error');
+        }
+      }
+    } catch (error) {
+      console.log('❌ Permission request error:', error.message);
+      setPermission('error');
+    }
   };
 
- 
-useEffect(() => {
-  if (!hasAskedPermission) {
+  const stopBackgroundTracking = async () => {
+    await BackgroundService.stop();
+    console.log('🛑 Background Service Stopped');
+  };
+
+  const getCurrentLocation = () => {
+    return new Promise((resolve, reject) => {
+      Geolocation.getCurrentPosition(
+        position => resolve(position),
+        error => {
+          console.log('timouted', error.code);
+          if (error.code === 3) {
+            setIsHighAccuracy(false);
+          }
+          reject(error.message);
+        },
+        {
+          enableHighAccuracy: isHighAccuracy,
+          timeout: 2000,
+          maximumAge: 0,
+          interval: 0,
+          distanceFilter: 0,
+        },
+      );
+    });
+  };
+
+  useEffect(() => {
     getLocationPermission();
-  }
-}, [hasAskedPermission]);
+  }, []);
 
   useFocusEffect(
     React.useCallback(() => {
       setIsActive(true);
-      // startTimer();
+      setIsHighAccuracy(true);
       return () => {
         setIsActive(false);
-        if (refLocation.current) {
-          Geolocation.clearWatch(refLocation.current);
-        }
 
         if (abortControllerRef.current) {
           abortControllerRef.current.abort();
@@ -312,6 +316,13 @@ useEffect(() => {
       };
     }, []),
   );
+
+  // Cleanup background service on unmount
+  useEffect(() => {
+    return () => {
+      stopBackgroundTracking();
+    };
+  }, []);
 
   const updateState = updates => {
     Object.entries(updates).forEach(([key, value]) => {
@@ -333,23 +344,20 @@ useEffect(() => {
     });
   };
 
+  //   useEffect(() => {
+  //   const backAction = () => {
+  //     // Exit the app directly
+  //     BackHandler.exitApp();
+  //     return true; // prevent default navigation behavior
+  //   };
 
+  //   const backHandler = BackHandler.addEventListener(
+  //     'hardwareBackPress',
+  //     backAction
+  //   );
 
-  useEffect(() => {
-  const backAction = () => {
-    // Exit the app directly
-    BackHandler.exitApp();
-    return true; // prevent default navigation behavior
-  };
-
-  const backHandler = BackHandler.addEventListener(
-    'hardwareBackPress',
-    backAction
-  );
-
-  return () => backHandler.remove(); // cleanup on unmount
-}, []);
-
+  //   return () => backHandler.remove(); // cleanup on unmount
+  // }, []);
 
   const drawFaceBox = (face, frameWidth, frameHeight) => {
     if (!device) return { left: 0, top: 0, width: 0, height: 0 };
@@ -374,9 +382,9 @@ useEffect(() => {
 
     isCapturingRef.current = true;
 
+    updateState({ status: 'Verifying identity...',loading: true  });
     try {
-      setLoading(true);
-      updateState({ status: 'Verifying identity...' });
+      // setLoading(true);
 
       // if(Platform.OS === 'ios')
       setIsFrameProcessorEnabled(false);
@@ -419,24 +427,23 @@ useEffect(() => {
       const data = await response.json();
 
       console.log(data?.details?.direction, 'fgh');
-      updateState({ status: 'Response received', loading: false });
-
-   
+      
       if (data.message === 'success') {
+        updateState({ status: 'Response received', loading: false });
         navigation.navigate('Status', {
           username: data?.details?.fullname,
           direction: data?.details?.direction,
         });
         setIsActive(false);
-        setLoading(false);
+        // setLoading(false);
         isCapturingRef.current = false;
       } else {
         updateState({
           error: true,
           status: data?.message || 'Face not recognized. Try again.',
-          processing: false,
+          loading: false,
         });
-        setLoading(false);
+        // setLoading(false);
         isCapturingRef.current = false;
       }
     } catch (err) {
@@ -452,7 +459,7 @@ useEffect(() => {
         status: errorMessage,
         processing: false,
       });
-      setLoading(false);
+      // setLoading(false);
       isCapturingRef.current = false;
     } finally {
       setTimeout(() => {
@@ -464,7 +471,7 @@ useEffect(() => {
   const frameProcessor = useFrameProcessor(frame => {
     'worklet';
     const result = xyzFrameProcessor?.call(frame);
-    console.log(result);
+    // console.log(result);
 
     if (result.faces === 1) {
       captureFrame(result);
@@ -477,8 +484,8 @@ useEffect(() => {
   }, [isFrameProcessorEnabled]);
 
   const navigateToAdmin = () => {
-    navigation.navigate('AddEmployee',{
-      isNewScan:true
+    navigation.navigate('AddEmployee', {
+      isNewScan: true,
     });
     setIsActive(false);
   };
@@ -519,8 +526,8 @@ useEffect(() => {
 
         <Text style={{ ...styles.cameraLoadingText, marginBottom: SIZE(10) }}>
           {permission === 'blocked'
-            ? 'Camera access is blocked. Please enable it in settings.'
-            : 'Waiting for camera permission...'}
+            ? 'Camera and Location access is blocked. Please enable it in settings.'
+            : 'Waiting for camera and location permission...'}
         </Text>
         <CommonButton
           backgroundColor="#153CD8"
@@ -537,7 +544,7 @@ useEffect(() => {
     return (
       <View style={styles.cameraLoadingContainer}>
         <Text style={styles.cameraLoadingText}>
-          Error checking camera permission. Please try again.
+          Error checking camera and location permissions. Please try again.
         </Text>
       </View>
     );
@@ -578,8 +585,8 @@ useEffect(() => {
       <View style={styles.header}>
         <TouchableOpacity
           hitSlop={10}
-          onPress={()=>{
-            navigation.navigate('Authentication')
+          onPress={() => {
+            navigation.navigate('Authentication');
           }}
           style={styles.adminButton}
           activeOpacity={0.7}
@@ -590,8 +597,7 @@ useEffect(() => {
         </TouchableOpacity>
       </View>
 
-
-        <View style={{...styles.header,left: 20, right: undefined }}>
+      <View style={{ ...styles.header, left: 20, right: undefined }}>
         <TouchableOpacity
           hitSlop={10}
           onPress={navigateToAdmin}
@@ -603,32 +609,32 @@ useEffect(() => {
           </Text>
         </TouchableOpacity>
       </View>
-
-      <View style={styles.titileContainer}>
-        <Text allowFontScaling={false} style={styles.scanText}>
-          Scan your Face
-        </Text>
-      </View>
-
-      <View style={styles.scanStatus}>
-        <ScanIcon width={SIZE(16)} height={SIZE(16)} />
-        <Text
-          style={{
-            ...styles.scanText,
-            fontSize: SIZE(16),
-            marginLeft: SIZE(5),
-          }}
-        >
-          Please align your face within the frame
-        </Text>
-      </View>
-
       <View style={styles.frameContainer}>
-        <View style={styles.frame}>
-          <View style={[styles.corner, styles.topLeft]} />
-          <View style={[styles.corner, styles.topRight]} />
-          <View style={[styles.corner, styles.bottomLeft]} />
-          <View style={[styles.corner, styles.bottomRight]} />
+        <View style={styles.titileContainer}>
+          <Text allowFontScaling={false} style={styles.scanText}>
+            Scan your Face
+          </Text>
+        </View>
+        <View>
+          <View style={styles.frame}>
+            <View style={[styles.corner, styles.topLeft]} />
+            <View style={[styles.corner, styles.topRight]} />
+            <View style={[styles.corner, styles.bottomLeft]} />
+            <View style={[styles.corner, styles.bottomRight]} />
+          </View>
+        </View>
+
+        <View style={styles.scanStatus}>
+          <ScanIcon width={SIZE(16)} height={SIZE(16)} />
+          <Text
+            style={{
+              ...styles.scanText,
+              fontSize: SIZE(16),
+              marginLeft: SIZE(5),
+            }}
+          >
+            Please align your face within the frame
+          </Text>
         </View>
       </View>
 
@@ -778,10 +784,10 @@ const styles = StyleSheet.create({
     marginLeft: SIZE(10),
   },
   titileContainer: {
-    position: 'absolute',
+    // position: 'absolute',
     alignSelf: 'center',
     zIndex: 20,
-    top: 200,
+    top: -20,
   },
   scanText: {
     fontSize: SIZE(20),
@@ -792,9 +798,9 @@ const styles = StyleSheet.create({
   scanStatus: {
     alignItems: 'center',
     flexDirection: 'row',
-    position: 'absolute',
+    // position: 'absolute',
     alignSelf: 'center',
     zIndex: 20,
-    bottom: 200,
+    bottom: -20,
   },
 });

@@ -5,7 +5,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import React from 'react';
-import { Fonts, SIZE } from './utils/Styles';
+import { Fonts, SIZE, SIZES } from './utils/Styles';
 // import { ActivityIndicator } from "react-native-paper";
 import FailedIcon from '../assets/svg/failed.svg';
 import ArrowIcon from '../assets/svg/rightArrow';
@@ -32,7 +32,7 @@ export default function CommonButton({
         {loader ? (
           <ActivityIndicator
             color={'#ffffff'}
-            size={SIZE(15)}
+            size={'small'}
             style={{ marginRight: SIZE(8) }}
           />
         ) : failed ? (
@@ -66,11 +66,13 @@ export default function CommonButton({
 const styles = StyleSheet.create({
   button: {
     borderRadius: SIZE(30),
-    paddingVertical: SIZE(15),
+    paddingVertical: SIZE(18),
+  
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
+    
   },
   text: {
     fontSize: SIZE(14),

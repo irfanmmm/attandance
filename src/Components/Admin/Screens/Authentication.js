@@ -41,6 +41,7 @@ export default function Authentication() {
 
   const inputRef1 = useRef(null);
   const inputRef2 = useRef(null);
+    const [loader,setLoader]=useState(false)
 
   const [err, setErr] = useState(false);
   const [input, setInput] = useState({ username: '', password: '' });
@@ -72,7 +73,7 @@ export default function Authentication() {
       return;
     }
     //  navigation.navigate("AddEmployee");
-
+    setLoader(true)
     try {
       const response = await fetch(`${BASE_URL}verify-admin`, {
         method: 'POST',
@@ -105,6 +106,9 @@ export default function Authentication() {
       // setError({ usernameErr: true, passwordErr: true });
       console.log('Authentication error:', err.message);
       setErr(true);
+    }finally{
+    setLoader(false)
+
     }
   };
 
@@ -312,6 +316,7 @@ export default function Authentication() {
      
       <View style={styles.bottomButtonContainer}>
         <CommonButton
+        loader={loader}
           backgroundColor={'#153CD8'}
           title={'Sign in'}
           onPress={() => {
