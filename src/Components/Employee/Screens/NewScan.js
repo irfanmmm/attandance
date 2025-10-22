@@ -21,7 +21,7 @@ import {
   useFrameProcessor,
   VisionCameraProxy,
 } from 'react-native-vision-camera';
-import { Worklets } from 'react-native-worklets-core';
+import { Worklets, useRunOnJS } from 'react-native-worklets-core';
 import { BASE_URL } from '../../utils/urls';
 import { Fonts, SIZE } from '../../utils/Styles';
 import CommonButton from '../../CommonButton';
@@ -65,7 +65,7 @@ const NewScan = ({ navigation }) => {
     'Please align your face within the frame',
   );
   const [isProcessing, setIsProcessing] = useState(true);
-  const { state,dispatch } = useContext(Context);
+  const { state, dispatch } = useContext(Context);
   const code = state.userData.company_code;
   const [showModal, setShowModal] = useState(false);
   const [hasAskedPermission, setHasAskedPermission] = useState(false);
@@ -79,49 +79,44 @@ const NewScan = ({ navigation }) => {
     bottom: 0,
   });
 
-
-
   const [isHighAccuracy, setIsHighAccuracy] = useState(true);
 
   const sleep = time =>
     new Promise(resolve => setTimeout(() => resolve(), time));
 
   const abortControllerRef = useRef(null);
+  const lastEyeState = useRef(0);
+  const blinkDetected = useRef({
+    open: true,
+    lastBlinkTime: 0,
+  });
+  const headMoved = useRef(false);
+  const [isReal, setIsReal] = useState(0);
 
   const veryIntensiveTask = async taskDataArguments => {
-    console.log('thanish');
-
     while (BackgroundService.isRunning()) {
-      console.log('task  running fine ----');
       try {
         const location = await getCurrentLocation();
-      
-        console.log('locatin', location);
 
         const { latitude, longitude } = location.coords;
-     
 
-        console.log(`📍 Background Location: ${latitude}, ${longitude}`);
         latituderef.current = latitude;
         longituderef.current = longitude;
-          dispatch({
+        dispatch({
           type: 'UPDATE_USER_DATA',
           userData: {
             ...state.userData,
-            latitude: latituderef.current ,
-            longitude: longituderef.current
+            latitude: latituderef.current,
+            longitude: longituderef.current,
           },
         });
-        // await new Promise(resolve => setTimeout(resolve, 5000)); // Update every 5s
         await sleep(5000);
-      } catch (error) {
-        console.log('❌ Background location error:', error);
-      }
+      } catch (error) {}
     }
   };
 
   const getLocationPermission = async () => {
-    console.log('Requesting location and camera permissions...');
+   
 
     try {
       if (Platform.OS === 'android') {
@@ -138,7 +133,6 @@ const NewScan = ({ navigation }) => {
 
         if (locationGranted && cameraGranted) {
           setPermission('authorized');
-          console.log('✅ Camera and location permissions granted');
 
           // Request background location permission
           const backgroundResult = await PermissionsAndroid.request(
@@ -173,7 +167,6 @@ const NewScan = ({ navigation }) => {
               color: '#153CD8',
               linkingURI: '',
             });
-            console.log('✅ Background Service Started');
           } catch (bgError) {
             console.log(
               '❌ Failed to start background service:',
@@ -199,7 +192,6 @@ const NewScan = ({ navigation }) => {
             locationPermission === RESULTS.GRANTED
           ) {
             setPermission('authorized');
-            console.log('✅ iOS permissions already granted');
 
             // Start background service for iOS
             try {
@@ -214,7 +206,6 @@ const NewScan = ({ navigation }) => {
                 color: '#153CD8',
                 linkingURI: '',
               });
-              console.log('✅ Background Service Started on iOS');
             } catch (bgError) {
               console.log(
                 '❌ Failed to start background service on iOS:',
@@ -273,7 +264,6 @@ const NewScan = ({ navigation }) => {
 
   const stopBackgroundTracking = async () => {
     await BackgroundService.stop();
-    console.log('🛑 Background Service Stopped');
   };
 
   const getCurrentLocation = () => {
@@ -281,7 +271,6 @@ const NewScan = ({ navigation }) => {
       Geolocation.getCurrentPosition(
         position => resolve(position),
         error => {
-          console.log('timouted', error.code);
           if (error.code === 3) {
             setIsHighAccuracy(false);
           }
@@ -317,7 +306,6 @@ const NewScan = ({ navigation }) => {
     }, []),
   );
 
-  // Cleanup background service on unmount
   useEffect(() => {
     return () => {
       stopBackgroundTracking();
@@ -344,49 +332,16 @@ const NewScan = ({ navigation }) => {
     });
   };
 
-  //   useEffect(() => {
-  //   const backAction = () => {
-  //     // Exit the app directly
-  //     BackHandler.exitApp();
-  //     return true; // prevent default navigation behavior
-  //   };
-
-  //   const backHandler = BackHandler.addEventListener(
-  //     'hardwareBackPress',
-  //     backAction
-  //   );
-
-  //   return () => backHandler.remove(); // cleanup on unmount
-  // }, []);
-
-  const drawFaceBox = (face, frameWidth, frameHeight) => {
-    if (!device) return { left: 0, top: 0, width: 0, height: 0 };
-    return {
-      left: face.left, // ML Kit already gives correct left
-      top: face.top,
-      right: face.right, // ML Kit already gives correct top
-      bottom: face.bottom, // ML Kit already gives correct top
-      // ML Kit already gives correct top
-      width: face.width,
-      height: face.height,
-    };
-  };
-
-  const captureFrame = Worklets.createRunOnJS(async facelandmarks => {
+  const captureFrame = async () => {
     if (!camera.current || isCapturingRef.current) {
       updateState({ loading: true, error: false });
       return;
     }
 
-    // console.log(facelandmarks);
-
     isCapturingRef.current = true;
 
-    updateState({ status: 'Verifying identity...',loading: true  });
+    updateState({ status: 'Verifying identity...', loading: true });
     try {
-      // setLoading(true);
-
-      // if(Platform.OS === 'ios')
       setIsFrameProcessorEnabled(false);
       const photo = await camera.current?.takePhoto({
         flash: 'off',
@@ -394,7 +349,6 @@ const NewScan = ({ navigation }) => {
         enableShutterSound: false,
       });
 
-      // setIsActive(false);
       console.log('📸 Captured photo:', photo.path);
 
       const formData = new FormData();
@@ -409,7 +363,6 @@ const NewScan = ({ navigation }) => {
       formData.append('latitude', latituderef.current ?? '');
       formData.append('longitude', longituderef.current ?? '');
 
-      // const controller = new AbortController();
       abortControllerRef.current = new AbortController();
       const timeoutId = setTimeout(
         () => abortControllerRef?.current?.abort(),
@@ -427,7 +380,7 @@ const NewScan = ({ navigation }) => {
       const data = await response.json();
 
       console.log(data?.details?.direction, 'fgh');
-      
+
       if (data.message === 'success') {
         updateState({ status: 'Response received', loading: false });
         navigation.navigate('Status', {
@@ -435,7 +388,7 @@ const NewScan = ({ navigation }) => {
           direction: data?.details?.direction,
         });
         setIsActive(false);
-        // setLoading(false);
+
         isCapturingRef.current = false;
       } else {
         updateState({
@@ -443,7 +396,7 @@ const NewScan = ({ navigation }) => {
           status: data?.message || 'Face not recognized. Try again.',
           loading: false,
         });
-        // setLoading(false);
+
         isCapturingRef.current = false;
       }
     } catch (err) {
@@ -452,30 +405,79 @@ const NewScan = ({ navigation }) => {
         err.name === 'AbortError'
           ? 'Request timed out. Please try again.'
           : 'Connection failed. Please try again.';
-
       updateState({
         loading: false,
         error: true,
         status: errorMessage,
         processing: false,
       });
-      // setLoading(false);
       isCapturingRef.current = false;
     } finally {
       setTimeout(() => {
         setIsFrameProcessorEnabled(true);
       }, 2000);
     }
+  };
+
+  const handleRealFace = useRunOnJS(() => {
+    setIsReal(prev => {
+      const newCount = prev + 1;
+      if (newCount > 2) {
+        console.log('✅ Real face detected');
+        captureFrame();
+      }
+      return newCount;
+    });
+  });
+
+  const handleUpdateState = useRunOnJS((status, loading) => {
+    updateState({ status, loading });
+  });
+
+  const processFace = Worklets.createRunOnJS(face => {
+    'worklet';
+
+
+    if (!face) return;
+    handleUpdateState('blink your eyes and shake your head', false);
+
+    const isRightEyeOpen = face.rightEyeOpenProbability > 0.4;
+    const isLeftEyeOpen = face.leftEyeOpenProbability > 0.4;
+
+    // When both eyes are closed
+    if (!isRightEyeOpen && !isLeftEyeOpen && blinkDetected.current.open) {
+      blinkDetected.current.open = false;
+      blinkDetected.current.lastBlinkTime = Date.now();
+    }
+
+    // When both eyes open again (blink completed)
+    else if (isRightEyeOpen && isLeftEyeOpen && !blinkDetected.current.open) {
+      const timeSinceLastBlink =
+        Date.now() - blinkDetected.current.lastBlinkTime;
+
+      if (timeSinceLastBlink > 200) {
+        handleRealFace();
+        handleUpdateState('Verifying identity...', true);
+      }
+
+      blinkDetected.current.open = true;
+    }
   });
 
   const frameProcessor = useFrameProcessor(frame => {
     'worklet';
-    const result = xyzFrameProcessor?.call(frame);
-    // console.log(result);
+    // const result = xyzFrameProcessor?.call(frame);
 
-    if (result.faces === 1) {
-      captureFrame(result);
-    }
+
+    // if (result.length > 0) {
+    //   const face = result[0];
+    //   processFace(face);
+   
+      
+    // }else{
+    //    handleUpdateState('Please align your face within the frame', false);
+      
+    // }
   }, []);
 
   const activeFrameProcessor = useMemo(() => {
@@ -526,7 +528,7 @@ const NewScan = ({ navigation }) => {
 
         <Text style={{ ...styles.cameraLoadingText, marginBottom: SIZE(10) }}>
           {permission === 'blocked'
-            ? 'Camera and Location access is blocked. Please enable it in settings.'
+            ? 'Camera or Location access is blocked. Please enable both in Settings.'
             : 'Waiting for camera and location permission...'}
         </Text>
         <CommonButton

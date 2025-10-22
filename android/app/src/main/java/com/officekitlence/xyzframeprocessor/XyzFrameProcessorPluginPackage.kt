@@ -8,9 +8,13 @@ import com.mrousavy.camera.frameprocessors.FrameProcessorPluginRegistry
 
 class XyzFrameProcessorPluginPackage : ReactPackage {
   companion object {
+    private var orientationManager: VisionCameraFaceDetectorOrientation? = null
     init {
       FrameProcessorPluginRegistry.addFrameProcessorPlugin("xyz") { proxy, options ->
-        XyzFrameProcessorPlugin(proxy, options)
+        if (orientationManager == null) {
+          orientationManager = VisionCameraFaceDetectorOrientation(proxy.context)
+        }
+        XyzFrameProcessorPlugin(options, orientationManager!!)
       }
     }
   }
