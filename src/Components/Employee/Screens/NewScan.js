@@ -466,18 +466,18 @@ const NewScan = ({ navigation }) => {
 
   const frameProcessor = useFrameProcessor(frame => {
     'worklet';
-    // const result = xyzFrameProcessor?.call(frame);
+    const result = xyzFrameProcessor?.call(frame);
 
 
-    // if (result.length > 0) {
-    //   const face = result[0];
-    //   processFace(face);
+    if (result.length > 0) {
+      const face = result[0];
+      processFace(face);
    
       
-    // }else{
-    //    handleUpdateState('Please align your face within the frame', false);
+    }else{
+       handleUpdateState('Please align your face within the frame', false);
       
-    // }
+    }
   }, []);
 
   const activeFrameProcessor = useMemo(() => {
