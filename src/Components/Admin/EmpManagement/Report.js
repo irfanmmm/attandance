@@ -31,6 +31,7 @@ export default function Report({ navigation }) {
   const insets = useSafeAreaInsets();
   const [data, setData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
+  const [loading ,setLoading]=useState(true)
 
   const code = state.userData.company_code;
 
@@ -79,6 +80,7 @@ export default function Report({ navigation }) {
   };
 
   const getEmployee = async () => {
+    setLoading(true)
     try {
       const response = await fetch(`${BASE_URL}all-employees`, {
         method: 'POST',
@@ -106,6 +108,8 @@ export default function Report({ navigation }) {
       setData([]);
       setFilteredData([]);
       console.log('Authentication error:', err.message);
+    }finally{
+      setLoading(false)
     }
   };
 
@@ -235,15 +239,34 @@ export default function Report({ navigation }) {
             paddingBottom: SIZE(20),
             flexGrow: 1,
           }}
-          ListEmptyComponent={() => (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>
-                {input.trim() !== ''
-                  ? 'No employees found'
-                  : 'No employees available'}
-              </Text>
+        ListEmptyComponent={() => (
+    <>
+      {loading ? (
+        // Shimmer loader for loading state
+        <View style={styles.emptyContainer}>
+          {[...Array(5)].map((_, index) => ( // Adjust number of shimmer items as needed (e.g., 5 placeholders)
+            <View key={index} style={styles.shimmerItem}>
+              <View style={styles.shimmerIcon} />
+              <View style={styles.shimmerContent}>
+                <View style={styles.shimmerLineLong} />
+                <View style={styles.shimmerLineShort} />
+              </View>
+              <View style={styles.shimmerArrow} />
             </View>
-          )}
+          ))}
+        </View>
+      ) : (
+        // Original empty component for no data
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>
+            {input.trim() !== ''
+              ? 'No employees found'
+              : 'No employees available'}
+          </Text>
+        </View>
+      )}
+    </>
+  )}
           renderItem={({ item }) => (
             <TouchableOpacity
               activeOpacity={0.8}
@@ -393,6 +416,44 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+ shimmerItem: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  padding: SIZE(10),
+  marginVertical: SIZE(5),
+  backgroundColor: '#f0f0f0', // Base color
+  borderRadius: 8,
+},
+shimmerIcon: {
+  width: SIZE(44),
+  height: SIZE(44),
+  borderRadius: SIZE(22),
+  backgroundColor: '#e0e0e0',
+},
+shimmerContent: {
+  marginLeft: SIZE(10),
+  flex: 1,
+},
+shimmerLineLong: {
+  height: SIZE(16),
+  width: '70%',
+  backgroundColor: '#e0e0e0',
+  borderRadius: 4,
+  marginBottom: SIZE(8),
+},
+shimmerLineShort: {
+  height: SIZE(14),
+  width: '50%',
+  backgroundColor: '#e0e0e0',
+  borderRadius: 4,
+},
+shimmerArrow: {
+  width: SIZE(36),
+  height: SIZE(36),
+  backgroundColor: '#e0e0e0',
+  borderRadius: SIZE(18),
+},
   emptyContainer: {
     flex: 1,
     // justifyContent: 'center',

@@ -44,6 +44,7 @@ export default function AddBranch({ navigation, route }) {
   const [locationLoad, setLocationLoad] = useState(false);
   const [currentLocation, setCurrentLocation] = useState(null);
   const [isHighAccuracy, setIsHighAccuracy] = useState(true);
+  const isHighAccuracyRef = useRef(true);
 
   const toast = useToast();
 
@@ -142,37 +143,68 @@ export default function AddBranch({ navigation, route }) {
     // Otherwise, fetch current location
   };
 
-   useFocusEffect(
-      React.useCallback(() => {
-        setIsHighAccuracy(true);
-        return () => {
-      
-        };
-      }, []),
-    );
+  //   useEffect(() => {
+  //     return () => {
+  //       stopBackgroundTracking();
+  //     };
+  //   }, []);
 
-  const getCurrentLocation = () => {
+  // const stopBackgroundTracking = async () => {
+  //   await BackgroundService.stop();
+  // };
+
+  useFocusEffect(
+    React.useCallback(() => {
+      setIsHighAccuracy(true);
+      isHighAccuracyRef.current = true; // Keep ref in sync
+      return () => {};
+    }, []),
+  );
+
+  const getCurrentLocation = (retryCount = 0) => {
     setLocationLoad(true);
     setError(prev => ({ ...prev, locationErr: false }));
-    console.log('Fetching fresh current location');
+
+    const useHighAccuracy =
+      retryCount === 0 ? isHighAccuracyRef.current : false;
+    console.log(
+      '🔍 Getting location, attempt:',
+      retryCount + 1,
+      'high accuracy:',
+      useHighAccuracy,
+    );
 
     Geolocation.getCurrentPosition(
       position => {
-        setLocationLoad(false);
+    
+        console.log('✅ Location obtained:', position);
         const { latitude, longitude } = position.coords;
         setCurrentLocation(prev => ({ ...prev, latitude, longitude }));
         setInput(prev => ({ ...prev, latitude, longitude }));
         console.log({ latitude, longitude }, 'Fresh location fetched');
+            setLocationLoad(false);
       },
       error => {
-        console.log('timouted', error.code);
-        if (error.code === 3) {
+        console.log('❌ Location error:', error);
+       
+
+        if (error.code === 3 && retryCount === 0) {
+          console.log('⏰ Timeout - retrying with low accuracy');
+          isHighAccuracyRef.current = false;
+          
           setIsHighAccuracy(false);
+          // Retry with low accuracy
+          //  setLocationLoad(false);
+          setTimeout(() => {
+            getCurrentLocation(1)
+          }, 1000);
+        } else {
+          console.log('hhfhfhfhfalse');
+          reject(error.message);
         }
-        reject(error.message);
       },
       {
-        enableHighAccuracy: isHighAccuracy,
+        enableHighAccuracy: useHighAccuracy,
         timeout: 2000,
         maximumAge: 0,
         interval: 0,

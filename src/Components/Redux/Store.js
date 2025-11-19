@@ -10,7 +10,9 @@ const loadInitialState = () => ({
     company_code:'',
     empName:'',
     latitude:'', 
-    longitude :''
+    longitude :'',
+    username:'',
+    password:''
     
   },
 });

@@ -24,7 +24,9 @@ const Navigations = {
   Attendance: 'Attendance',
   'Attendance Report': 'Report',
   'Employee Management': 'EmployeeManagement',
-  'Add Branches':'AddBranch'
+  'Add Branches': 'AddBranch',
+  'Add Agency':'AddAgency'
+  
 };
 export default function EmpManagement({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -32,6 +34,8 @@ export default function EmpManagement({ navigation }) {
   const [isLogOut, setLogOut] = useState(false);
 
   const handleNavigate = item => {
+
+    
     navigation.navigate(Navigations[item.title]);
   };
 
@@ -46,7 +50,7 @@ export default function EmpManagement({ navigation }) {
       backAction,
     );
     return () => {
-      backHandler.remove(); 
+      backHandler.remove();
     };
   }, [navigation]);
 
@@ -66,11 +70,17 @@ export default function EmpManagement({ navigation }) {
       subTxt: 'Manage employee details',
       icon: <Employee width={SIZE(20)} height={SIZE(20)} />,
     },
-       {
+    {
       title: 'Add Branches',
-      subTxt: 'Create and manage company branches.',
+      subTxt: 'Create and manage company branches',
       icon: <Employee width={SIZE(20)} height={SIZE(20)} />,
     },
+    {
+      title: 'Add Agency',
+      subTxt: 'Create Agency.',
+      icon: <Employee width={SIZE(20)} height={SIZE(20)} />,
+    },
+
   ];
 
   return (
@@ -87,7 +97,6 @@ export default function EmpManagement({ navigation }) {
         <Plus width={SIZE(24)} height={SIZE(24)} />
       </TouchableOpacity>
       <TouchableWithoutFeedback onPress={() => setLogOut(false)}>
-        
         <LinearGradient
           colors={['#022E95', '#4B87EE']}
           style={{ ...styles.topContainer }}
@@ -151,7 +160,6 @@ export default function EmpManagement({ navigation }) {
             </View>
           </View>
         </LinearGradient>
-  
       </TouchableWithoutFeedback>
       <View style={styles.bottomContainer}>
         <FlatList
@@ -288,7 +296,7 @@ const styles = StyleSheet.create({
   },
   SubText: {
     fontSize: SIZE(14),
-    lineHeight: SIZE(16),
+    lineHeight: SIZE(18),
     color: '#494949',
     fontFamily: Fonts.Regular,
     marginTop: SIZE(6),

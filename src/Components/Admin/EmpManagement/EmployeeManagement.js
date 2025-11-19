@@ -37,6 +37,7 @@ export default function EmployeeManagement({ navigation }) {
   const insets = useSafeAreaInsets();
   const { state, dispatch } = useContext(Context);
   const code = state?.userData?.company_code;
+  
 
   console.log(code,'ddd');
   

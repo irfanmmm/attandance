@@ -33,10 +33,14 @@ export default function Login({ navigation }) {
   
 
   const handleLogin = async () => {
+
+  
+    
     setLoader(true)
     setError(false);
     if (!code.trim()) {
       setError(true);
+      setLoader(false)
       return;
     }
     // dispatch({
@@ -49,14 +53,13 @@ export default function Login({ navigation }) {
     // });
     //  dispatch({ type: "loginSuccess", data: true });
 
-    // navigation.navigate("EmployeeStackNavigator");
-    try {
-      if (!code.trim()) {
-        setError(true);
-        return;
-      }
-      console.log('hoi');
 
+    try {
+      // if (!code.trim()) {
+      //   setError(true);
+      //   setLoader(false)
+      //   return;
+      // }
       const response = await fetch(`${API_URL}verify-compony-code`, {
         method: 'POST',
         headers: {
@@ -66,11 +69,12 @@ export default function Login({ navigation }) {
           code: code,
         }),
       });
-      console.log(response.status,'dddd');
+      
       
 
       const data = await response.json();
       if (data?.message === 'success') {
+       
         dispatch({
           type: 'UPDATE_USER_DATA',
           userData: {
@@ -79,7 +83,10 @@ export default function Login({ navigation }) {
             company_code: code,
           },
         });
+        // navigation.navigate('UserLogin')
       } else {
+        
+           setLoader(false)
          toast.show(data?.message, {
             type: 'danger',
             duration: 2000,
@@ -88,8 +95,8 @@ export default function Login({ navigation }) {
         // setStatus('something went wrong');
       }
 
-      // navigation.navigate('EmployeeStackNavigator');
     } catch (err) {
+          setLoader(false)
         toast.show('Something went wrong', {
             type: 'danger',
             duration: 2000,

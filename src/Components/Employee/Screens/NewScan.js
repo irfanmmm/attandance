@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { faceDetectorPluggin } from 'react-native-face-detector-mlkit';
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import BackgroundService from 'react-native-background-actions';
 import {
@@ -80,6 +81,7 @@ const NewScan = ({ navigation }) => {
   });
 
   const [isHighAccuracy, setIsHighAccuracy] = useState(true);
+  const isHighAccuracyRef = useRef(true);
 
   const sleep = time =>
     new Promise(resolve => setTimeout(() => resolve(), time));
@@ -94,14 +96,22 @@ const NewScan = ({ navigation }) => {
   const [isReal, setIsReal] = useState(0);
 
   const veryIntensiveTask = async taskDataArguments => {
+    console.log('🚀 Background task started');
+
     while (BackgroundService.isRunning()) {
       try {
+        console.log('📍 Fetching location...');
+
         const location = await getCurrentLocation();
+        console.log('✅ Location fetched successfully');
 
         const { latitude, longitude } = location.coords;
+        console.log('📍 Coordinates:', latitude, longitude);
 
         latituderef.current = latitude;
         longituderef.current = longitude;
+
+        // Update Redux store with location
         dispatch({
           type: 'UPDATE_USER_DATA',
           userData: {
@@ -110,15 +120,43 @@ const NewScan = ({ navigation }) => {
             longitude: longituderef.current,
           },
         });
+
+        console.log('💾 Location updated in store');
         await sleep(5000);
-      } catch (error) {}
+      } catch (error) {
+        console.log('❌ Background task error:', error);
+        await sleep(5000); // Wait before retrying
+      }
+    }
+
+    console.log('🛑 Background task stopped');
+  };
+
+  const stopBackgroundTracking = async () => {
+    try {
+      const isRunning = await BackgroundService.isRunning();
+      if (isRunning) {
+        console.log('🛑 Stopping background service...');
+        await BackgroundService.stop();
+        console.log('✅ Background service stopped successfully');
+      } else {
+        console.log('ℹ️ Background service was not running');
+      }
+    } catch (error) {
+      console.log('❌ Error stopping background service:', error);
     }
   };
 
   const getLocationPermission = async () => {
-   
-
     try {
+      // ✅ Check if service is already running
+      const isRunning = await BackgroundService.isRunning();
+      if (isRunning) {
+        console.log('⚠️ Background service already running, skipping start');
+        setPermission('authorized');
+        return;
+      }
+
       if (Platform.OS === 'android') {
         // Request camera and location permissions
         const granted = await PermissionsAndroid.requestMultiple([
@@ -134,28 +172,9 @@ const NewScan = ({ navigation }) => {
         if (locationGranted && cameraGranted) {
           setPermission('authorized');
 
-          // Request background location permission
-          const backgroundResult = await PermissionsAndroid.request(
-            PermissionsAndroid.PERMISSIONS.ACCESS_BACKGROUND_LOCATION,
-            {
-              title: 'Background Location Access',
-              message:
-                'Allow this app to access your location even when the app is closed or not in use?',
-              buttonPositive: 'Allow',
-              buttonNegative: 'Deny',
-            },
-          );
-
-          // if (backgroundResult === 'granted') {
-          //   console.log('✅ Background location permission granted');
-          //   setHasBackgroundPermission(true);
-          // } else {
-          //   console.log('⚠️ Background location permission denied');
-          //   setHasBackgroundPermission(false);
-          // }
-
           // Start background service only if permissions are granted
           try {
+            console.log('🚀 Starting background service...');
             await BackgroundService.start(veryIntensiveTask, {
               taskName: 'LocationTracking',
               taskTitle: 'Location Tracking',
@@ -167,6 +186,7 @@ const NewScan = ({ navigation }) => {
               color: '#153CD8',
               linkingURI: '',
             });
+            console.log('✅ Background service started successfully');
           } catch (bgError) {
             console.log(
               '❌ Failed to start background service:',
@@ -195,6 +215,7 @@ const NewScan = ({ navigation }) => {
 
             // Start background service for iOS
             try {
+              console.log('🚀 Starting background service on iOS...');
               await BackgroundService.start(veryIntensiveTask, {
                 taskName: 'LocationTracking',
                 taskTitle: 'Location Tracking',
@@ -206,6 +227,7 @@ const NewScan = ({ navigation }) => {
                 color: '#153CD8',
                 linkingURI: '',
               });
+              console.log('✅ Background service started on iOS');
             } catch (bgError) {
               console.log(
                 '❌ Failed to start background service on iOS:',
@@ -262,41 +284,70 @@ const NewScan = ({ navigation }) => {
     }
   };
 
-  const stopBackgroundTracking = async () => {
-    await BackgroundService.stop();
-  };
+  const getCurrentLocation = async (retryCount = 0) => {
+    const useHighAccuracy =
+      retryCount === 0 ? isHighAccuracyRef.current : false;
 
-  const getCurrentLocation = () => {
     return new Promise((resolve, reject) => {
       Geolocation.getCurrentPosition(
-        position => resolve(position),
-        error => {
-          if (error.code === 3) {
+        position => {
+          console.log('✅ Location obtained:', position);
+          resolve(position);
+        },
+        async error => {
+          console.log('❌ Location error:', error);
+
+          if (error.code === 3 && retryCount === 0) {
+            console.log('⏰ Timeout - retrying with low accuracy');
+            isHighAccuracyRef.current = false;
             setIsHighAccuracy(false);
+
+            try {
+              await sleep(1000);
+              const retryResult = await getCurrentLocation(1);
+              resolve(retryResult);
+            } catch (retryError) {
+              reject(retryError);
+            }
+          } else if (error.code === 2) {
+            reject(
+              new Error(
+                'Location services unavailable. Please enable location in device settings.',
+              ),
+            );
+          } else if (error.code === 1) {
+            reject(new Error('Location permission denied.'));
+          } else {
+            reject(error);
           }
-          reject(error.message);
         },
         {
-          enableHighAccuracy: isHighAccuracy,
-          timeout: 2000,
+          enableHighAccuracy: useHighAccuracy,
+          timeout: 15000,
           maximumAge: 0,
-          interval: 0,
           distanceFilter: 0,
         },
       );
     });
   };
 
-  useEffect(() => {
-    getLocationPermission();
-  }, []);
-
+  // ✅ Single useFocusEffect handles everything
   useFocusEffect(
     React.useCallback(() => {
+      console.log('📱 NewScan screen focused');
       setIsActive(true);
       setIsHighAccuracy(true);
+      isHighAccuracyRef.current = true;
+
+      // Start location tracking when screen is focused
+      getLocationPermission();
+
       return () => {
+        console.log('📱 NewScan screen unfocused - cleaning up');
         setIsActive(false);
+
+        // ✅ Stop background service immediately when leaving screen
+        stopBackgroundTracking();
 
         if (abortControllerRef.current) {
           abortControllerRef.current.abort();
@@ -305,12 +356,6 @@ const NewScan = ({ navigation }) => {
       };
     }, []),
   );
-
-  useEffect(() => {
-    return () => {
-      stopBackgroundTracking();
-    };
-  }, []);
 
   const updateState = updates => {
     Object.entries(updates).forEach(([key, value]) => {
@@ -379,7 +424,7 @@ const NewScan = ({ navigation }) => {
 
       const data = await response.json();
 
-      console.log(data?.details?.direction, 'fgh');
+      console.log(data, 'fghjdjjdjd----------------');
 
       if (data.message === 'success') {
         updateState({ status: 'Response received', loading: false });
@@ -437,7 +482,6 @@ const NewScan = ({ navigation }) => {
   const processFace = Worklets.createRunOnJS(face => {
     'worklet';
 
-
     if (!face) return;
     handleUpdateState('blink your eyes and shake your head', false);
 
@@ -448,10 +492,7 @@ const NewScan = ({ navigation }) => {
     if (!isRightEyeOpen && !isLeftEyeOpen && blinkDetected.current.open) {
       blinkDetected.current.open = false;
       blinkDetected.current.lastBlinkTime = Date.now();
-    }
-
-    // When both eyes open again (blink completed)
-    else if (isRightEyeOpen && isLeftEyeOpen && !blinkDetected.current.open) {
+    } else if (isRightEyeOpen && isLeftEyeOpen && !blinkDetected.current.open) {
       const timeSinceLastBlink =
         Date.now() - blinkDetected.current.lastBlinkTime;
 
@@ -468,15 +509,11 @@ const NewScan = ({ navigation }) => {
     'worklet';
     const result = xyzFrameProcessor?.call(frame);
 
-
     if (result.length > 0) {
       const face = result[0];
       processFace(face);
-   
-      
-    }else{
-       handleUpdateState('Please align your face within the frame', false);
-      
+    } else {
+      handleUpdateState('Please align your face within the frame', false);
     }
   }, []);
 
@@ -495,7 +532,6 @@ const NewScan = ({ navigation }) => {
   const resumeCamera = () => {
     setShowModal(false);
     setIsActive(true);
-    startTimer();
   };
 
   const format = device?.formats?.find(
@@ -517,6 +553,7 @@ const NewScan = ({ navigation }) => {
       </View>
     );
   }
+
   if (!permission || permission === 'denied' || permission === 'blocked') {
     return (
       <View style={styles.cameraLoadingContainer}>
@@ -540,7 +577,6 @@ const NewScan = ({ navigation }) => {
       </View>
     );
   }
-  // console.log(isActive, 'isActiveisActiveisActiveisActive');
 
   if (permission === 'error') {
     return (
@@ -566,21 +602,16 @@ const NewScan = ({ navigation }) => {
       />
       <View
         style={{
-          // width:100,
-          // height:100,
-          // backgroundColor:'red',
           position: 'absolute',
           top: landMarks.top,
           bottom: landMarks.bottom,
           right: landMarks.right,
-
           left: landMarks.left,
           width: landMarks.width,
           height: landMarks.height,
           borderWidth: 2,
           borderColor: 'lime',
           borderRadius: 8,
-          // top:landMarks.top,
         }}
       />
 
@@ -611,6 +642,7 @@ const NewScan = ({ navigation }) => {
           </Text>
         </TouchableOpacity>
       </View>
+
       <View style={styles.frameContainer}>
         <View style={styles.titileContainer}>
           <Text allowFontScaling={false} style={styles.scanText}>
@@ -670,7 +702,6 @@ const NewScan = ({ navigation }) => {
 
 export default NewScan;
 
-// Styles remain the same as in your original code
 const frameWidth = 310;
 const frameHeight = 310;
 
@@ -786,7 +817,6 @@ const styles = StyleSheet.create({
     marginLeft: SIZE(10),
   },
   titileContainer: {
-    // position: 'absolute',
     alignSelf: 'center',
     zIndex: 20,
     top: -20,
@@ -800,7 +830,6 @@ const styles = StyleSheet.create({
   scanStatus: {
     alignItems: 'center',
     flexDirection: 'row',
-    // position: 'absolute',
     alignSelf: 'center',
     zIndex: 20,
     bottom: -20,
