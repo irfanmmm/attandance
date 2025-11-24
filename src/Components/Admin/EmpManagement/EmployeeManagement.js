@@ -32,15 +32,18 @@ import EditIcon from '../../../assets/svg/edit.svg';
 import DeleteIcon from '../../../assets/svg/delete.svg';
 import { BASE_URL } from '../../utils/urls';
 import { useFocusEffect } from '@react-navigation/native';
+import { useAxios } from '../../utils/useAxios';
+import { useToast } from 'react-native-toast-notifications';
 
 export default function EmployeeManagement({ navigation }) {
   const insets = useSafeAreaInsets();
   const { state, dispatch } = useContext(Context);
   const code = state?.userData?.company_code;
+  const { fetchData } = useAxios();
+    const toast = useToast();
   
 
-  console.log(code,'ddd');
-  
+  console.log(code, 'ddd');
 
   const inputRef = useRef(null);
 
@@ -65,7 +68,9 @@ export default function EmployeeManagement({ navigation }) {
         const searchText = text.toLowerCase();
 
         return (
-          fullname.includes(searchText) || employeeCode.includes(searchText)||branch.includes(searchText)
+          fullname.includes(searchText) ||
+          employeeCode.includes(searchText) ||
+          branch.includes(searchText)
         );
       });
       setFilteredData(filtered);
@@ -74,30 +79,38 @@ export default function EmployeeManagement({ navigation }) {
 
   const getEmpDetails = async date => {
     try {
-      const response = await fetch(`${BASE_URL}all-employees`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          compony_code: code,
-          // date: formatDateForAPI(date),
-        }),
-      });
+      // const response = await fetch(`${BASE_URL}all-employees`, {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //   },
+      //   body: JSON.stringify({
+      //     compony_code: code,
+      //     // date: formatDateForAPI(date),
+      //   }),
+      // });
 
-      if (!response.ok) {
-        throw new Error(
-          'Authentication failed. Please check your credentials.',
-        );
-      }
+      // if (!response.ok) {
+      //   throw new Error(
+      //     'Authentication failed. Please check your credentials.',
+      //   );
+      // }
 
-      const data = await response.json();
+      // const data = await response.json();
       // console.log(data.data, 'response');
+
+      const data = await fetchData({
+        url: 'all-employees',
+        // method: 'POST',
+        // data: {
+        //   date: formatDateForAPI(startDate),
+        // },
+      });
+      console.log(data, 'datadatadatadata');
 
       if (data?.message === 'success') {
         setFilteredData(data?.data);
-        console.log(data?.data,'data?.datadata?.datadata?.datadata?.data');
-        
+        console.log(data?.data, 'data?.datadata?.datadata?.datadata?.data');
 
         // setData(data?.data);
       } else {
@@ -109,12 +122,11 @@ export default function EmployeeManagement({ navigation }) {
     }
   };
 
-  console.log('selec',selectedData);
-  
+
 
   const deleteEmployee = async () => {
-    console.log('fhfhfh');
-    
+
+
     try {
       const formData = new FormData();
       formData.append('compony_code', code);
@@ -123,38 +135,58 @@ export default function EmployeeManagement({ navigation }) {
           employee_id: selectedData?.employee_code,
           action: 'D',
           full_name: selectedData?.fullname,
-          branch:selectedData?.branch
+          branch: selectedData?.branch,
         },
       ]);
-      
+
       formData.append('editable_details', editableDetails);
       console.log(formData);
 
-      const response = await fetch(`${BASE_URL}edit-user`, {
+      const data = await fetchData({
+        url: 'edit-user',
         method: 'POST',
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        body: formData,
+        data: formData,
+          headers: { 'Content-Type': 'multipart/form-data' },
       });
+
+      // const response = await fetch(`${BASE_URL}edit-user`, {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'multipart/form-data',
+      //   },
+      //   body: formData,
+      // });
 
       // if (!response.ok) {
       //   throw new Error(
       //     'Authentication failed. Please check your credentials.',,
       //   );
       // }
-      const data = await response.json();
-      console.log(data.data, 'deleteemol');
+      // const data = await response.json();
+      console.log(data, 'deleteem----------------------ol');
 
-      if (data?.message === 'success') {
+      if (data?.message === 'success') {    
+        toast.show('Successfully Deleted', {
+          type: 'success',
+          duration: 2500,
+        });
+
         // setData(data?.data);
         getEmpDetails();
       } else {
+        toast.show(data?.message||'Somethin went wrong', {
+         type: 'danger',
+          duration: 2000,
+        });
+        
       }
     } catch (err) {
+          toast.show('Somethin went wrong', {
+         type: 'danger',
+          duration: 2000,
+        });
       // setData([]);
-      console.log('dhdhdh',JSON.stringify(err));
-      
+      console.log('dhdhdh', err);
 
       console.log('Authentication error:', err?.message);
     }
@@ -189,35 +221,6 @@ export default function EmployeeManagement({ navigation }) {
       }}
     >
       <View style={styles.container}>
-        {isLogOut && (
-          <View style={styles.logOutContainer}>
-            <TouchableOpacity
-              hitSlop={8}
-              activeOpacity={0.8}
-              onPress={() => {
-                dispatch({
-                  type: 'UPDATE_USER_DATA',
-                  userData: {
-                    ...state.userData,
-                    is_logged: false,
-                  },
-                });
-              }}
-              style={styles.logContaienr}
-            >
-              <Log width={SIZE(16)} height={SIZE(16)} />
-              <Text
-                style={{
-                  color: '#1C54D7',
-                  fontSize: SIZE(14),
-                  marginLeft: SIZE(5),
-                }}
-              >
-                Logout
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
         <LinearGradient
           start={{ x: 0, y: 0 }}
           end={{ x: 2, y: 0 }}
@@ -246,15 +249,46 @@ export default function EmployeeManagement({ navigation }) {
               </View>
             </View>
             <View>
-              <TouchableOpacity
-                activeOpacity={0.8}
-                hitSlop={8}
-                onPress={() => {
-                  setLogOut(!isLogOut);
-                }}
-              >
-                <LogoutIcon width={SIZE(40)} height={SIZE(40)} />
-              </TouchableOpacity>
+              <View style={styles.logoutButtonWrapper}>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  hitSlop={8}
+                  onPress={() => {
+                    setLogOut(!isLogOut);
+                  }}
+                >
+                  <LogoutIcon width={SIZE(40)} height={SIZE(40)} />
+                </TouchableOpacity>
+                {isLogOut && (
+                  <View style={styles.logOutContainer}>
+                    <TouchableOpacity
+                      hitSlop={8}
+                      activeOpacity={0.8}
+                      onPress={() => {
+                        dispatch({
+                          type: 'UPDATE_USER_DATA',
+                          userData: {
+                            ...state.userData,
+                            is_logged: false,
+                          },
+                        });
+                      }}
+                      style={styles.logContaienr}
+                    >
+                      <Log width={SIZE(16)} height={SIZE(16)} />
+                      <Text
+                        style={{
+                          color: '#1C54D7',
+                          fontSize: SIZE(14),
+                          marginLeft: SIZE(5),
+                        }}
+                      >
+                        Logout
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
             </View>
           </View>
         </LinearGradient>
@@ -280,14 +314,14 @@ export default function EmployeeManagement({ navigation }) {
             />
           </TouchableOpacity>
           {/* <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}> */}
-            <ScrollView
+          <ScrollView
             bounces={false}
-              showsVerticalScrollIndicator={false}
-           contentContainerStyle={{
-             flexGrow: 1,
-              backgroundColor: '#FFFFFF'
-             }}
-            >
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{
+              flexGrow: 1,
+              backgroundColor: '#FFFFFF',
+            }}
+          >
             {filteredData?.length > 0 ? (
               filteredData.map((item, index) => (
                 <TouchableOpacity
@@ -305,7 +339,6 @@ export default function EmployeeManagement({ navigation }) {
                     <View style={styles.content}>
                       <Text style={styles.empName}>{item?.fullname}</Text>
                       <Text style={styles.empId}>{item?.employee_code}</Text>
-                  
                     </View>
                   </View>
                   <View style={styles.tabRight}>
@@ -341,7 +374,7 @@ export default function EmployeeManagement({ navigation }) {
                 </Text>
               </View>
             )}
-            </ScrollView>
+          </ScrollView>
           {/* </View> */}
         </View>
 
@@ -403,17 +436,14 @@ const styles = StyleSheet.create({
   },
   topContainer: {
     // height: SIZE(150),
-  
     // paddingHorizontal: SIZE(20),
-
     // alignItems: 'center',
   },
   topMidContainer: {
     justifyContent: 'space-between',
     flexDirection: 'row',
     paddingHorizontal: SIZE(20),
-    marginBottom:SIZE(25)
-    
+    marginBottom: SIZE(25),
   },
   topLeftContainer: {
     flexDirection: 'row',
@@ -432,25 +462,26 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     marginTop: SIZE(6),
   },
+  logoutButtonWrapper: {
+    position: 'relative',
+    zIndex: 50,
+  },
   logOutContainer: {
     width: SIZE(200),
-    height: SIZE(90),
     backgroundColor: '#ffffff',
     position: 'absolute',
-    top: 130,
-    right: 20,
+    top: SIZE(50),
+    right: 0,
     borderRadius: SIZE(20),
-    padding: SIZE(20),
-    justifyContent: 'center',
-    zIndex: 10,
-    elevation: 5,
+    padding: SIZE(15),
+    elevation: 8,
     shadowColor: '#000000',
     shadowOffset: {
       width: 0,
       height: 2,
     },
     shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowRadius: 3,
   },
   logContaienr: {
     flexDirection: 'row',
@@ -460,6 +491,7 @@ const styles = StyleSheet.create({
     borderRadius: SIZE(20),
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: SIZE(15),
   },
   contentContainer: {
     backgroundColor: '#FFFFFF',

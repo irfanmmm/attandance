@@ -22,27 +22,34 @@ import Document from '../../../assets/svg/Document.svg';
 
 const Navigations = {
   Attendance: 'Attendance',
-  'Attendance Report': 'Report',
+  'Attendance Report': 'ReportSingleView',
   'Employee Management': 'EmployeeManagement',
   'Add Branches': 'AddBranch',
-  'Add Agency':'AddAgency'
-  
+  'Add Agency': 'AddAgency',
 };
 export default function EmpManagement({ navigation }) {
   const insets = useSafeAreaInsets();
   const { state, dispatch } = useContext(Context);
   const [isLogOut, setLogOut] = useState(false);
+  const settings = state.userData.settings;
+    const isAdmin = state.userData.is_admin;
+
+  const isAgency = settings?.find(
+    val => val.setting_name === 'Agency Management',
+  )?.value;
+  const isBranch = settings?.find(
+    val => val.setting_name === 'Branch Management',
+  )?.value;
 
   const handleNavigate = item => {
-
-    
     navigation.navigate(Navigations[item.title]);
   };
 
   useEffect(() => {
     const backAction = () => {
+      isAdmin?navigation.navigate('NewScan'): navigation.navigate('Authentication')
       // Navigate to the login page
-      navigation.navigate('Authentication'); // Replace 'Login' with your login screen name
+      // navigation.navigate('Authentication'); // Replace 'Login' with your login screen name
       return true; // Prevent default back action (e.g., exiting the app)
     };
     const backHandler = BackHandler.addEventListener(
@@ -70,17 +77,24 @@ export default function EmpManagement({ navigation }) {
       subTxt: 'Manage employee details',
       icon: <Employee width={SIZE(20)} height={SIZE(20)} />,
     },
-    {
-      title: 'Add Branches',
-      subTxt: 'Create and manage company branches',
-      icon: <Employee width={SIZE(20)} height={SIZE(20)} />,
-    },
-    {
-      title: 'Add Agency',
-      subTxt: 'Create Agency.',
-      icon: <Employee width={SIZE(20)} height={SIZE(20)} />,
-    },
-
+    ...(isBranch === true || isBranch === 'true'
+      ? [
+          {
+            title: 'Add Branches',
+            subTxt: 'Create and manage company branches',
+            icon: <Employee width={SIZE(20)} height={SIZE(20)} />,
+          },
+        ]
+      : []),
+    ...(isAgency === true || isAgency === 'true'
+      ? [
+          {
+            title: 'Add Agency',
+            subTxt: 'Create Agency.',
+            icon: <Employee width={SIZE(20)} height={SIZE(20)} />,
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -107,6 +121,7 @@ export default function EmpManagement({ navigation }) {
               paddingHorizontal: SIZE(20),
             }}
           >
+                 <View style={styles.logoutButtonWrapper}>
             <View style={{ alignItems: 'flex-end' }}>
               <TouchableOpacity
                 activeOpacity={0.8}
@@ -138,9 +153,10 @@ export default function EmpManagement({ navigation }) {
                   <Log width={SIZE(16)} height={SIZE(16)} />
                   <Text
                     style={{
-                      color: '#1C54D7',
-                      fontSize: SIZE(14),
-                      marginLeft: SIZE(5),
+                             color: '#1C54D7',
+                                            fontSize: SIZE(14),
+                                            fontFamily: Fonts.Medium,
+                                            marginLeft: SIZE(8),
                     }}
                   >
                     Logout
@@ -148,6 +164,7 @@ export default function EmpManagement({ navigation }) {
                 </TouchableOpacity>
               </View>
             )}
+            </View>
             <View style={styles.headerContent}>
               <Text style={styles.headerText}>
                 {'Manage Your \nWork force with Ease'}
@@ -226,25 +243,26 @@ const styles = StyleSheet.create({
   logOutContainer: {
     // alignItems: 'flex-end',
   },
+        logoutButtonWrapper: {
+    position: 'relative',
+    zIndex: 50,
+  },
   logOutContainers: {
-    width: SIZE(200),
-    height: SIZE(90),
+   width: SIZE(200),
     backgroundColor: '#ffffff',
     position: 'absolute',
-    top: 130,
-    right: 20,
+    top: SIZE(50),
+    right: 0,
     borderRadius: SIZE(20),
-    padding: SIZE(20),
-    justifyContent: 'center',
-    zIndex: 10,
-    elevation: 5,
+    padding: SIZE(15),
+    elevation: 8,
     shadowColor: '#000000',
     shadowOffset: {
       width: 0,
       height: 2,
     },
     shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowRadius: 3,
   },
   logContaienr: {
     flexDirection: 'row',
@@ -254,6 +272,8 @@ const styles = StyleSheet.create({
     borderRadius: SIZE(20),
     justifyContent: 'center',
     alignItems: 'center',
+       paddingHorizontal: SIZE(15),
+
   },
   headerContent: {
     paddingTop: SIZE(20),

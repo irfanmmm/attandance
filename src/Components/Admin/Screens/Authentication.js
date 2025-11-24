@@ -28,10 +28,12 @@ import LogoutIcon from '../../../assets/svg/logOut.svg';
 import Log from '../../../assets/svg/log.svg';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import LinearGradient from 'react-native-linear-gradient';
+import { useAxios } from '../../utils/useAxios';
 
 export default function Authentication() {
   const insets = useSafeAreaInsets();
 
+  const { fetchData } = useAxios();
   const { state, dispatch } = useContext(Context); // Add camera ready state
   const code = state.userData.company_code;
 
@@ -41,7 +43,7 @@ export default function Authentication() {
 
   const inputRef1 = useRef(null);
   const inputRef2 = useRef(null);
-    const [loader,setLoader]=useState(false)
+  const [loader, setLoader] = useState(false);
 
   const [err, setErr] = useState(false);
   const [input, setInput] = useState({ username: '', password: '' });
@@ -73,27 +75,37 @@ export default function Authentication() {
       return;
     }
     //  navigation.navigate("AddEmployee");
-    setLoader(true)
+    setLoader(true);
     try {
-      const response = await fetch(`${BASE_URL}verify-admin`, {
+      // const response = await fetch(`${BASE_URL}verify-admin`, {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //   },
+      //   body: JSON.stringify({
+      //     username: input.username,
+      //     password: input.password,
+      //     compony_code: code,
+      //   }),
+      // });
+
+      // if (!response.ok) {
+      //   throw new Error(
+      //     'Authentication failed. Please check your credentials.',
+      //   );
+      // }
+
+      // const data = await response.json();
+
+      const data = await fetchData({
+        url: 'auth/verify-admin',
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+        data: {
           username: input.username,
           password: input.password,
-          compony_code: code,
-        }),
+          //     compony_code: code,
+        },
       });
-
-      if (!response.ok) {
-        throw new Error(
-          'Authentication failed. Please check your credentials.',
-        );
-      }
-
-      const data = await response.json();
       console.log(data);
       if (data.message === 'success') {
         navigation.navigate('EmpManagement');
@@ -106,47 +118,44 @@ export default function Authentication() {
       // setError({ usernameErr: true, passwordErr: true });
       console.log('Authentication error:', err.message);
       setErr(true);
-    }finally{
-    setLoader(false)
-
+    } finally {
+      setLoader(false);
     }
   };
 
-
-
-    useEffect(() => {
-      const backAction = () => {
-        // Navigate to the login page
-        navigation.navigate('NewScan'); // Replace 'Login' with your login screen name
-        return true; // Prevent default back action (e.g., exiting the app)
-      };
-      const backHandler = BackHandler.addEventListener(
-        'hardwareBackPress',
-        backAction
-      );
-      return () => {
-        backHandler.remove(); // Cleanup when the component unmounts
-      };
-    }, [navigation]);
-
-
-
+  useEffect(() => {
+    const backAction = () => {
+      // Navigate to the login page
+      navigation.navigate('NewScan'); // Replace 'Login' with your login screen name
+      return true; // Prevent default back action (e.g., exiting the app)
+    };
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      backAction,
+    );
+    return () => {
+      backHandler.remove(); // Cleanup when the component unmounts
+    };
+  }, [navigation]);
 
   return (
     <View
       // source={require('../../../assets/adminBackround.png')}
       style={styles.container}
     >
-  
-        <KeyboardAwareScrollView
-          // extraScrollHeight={SIZE(50)}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          // enableAutomaticScroll={true}
-          enableOnAndroid={true}
-          contentContainerStyle={{ flexGrow: 1 }}
+      <KeyboardAwareScrollView
+        // extraScrollHeight={SIZE(50)}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        // enableAutomaticScroll={true}
+        enableOnAndroid={true}
+        contentContainerStyle={{ flexGrow: 1 }}
+      >
+        <TouchableWithoutFeedback
+          onPress={() => {
+            setLogOut(false), Keyboard.dismiss();
+          }}
         >
-              <TouchableWithoutFeedback onPress={() =>{ setLogOut(false), Keyboard.dismiss()} }>
           <LinearGradient
             colors={['#022E95', '#4B87EE']}
             style={{ ...styles.contain }}
@@ -162,8 +171,8 @@ export default function Authentication() {
               <View style={styles.haederContainer}>
                 <TouchableOpacity
                   onPress={() => {
-                      navigation.navigate('NewScan'); 
-                          setLogOut(false)
+                    navigation.navigate('NewScan');
+                    setLogOut(false);
                   }}
                 >
                   <BackIcon
@@ -175,7 +184,7 @@ export default function Authentication() {
 
                 {/* <Text style={{color:'#ffffff',fontSize:16,lineHeight:20}}>Log Out</Text>
                  */}
-                <View>
+                            <View style={styles.logoutButtonWrapper}>
                   <TouchableOpacity
                     activeOpacity={0.8}
                     hitSlop={8}
@@ -206,9 +215,10 @@ export default function Authentication() {
                       <Log width={SIZE(16)} height={SIZE(16)} />
                       <Text
                         style={{
-                          color: '#1C54D7',
-                          fontSize: SIZE(14),
-                          marginLeft: SIZE(5),
+                       color: '#1C54D7',
+    fontSize: SIZE(14),
+    fontFamily: Fonts.Medium,
+    marginLeft: SIZE(8),
                         }}
                       >
                         Logout
@@ -311,17 +321,17 @@ export default function Authentication() {
               )}
             </View>
           </LinearGradient>
-          </TouchableWithoutFeedback>
-        </KeyboardAwareScrollView>
-     
+        </TouchableWithoutFeedback>
+      </KeyboardAwareScrollView>
+
       <View style={styles.bottomButtonContainer}>
         <CommonButton
-        loader={loader}
+          loader={loader}
           backgroundColor={'#153CD8'}
           title={'Sign in'}
           onPress={() => {
             handleNavigate();
-            setLogOut(false)
+            setLogOut(false);
           }}
           color={'#FFFFFF'}
         />
@@ -399,25 +409,26 @@ const styles = StyleSheet.create({
     right: 0,
     marginBottom: SIZE(30),
   },
+    logoutButtonWrapper: {
+    position: 'relative',
+    zIndex: 50,
+  },
   logOutContainer: {
     width: SIZE(200),
-    height: SIZE(90),
     backgroundColor: '#ffffff',
     position: 'absolute',
-    top: 50,
-    right: 20,
+    top: SIZE(50),
+    right: 0,
     borderRadius: SIZE(20),
-    padding: SIZE(20),
-    justifyContent: 'center',
-    zIndex: 100,
-    elevation: 5,
+    padding: SIZE(15),
+    elevation: 8,
     shadowColor: '#000000',
     shadowOffset: {
       width: 0,
       height: 2,
     },
     shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowRadius: 3,
   },
   logContaienr: {
     flexDirection: 'row',
@@ -427,6 +438,7 @@ const styles = StyleSheet.create({
     borderRadius: SIZE(20),
     justifyContent: 'center',
     alignItems: 'center',
+      paddingHorizontal: SIZE(15),
 
     // justifyContent:'space-between'
   },
@@ -452,5 +464,4 @@ const styles = StyleSheet.create({
     lineHeight: SIZE(16),
     // backgroundColor:'red'
   },
-  
 });

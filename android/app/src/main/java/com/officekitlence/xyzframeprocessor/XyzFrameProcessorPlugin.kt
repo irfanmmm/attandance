@@ -1,11 +1,10 @@
 package com.officekitlence.xyzframeprocessor
 
+import LivenessDetector
 import android.util.Log
 import android.view.Surface
-import com.google.android.gms.tasks.Tasks
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.face.FaceDetector
-import com.mrousavy.camera.core.FrameInvalidError
 import com.mrousavy.camera.core.types.Position
 import com.mrousavy.camera.frameprocessors.Frame
 import com.mrousavy.camera.frameprocessors.FrameProcessorPlugin
@@ -79,37 +78,82 @@ class XyzFrameProcessorPlugin(
     private val isProcessing = AtomicBoolean(false)
     private var frameSkipCounter = 0
 
-    override fun callback(frame: Frame, params: Map<String, Any>?): ArrayList<Map<String, Any>> {
-        try {
-            val image = InputImage.fromMediaImage(frame.image, getImageOrientation())
-            // we need to invert sizes as frame is always -90deg rotated
-            val width = image.height.toDouble()
-            val height = image.width.toDouble()
-            val scaleX = if (autoMode) windowWidth / width else 1.0
-            val scaleY = if (autoMode) windowHeight / height else 1.0
-            val task = faceDetector!!.process(image)
-            val faces = Tasks.await(task)
+    private var lastProcessedResult: Any? = ""
+    private val processingJob = AtomicBoolean(false)
+    private val livenessDetector = LivenessDetector()
 
-            return common.processFaces(
-                    faces,
-                    runLandmarks,
-                    runClassifications,
-                    runContours,
-                    trackingEnabled,
-                    width,
-                    height,
-                    scaleX,
-                    scaleY,
-                    autoMode,
-                    cameraFacing,
-                    orientationManager.orientation
-            )
-        } catch (e: Exception) {
-            Log.e(TAG, "Error processing face detection: ", e)
-        } catch (e: FrameInvalidError) {
-            Log.e(TAG, "Frame invalid error: ", e)
+    override fun callback(frame: Frame, params: Map<String, Any>?): Any {
+        val mediaImage = frame.image
+        val image = InputImage.fromMediaImage(mediaImage, getImageOrientation())
+        val width = image.height.toDouble()
+        val height = image.width.toDouble()
+
+        if (!processingJob.getAndSet(true)) {
+            faceDetector
+                    ?.process(image)
+                    ?.addOnSuccessListener { faces ->
+                        try {
+
+                            val resultList =
+                                    common.processFaces(
+                                            faces,
+                                            runLandmarks,
+                                            runClassifications,
+                                            runContours,
+                                            trackingEnabled,
+                                            width,
+                                            height,
+                                            if (autoMode) windowWidth / width else 1.0,
+                                            if (autoMode) windowHeight / height else 1.0,
+                                            autoMode,
+                                            cameraFacing,
+                                            orientationManager.orientation
+                                    )
+
+                            resultList.forEachIndexed { index, faceData ->
+                                val livenessResult =
+                                        livenessDetector.analyzeLiveness(faceData.toMutableMap())
+
+                                // Create new map with liveness data
+                                val updatedFaceData =
+                                        faceData.toMutableMap().apply {
+                                            put(
+                                                    "liveness",
+                                                    mapOf(
+                                                            "isLive" to livenessResult.isLive,
+                                                            "confidence" to
+                                                                    livenessResult.confidence,
+                                                            "status" to livenessDetector.getStatus()
+                                                    )
+                                            )
+                                        }
+
+                                resultList[0] = updatedFaceData
+                            }
+                            if (resultList.size == 0) {
+                                livenessDetector.reset()
+                            }
+                            lastProcessedResult = resultList
+                            Log.d(TAG, "Result: $lastProcessedResult")
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Error processing faces: ", e)
+                            lastProcessedResult = mapOf("error" to e.message, "faceCount" to 0)
+                        } finally {
+                            processingJob.set(false)
+                            mediaImage.close()
+                        }
+                    }
+                    ?.addOnFailureListener { e ->
+                        Log.e(TAG, "Face detection failed: ", e)
+                        lastProcessedResult = mapOf("error" to e.message, "faceCount" to 0)
+                        processingJob.set(false)
+                        mediaImage.close()
+                    }
+        } else {
+            mediaImage.close()
         }
 
-        return ArrayList()
+        Log.d(TAG, "Returning cached result: $lastProcessedResult")
+        return lastProcessedResult ?: mapOf("faceCount" to 0)
     }
 }

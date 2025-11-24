@@ -2,33 +2,33 @@ package com.officekitlence.xyzframeprocessor
 
 import android.graphics.Rect
 import android.view.Surface
-import com.mrousavy.camera.core.types.Position
 import com.google.mlkit.vision.face.Face
-import com.google.mlkit.vision.face.FaceLandmark
 import com.google.mlkit.vision.face.FaceContour
 import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetector
 import com.google.mlkit.vision.face.FaceDetectorOptions
+import com.google.mlkit.vision.face.FaceLandmark
+import com.mrousavy.camera.core.types.Position
 
 data class FaceDetectorResult(
-  val runContours: Boolean = false,
-  val runClassifications: Boolean = false,
-  val runLandmarks: Boolean = false,
-  val trackingEnabled: Boolean = false,
-  val faceDetector: FaceDetector
+        val runContours: Boolean = false,
+        val runClassifications: Boolean = false,
+        val runLandmarks: Boolean = true,
+        val trackingEnabled: Boolean = false,
+        val faceDetector: FaceDetector
 )
 
 class FaceDetectorCommon() {
   private fun processBoundingBox(
-    boundingBox: Rect,
-    sourceWidth: Double = 0.0,
-    sourceHeight: Double = 0.0,
-    scaleX: Double = 1.0,
-    scaleY: Double = 1.0,
-    autoMode: Boolean = false,
-    cameraFacing: Position = Position.FRONT,
-    orientation: Int? = Surface.ROTATION_0
-  ): Map<String, Any>  {
+          boundingBox: Rect,
+          sourceWidth: Double = 0.0,
+          sourceHeight: Double = 0.0,
+          scaleX: Double = 1.0,
+          scaleY: Double = 1.0,
+          autoMode: Boolean = false,
+          cameraFacing: Position = Position.FRONT,
+          orientation: Int? = Surface.ROTATION_0
+  ): Map<String, Any> {
     val bounds: MutableMap<String, Any> = HashMap()
     val width = boundingBox.width().toDouble() * scaleX
     val height = boundingBox.height().toDouble() * scaleY
@@ -40,10 +40,10 @@ class FaceDetectorCommon() {
     bounds["x"] = x * scaleX
     bounds["y"] = y * scaleY
 
-    if(!autoMode) return bounds
+    if (!autoMode) return bounds
 
     // using front camera
-    if(cameraFacing == Position.FRONT) {
+    if (cameraFacing == Position.FRONT) {
       when (orientation) {
         // device is portrait
         Surface.ROTATION_0 -> {
@@ -83,7 +83,7 @@ class FaceDetectorCommon() {
       }
       // device is upside down
       Surface.ROTATION_180 -> {
-        bounds["x"] =((-x * scaleX) + sourceWidth * scaleX) - width
+        bounds["x"] = ((-x * scaleX) + sourceWidth * scaleX) - width
         bounds["y"] = ((-y * scaleY) + sourceHeight * scaleY) - height
       }
       // device is landscape left
@@ -96,34 +96,36 @@ class FaceDetectorCommon() {
   }
 
   private fun processLandmarks(
-    face: Face,
-    scaleX: Double = 1.0,
-    scaleY: Double = 1.0
+          face: Face,
+          scaleX: Double = 1.0,
+          scaleY: Double = 1.0
   ): Map<String, Any> {
-    val faceLandmarksTypes = intArrayOf(
-      FaceLandmark.LEFT_CHEEK,
-      FaceLandmark.LEFT_EAR,
-      FaceLandmark.LEFT_EYE,
-      FaceLandmark.MOUTH_BOTTOM,
-      FaceLandmark.MOUTH_LEFT,
-      FaceLandmark.MOUTH_RIGHT,
-      FaceLandmark.NOSE_BASE,
-      FaceLandmark.RIGHT_CHEEK,
-      FaceLandmark.RIGHT_EAR,
-      FaceLandmark.RIGHT_EYE
-    )
-    val faceLandmarksTypesStrings = arrayOf(
-      "LEFT_CHEEK",
-      "LEFT_EAR",
-      "LEFT_EYE",
-      "MOUTH_BOTTOM",
-      "MOUTH_LEFT",
-      "MOUTH_RIGHT",
-      "NOSE_BASE",
-      "RIGHT_CHEEK",
-      "RIGHT_EAR",
-      "RIGHT_EYE"
-    )
+    val faceLandmarksTypes =
+            intArrayOf(
+                    FaceLandmark.LEFT_CHEEK,
+                    FaceLandmark.LEFT_EAR,
+                    FaceLandmark.LEFT_EYE,
+                    FaceLandmark.MOUTH_BOTTOM,
+                    FaceLandmark.MOUTH_LEFT,
+                    FaceLandmark.MOUTH_RIGHT,
+                    FaceLandmark.NOSE_BASE,
+                    FaceLandmark.RIGHT_CHEEK,
+                    FaceLandmark.RIGHT_EAR,
+                    FaceLandmark.RIGHT_EYE
+            )
+    val faceLandmarksTypesStrings =
+            arrayOf(
+                    "LEFT_CHEEK",
+                    "LEFT_EAR",
+                    "LEFT_EYE",
+                    "MOUTH_BOTTOM",
+                    "MOUTH_LEFT",
+                    "MOUTH_RIGHT",
+                    "NOSE_BASE",
+                    "RIGHT_CHEEK",
+                    "RIGHT_EAR",
+                    "RIGHT_EYE"
+            )
     val faceLandmarksTypesMap: MutableMap<String, Any> = HashMap()
     for (i in faceLandmarksTypesStrings.indices) {
       val landmark = face.getLandmark(faceLandmarksTypes[i])
@@ -142,44 +144,46 @@ class FaceDetectorCommon() {
   }
 
   private fun processFaceContours(
-    face: Face,
-    scaleX: Double = 1.0,
-    scaleY: Double = 1.0
+          face: Face,
+          scaleX: Double = 1.0,
+          scaleY: Double = 1.0
   ): Map<String, Any> {
-    val faceContoursTypes = intArrayOf(
-      FaceContour.FACE,
-      FaceContour.LEFT_CHEEK,
-      FaceContour.LEFT_EYE,
-      FaceContour.LEFT_EYEBROW_BOTTOM,
-      FaceContour.LEFT_EYEBROW_TOP,
-      FaceContour.LOWER_LIP_BOTTOM,
-      FaceContour.LOWER_LIP_TOP,
-      FaceContour.NOSE_BOTTOM,
-      FaceContour.NOSE_BRIDGE,
-      FaceContour.RIGHT_CHEEK,
-      FaceContour.RIGHT_EYE,
-      FaceContour.RIGHT_EYEBROW_BOTTOM,
-      FaceContour.RIGHT_EYEBROW_TOP,
-      FaceContour.UPPER_LIP_BOTTOM,
-      FaceContour.UPPER_LIP_TOP
-    )
-    val faceContoursTypesStrings = arrayOf(
-      "FACE",
-      "LEFT_CHEEK",
-      "LEFT_EYE",
-      "LEFT_EYEBROW_BOTTOM",
-      "LEFT_EYEBROW_TOP",
-      "LOWER_LIP_BOTTOM",
-      "LOWER_LIP_TOP",
-      "NOSE_BOTTOM",
-      "NOSE_BRIDGE",
-      "RIGHT_CHEEK",
-      "RIGHT_EYE",
-      "RIGHT_EYEBROW_BOTTOM",
-      "RIGHT_EYEBROW_TOP",
-      "UPPER_LIP_BOTTOM",
-      "UPPER_LIP_TOP"
-    )
+    val faceContoursTypes =
+            intArrayOf(
+                    FaceContour.FACE,
+                    FaceContour.LEFT_CHEEK,
+                    FaceContour.LEFT_EYE,
+                    FaceContour.LEFT_EYEBROW_BOTTOM,
+                    FaceContour.LEFT_EYEBROW_TOP,
+                    FaceContour.LOWER_LIP_BOTTOM,
+                    FaceContour.LOWER_LIP_TOP,
+                    FaceContour.NOSE_BOTTOM,
+                    FaceContour.NOSE_BRIDGE,
+                    FaceContour.RIGHT_CHEEK,
+                    FaceContour.RIGHT_EYE,
+                    FaceContour.RIGHT_EYEBROW_BOTTOM,
+                    FaceContour.RIGHT_EYEBROW_TOP,
+                    FaceContour.UPPER_LIP_BOTTOM,
+                    FaceContour.UPPER_LIP_TOP
+            )
+    val faceContoursTypesStrings =
+            arrayOf(
+                    "FACE",
+                    "LEFT_CHEEK",
+                    "LEFT_EYE",
+                    "LEFT_EYEBROW_BOTTOM",
+                    "LEFT_EYEBROW_TOP",
+                    "LOWER_LIP_BOTTOM",
+                    "LOWER_LIP_TOP",
+                    "NOSE_BOTTOM",
+                    "NOSE_BRIDGE",
+                    "RIGHT_CHEEK",
+                    "RIGHT_EYE",
+                    "RIGHT_EYEBROW_BOTTOM",
+                    "RIGHT_EYEBROW_TOP",
+                    "UPPER_LIP_BOTTOM",
+                    "UPPER_LIP_TOP"
+            )
     val faceContoursTypesMap: MutableMap<String, Any> = HashMap()
     for (i in faceContoursTypesStrings.indices) {
       val contour = face.getContour(faceContoursTypes[i])
@@ -201,88 +205,88 @@ class FaceDetectorCommon() {
     return faceContoursTypesMap
   }
 
-  fun getFaceDetector(
-    options: Map<String, Any>?
-  ): FaceDetectorResult {
+  fun getFaceDetector(options: Map<String, Any>?): FaceDetectorResult {
     var performanceModeValue = FaceDetectorOptions.PERFORMANCE_MODE_FAST
     var landmarkModeValue = FaceDetectorOptions.LANDMARK_MODE_NONE
     var classificationModeValue = FaceDetectorOptions.CLASSIFICATION_MODE_NONE
     var contourModeValue = FaceDetectorOptions.CONTOUR_MODE_NONE
     var runLandmarks = false
-    var runClassifications = false
+    var runClassifications = true
     var runContours = false
     var trackingEnabled = false
 
+    // Check options (or use defaults)
     if (options?.get("performanceMode").toString() == "accurate") {
       performanceModeValue = FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE
     }
 
-    // if (options?.get("landmarkMode").toString() == "all") {
+    if (options?.get("landmarkMode").toString() == "all") {
       runLandmarks = true
       landmarkModeValue = FaceDetectorOptions.LANDMARK_MODE_ALL
-    // }
+    }
 
-    // if (options?.get("classificationMode").toString() == "all") {
+    // ✅ ENABLE CLASSIFICATIONS FOR EYE/SMILE DETECTION
+    if (options?.get("classificationMode").toString() == "all") {
       runClassifications = true
       classificationModeValue = FaceDetectorOptions.CLASSIFICATION_MODE_ALL
-    // }
+    } else {
+      // ✅ DEFAULT: Enable classifications for liveness detection
+      runClassifications = true
+      classificationModeValue = FaceDetectorOptions.CLASSIFICATION_MODE_ALL
+    }
 
-    // if (options?.get("contourMode").toString() == "all") {
+    if (options?.get("contourMode").toString() == "all") {
       runContours = true
       contourModeValue = FaceDetectorOptions.CONTOUR_MODE_ALL
-    // }
+    }
 
     val minFaceSize = (options?.get("minFaceSize") ?: 0.15) as Double
-    val optionsBuilder = FaceDetectorOptions.Builder()
-      .setPerformanceMode(performanceModeValue)
-      .setLandmarkMode(landmarkModeValue)
-      .setContourMode(contourModeValue)
-      .setClassificationMode(classificationModeValue)
-      .setMinFaceSize(minFaceSize.toFloat())
+    val optionsBuilder =
+            FaceDetectorOptions.Builder()
+                    .setPerformanceMode(performanceModeValue)
+                    .setLandmarkMode(landmarkModeValue)
+                    .setContourMode(contourModeValue)
+                    .setClassificationMode(classificationModeValue)  // ✅ Now uses actual mode
+                    .setMinFaceSize(minFaceSize.toFloat())
 
     if (options?.get("trackingEnabled").toString() == "true") {
       trackingEnabled = true
       optionsBuilder.enableTracking()
     }
 
-    val faceDetector = FaceDetection.getClient(
-      optionsBuilder.build()
-    )
+    val faceDetector = FaceDetection.getClient(optionsBuilder.build())
 
+    // ✅ RETURN ACTUAL FLAGS, NOT HARDCODED
     return FaceDetectorResult(
-      runContours = runContours,
-      runClassifications = runClassifications,
-      runLandmarks = runLandmarks,
-      trackingEnabled = trackingEnabled,
-      faceDetector = faceDetector
+            runContours = runContours,
+            runClassifications = runClassifications,  // ✅ NOW RETURNS TRUE
+            runLandmarks = runLandmarks,
+            trackingEnabled = trackingEnabled,
+            faceDetector = faceDetector
     )
   }
 
   fun processFaces(
-    faces: List<Face>,
-    runLandmarks: Boolean,
-    runClassifications: Boolean,
-    runContours: Boolean,
-    trackingEnabled: Boolean,
-    sourceWidth: Double = 0.0,
-    sourceHeight: Double = 0.0,
-    scaleX: Double = 1.0,
-    scaleY: Double = 1.0,
-    autoMode: Boolean = false,
-    cameraFacing: Position = Position.FRONT,
-    orientation: Int? = Surface.ROTATION_0
+          faces: List<Face>,
+          runLandmarks: Boolean,
+          runClassifications: Boolean,
+          runContours: Boolean,
+          trackingEnabled: Boolean,
+          sourceWidth: Double = 0.0,
+          sourceHeight: Double = 0.0,
+          scaleX: Double = 1.0,
+          scaleY: Double = 1.0,
+          autoMode: Boolean = false,
+          cameraFacing: Position = Position.FRONT,
+          orientation: Int? = Surface.ROTATION_0
   ): ArrayList<Map<String, Any>> {
     val result = ArrayList<Map<String, Any>>()
 
-    faces.forEach{face ->
+    faces.forEach { face ->
       val map: MutableMap<String, Any> = HashMap()
 
       if (runLandmarks) {
-        map["landmarks"] = processLandmarks(
-          face,
-          scaleX,
-          scaleY
-        )
+        map["landmarks"] = processLandmarks(face, scaleX, scaleY)
       }
 
       if (runClassifications) {
@@ -292,11 +296,7 @@ class FaceDetectorCommon() {
       }
 
       if (runContours) {
-        map["contours"] = processFaceContours(
-          face,
-          scaleX,
-          scaleY
-        )
+        map["contours"] = processFaceContours(face, scaleX, scaleY)
       }
 
       if (trackingEnabled) {
@@ -307,15 +307,15 @@ class FaceDetectorCommon() {
       map["pitchAngle"] = face.headEulerAngleX.toDouble()
       map["yawAngle"] = face.headEulerAngleY.toDouble()
       map["bounds"] = processBoundingBox(
-        face.boundingBox,
-        sourceWidth,
-        sourceHeight,
-        scaleX,
-        scaleY,
-        autoMode,
-        cameraFacing,
-        orientation
-      )
+                        face.boundingBox,
+                        sourceWidth,
+                        sourceHeight,
+                        scaleX,
+                        scaleY,
+                        autoMode,
+                        cameraFacing,
+                        orientation
+              )
 
       result.add(map)
     }

@@ -26,6 +26,7 @@ import { BASE_URL } from '../../utils/urls';
 import EmpIcon from '../../../assets/svg/empIcon.svg';
 import IsCheckIcon from '../../../assets/svg/isCheck.svg';
 import CommonButton from '../../CommonButton';
+import { useAxios } from '../../utils/useAxios';
 
 const TYPE_LEAVES = {
   Present: 'P',
@@ -64,6 +65,8 @@ const leaveTypeTabs = [
 export default function Attendance({ navigation }) {
   const insets = useSafeAreaInsets();
 
+  const { fetchData } = useAxios();
+
   const inputRef = useRef(null);
   const today = new Date();
   const [isLogOut, setLogOut] = useState(false);
@@ -79,46 +82,50 @@ export default function Attendance({ navigation }) {
   const { state, dispatch } = useContext(Context);
   const code = state?.userData?.company_code;
 
-
-
-
-
-    useEffect(() => {
-      const backAction = () => {
-        // Navigate to the login page
-        navigation.navigate('EmpManagement'); // Replace 'Login' with your login screen name
-        return true; // Prevent default back action (e.g., exiting the app)
-      };
-      const backHandler = BackHandler.addEventListener(
-        'hardwareBackPress',
-        backAction,
-      );
-      return () => {
-        backHandler.remove(); // Cleanup when the component unmounts
-      };
-    }, [navigation]);
+  useEffect(() => {
+    const backAction = () => {
+      // Navigate to the login page
+      navigation.navigate('EmpManagement'); // Replace 'Login' with your login screen name
+      return true; // Prevent default back action (e.g., exiting the app)
+    };
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      backAction,
+    );
+    return () => {
+      backHandler.remove(); // Cleanup when the component unmounts
+    };
+  }, [navigation]);
 
   const getEmpDetails = async date => {
     try {
-      const response = await fetch(`${BASE_URL}attandance-report-all`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          compony_code: code,
-          date: formatDateForAPI(date),
-        }),
-      });
+      // const response = await fetch(`${BASE_URL}attandance-report-all`, {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //   },
+      //   body: JSON.stringify({
+      //     compony_code: code,
+      //     date: formatDateForAPI(date),
+      //   }),
+      // });
 
-      if (!response.ok) {
-        throw new Error(
-          'Authentication failed. Please check your credentials.',
-        );
-      }
+      // if (!response.ok) {
+      //   throw new Error(
+      //     'Authentication failed. Please check your credentials.',
+      //   );
+      // }
 
-      const data = await response.json();
+      // const data = await response.json();
       // console.log(data.data, 'response');
+
+      const data = await fetchData({
+        url: 'attandance-report-all',
+        method: 'POST',
+        data: {
+          date: formatDateForAPI(startDate),
+        },
+      });
 
       if (data?.message === 'success') {
         setFilteredData(
@@ -128,7 +135,6 @@ export default function Attendance({ navigation }) {
             isSelected: false,
           })),
         );
-
 
         setData(data?.data);
       } else {
@@ -201,29 +207,40 @@ export default function Attendance({ navigation }) {
 
   const markAttendance = async () => {
     try {
-      const response = await fetch(`${BASE_URL}edit-attandance`, {
+      // const response = await fetch(`${BASE_URL}edit-attandance`, {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //   },
+      //   body: JSON.stringify({
+      //     compony_code: code,
+      //     date: formatDateForAPI(startDate),
+      //     // console.log(employeeLeaveTypes, 'employeeCode, leaveType');
+      //     editable_details: filteredData
+      //       .filter(i => i.isEdited)
+      //       .map(i => ({ employee_id: i.employee_id, action: i.present })),
+      //   }),
+      // });
+      // // [{'employee_id':'1','action':'P' | 'PL' | 'UL' | 'H'}]
+
+      // if (!response.ok) {
+      //   throw new Error(
+      //     'Authentication failed. Please check your credentials.',
+      //   );
+      // }
+
+      // const data = await response.json();
+
+      const data = await fetchData({
+        url: 'edit-attandance',
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          compony_code: code,
+        data: {
           date: formatDateForAPI(startDate),
-          // console.log(employeeLeaveTypes, 'employeeCode, leaveType');
           editable_details: filteredData
             .filter(i => i.isEdited)
             .map(i => ({ employee_id: i.employee_id, action: i.present })),
-        }),
+        },
       });
-      // [{'employee_id':'1','action':'P' | 'PL' | 'UL' | 'H'}]
-
-      if (!response.ok) {
-        throw new Error(
-          'Authentication failed. Please check your credentials.',
-        );
-      }
-
-      const data = await response.json();
 
       console.log(data, 'responsejffjfjfj');
       if (data?.message === 'success') {
@@ -256,71 +273,75 @@ export default function Attendance({ navigation }) {
         Keyboard.dismiss();
       }}
     >
-      
       <View style={styles.container}>
-            {isLogOut && (
-              <View style={styles.logOutContainer}>
-                <TouchableOpacity
-                  hitSlop={8}
-                  activeOpacity={0.8}
-                  onPress={() => {
-                    dispatch({
-                      type: 'UPDATE_USER_DATA',
-                      userData: {
-                        ...state.userData,
-                        is_logged: false,
-                      },
-                    });
-                  }}
-                  style={styles.logContaienr}
-                >
-                  <Log width={SIZE(16)} height={SIZE(16)} />
-                  <Text
-                    style={{
-                      color: '#1C54D7',
-                      fontSize: SIZE(14),
-                      marginLeft: SIZE(5),
-                    }}
-                  >
-                    Logout
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
         <LinearGradient
           start={{ x: 0, y: 0 }}
           end={{ x: 2, y: 0 }}
           colors={['#022E95', '#4B87EE']}
-          style={{ ...styles.topContainer,  }}
+          style={{ ...styles.topContainer }}
         >
-          <View style={{...styles.topMidContainer,paddingTop: insets.top + SIZE(20)}}>
-          <View style={styles.topLeftContainer}>
-            <TouchableOpacity
-              activeOpacity={0.8}
-              hitSlop={8}
-              onPress={() => {
-            navigation.navigate('EmpManagement'); 
-              }}
-            >
-              <BackIcon width={SIZE(24)} height={SIZE(24)} />
-            </TouchableOpacity>
-            <View style={{ marginLeft: SIZE(12) }}>
-              <Text style={styles.titleText}>Attendance Report</Text>
-              <Text style={styles.subTxt}>View or download reports</Text>
+          <View
+            style={{
+              ...styles.topMidContainer,
+              paddingTop: insets.top + SIZE(20),
+            }}
+          >
+            <View style={styles.topLeftContainer}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                hitSlop={8}
+                onPress={() => {
+                  navigation.navigate('EmpManagement');
+                }}
+              >
+                <BackIcon width={SIZE(24)} height={SIZE(24)} />
+              </TouchableOpacity>
+              <View style={{ marginLeft: SIZE(12) }}>
+                <Text style={styles.titleText}>Attendance Report</Text>
+                <Text style={styles.subTxt}>View or download reports</Text>
+              </View>
             </View>
-          </View>
-          <View >
-            <TouchableOpacity
-              activeOpacity={0.8}
-              hitSlop={8}
-              onPress={() => {
-                setLogOut(!isLogOut);
-              }}
-            >
-              <LogoutIcon width={SIZE(40)} height={SIZE(40)} />
-            </TouchableOpacity>
-        
-          </View>
+            <View style={styles.logoutButtonWrapper}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                hitSlop={8}
+                onPress={() => {
+                  setLogOut(!isLogOut);
+                }}
+              >
+                <LogoutIcon width={SIZE(40)} height={SIZE(40)} />
+              </TouchableOpacity>
+              {isLogOut && (
+                <View style={styles.logOutContainer}>
+                  <TouchableOpacity
+                    hitSlop={8}
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      dispatch({
+                        type: 'UPDATE_USER_DATA',
+                        userData: {
+                          ...state.userData,
+                          is_logged: false,
+                        },
+                      });
+                    }}
+                    style={styles.logContaienr}
+                  >
+                    <Log width={SIZE(16)} height={SIZE(16)} />
+                    <Text
+                      style={{
+                        color: '#1C54D7',
+                        fontSize: SIZE(14),
+                        fontFamily: Fonts.Medium,
+                        marginLeft: SIZE(8),
+                      }}
+                    >
+                      Logout
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
           </View>
         </LinearGradient>
         <View style={styles.bottomContainer}>
@@ -603,14 +624,13 @@ const styles = StyleSheet.create({
   },
   topContainer: {
     // height: SIZE(150),
-  
   },
-  topMidContainer:{
-      paddingHorizontal: SIZE(20),
+  topMidContainer: {
+    paddingHorizontal: SIZE(20),
     justifyContent: 'space-between',
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom:SIZE(25)
+    marginBottom: SIZE(25),
   },
   topLeftContainer: {
     flexDirection: 'row',
@@ -629,25 +649,26 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     marginTop: SIZE(6),
   },
+  logoutButtonWrapper: {
+    position: 'relative',
+    zIndex: 50,
+  },
   logOutContainer: {
     width: SIZE(200),
-    height: SIZE(90),
     backgroundColor: '#ffffff',
     position: 'absolute',
-    top: 140,
-    right: 20,
+    top: SIZE(50),
+    right: 0,
     borderRadius: SIZE(20),
-    padding: SIZE(20),
-    justifyContent: 'center',
-    zIndex: 10,
-    elevation: 5,
+    padding: SIZE(15),
+    elevation: 8,
     shadowColor: '#000000',
     shadowOffset: {
       width: 0,
       height: 2,
     },
     shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowRadius: 3,
   },
   logContaienr: {
     flexDirection: 'row',
@@ -657,6 +678,7 @@ const styles = StyleSheet.create({
     borderRadius: SIZE(20),
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: SIZE(15),
   },
   bottomContainer: {
     backgroundColor: '#FFFFFF',

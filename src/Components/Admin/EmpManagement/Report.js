@@ -22,37 +22,36 @@ import EmpIcon from '../../../assets/svg/empIcon.svg';
 import LeftArrow from '../../../assets/svg/leftArrow.svg';
 import { Context } from '../../Redux/Store';
 import { BASE_URL } from '../../utils/urls';
+import { useAxios } from '../../utils/useAxios';
 
 export default function Report({ navigation }) {
   const { state, dispatch } = useContext(Context);
   const [isLogOut, setLogOut] = useState(false);
+  const { fetchData } = useAxios();
+
   const [input, setInput] = useState('');
   const inputRef = useRef(null);
   const insets = useSafeAreaInsets();
   const [data, setData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
-  const [loading ,setLoading]=useState(true)
+  const [loading, setLoading] = useState(true);
 
   const code = state.userData.company_code;
 
-
-
-   useEffect(() => {
-      const backAction = () => {
-        // Navigate to the login page
-        navigation.navigate('EmpManagement'); // Replace 'Login' with your login screen name
-        return true; // Prevent default back action (e.g., exiting the app)
-      };
-      const backHandler = BackHandler.addEventListener(
-        'hardwareBackPress',
-        backAction,
-      );
-      return () => {
-        backHandler.remove(); 
-      };
-    }, [navigation]);
-
-
+  useEffect(() => {
+    const backAction = () => {
+      // Navigate to the login page
+      navigation.navigate('EmpManagement'); // Replace 'Login' with your login screen name
+      return true; // Prevent default back action (e.g., exiting the app)
+    };
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      backAction,
+    );
+    return () => {
+      backHandler.remove();
+    };
+  }, [navigation]);
 
   const dismissKeyboard = () => {
     Keyboard.dismiss();
@@ -80,25 +79,33 @@ export default function Report({ navigation }) {
   };
 
   const getEmployee = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
-      const response = await fetch(`${BASE_URL}all-employees`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          compony_code: code,
-        }),
+      // const response = await fetch(`${BASE_URL}all-employees`, {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //   },
+      //   body: JSON.stringify({
+      //     compony_code: code,
+      //   }),
+      // });
+
+      // if (!response.ok) {
+      //   throw new Error(
+      //     'Authentication failed. Please check your credentials.',
+      //   );
+      // }
+
+      // const data = await response.json();
+
+      const data = await fetchData({
+        url: 'all-employees',
+        // method: 'POST',
+        // data: {
+        //   date: formatDateForAPI(startDate),
+        // },
       });
-
-      if (!response.ok) {
-        throw new Error(
-          'Authentication failed. Please check your credentials.',
-        );
-      }
-
-      const data = await response.json();
       if (data?.message === 'success') {
         setFilteredData(data?.data);
         setData(data?.data);
@@ -108,8 +115,8 @@ export default function Report({ navigation }) {
       setData([]);
       setFilteredData([]);
       console.log('Authentication error:', err.message);
-    }finally{
-      setLoading(false)
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -120,35 +127,6 @@ export default function Report({ navigation }) {
   return (
     <View style={styles.container}>
       {/* Wrap header in TouchableWithoutFeedback to dismiss keyboard */}
-          {isLogOut && (
-                  <View style={styles.logOutContainers}>
-                    <TouchableOpacity
-                      hitSlop={8}
-                      activeOpacity={0.8}
-                      onPress={() => {
-                        dispatch({
-                          type: 'UPDATE_USER_DATA',
-                          userData: {
-                            ...state.userData,
-                            is_logged: false,
-                          },
-                        });
-                      }}
-                      style={styles.logContaienr}
-                    >
-                      <Log width={SIZE(16)} height={SIZE(16)} />
-                      <Text
-                        style={{
-                          color: '#1C54D7',
-                          fontSize: SIZE(14),
-                          marginLeft: SIZE(5),
-                        }}
-                      >
-                        Logout
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
 
       <TouchableWithoutFeedback
         onPress={() => {
@@ -177,7 +155,7 @@ export default function Report({ navigation }) {
                     activeOpacity={0.8}
                     hitSlop={8}
                     onPress={() => {
-                             navigation.navigate('EmpManagement'); // Replace 'Login' with your login screen name
+                      navigation.navigate('EmpManagement'); // Replace 'Login' with your login screen name
 
                       setLogOut(false);
                     }}
@@ -191,6 +169,7 @@ export default function Report({ navigation }) {
                     </Text>
                   </View>
                 </View>
+                      <View style={styles.logoutButtonWrapper}>
                 <TouchableOpacity
                   activeOpacity={0.8}
                   hitSlop={8}
@@ -200,7 +179,37 @@ export default function Report({ navigation }) {
                 >
                   <LogoutIcon width={SIZE(40)} height={SIZE(40)} />
                 </TouchableOpacity>
-            
+                {isLogOut && (
+                  <View style={styles.logOutContainers}>
+                    <TouchableOpacity
+                      hitSlop={8}
+                      activeOpacity={0.8}
+                      onPress={() => {
+                        dispatch({
+                          type: 'UPDATE_USER_DATA',
+                          userData: {
+                            ...state.userData,
+                            is_logged: false,
+                          },
+                        });
+                      }}
+                      style={styles.logContaienr}
+                    >
+                      <Log width={SIZE(16)} height={SIZE(16)} />
+                      <Text
+                        style={{
+                                       color: '#1C54D7',
+                           fontSize: SIZE(14),
+                           fontFamily: Fonts.Medium,
+                           marginLeft: SIZE(8),
+                        }}
+                      >
+                        Logout
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+                </View>
               </View>
             </TouchableWithoutFeedback>
           </LinearGradient>
@@ -239,34 +248,39 @@ export default function Report({ navigation }) {
             paddingBottom: SIZE(20),
             flexGrow: 1,
           }}
-        ListEmptyComponent={() => (
-    <>
-      {loading ? (
-        // Shimmer loader for loading state
-        <View style={styles.emptyContainer}>
-          {[...Array(5)].map((_, index) => ( // Adjust number of shimmer items as needed (e.g., 5 placeholders)
-            <View key={index} style={styles.shimmerItem}>
-              <View style={styles.shimmerIcon} />
-              <View style={styles.shimmerContent}>
-                <View style={styles.shimmerLineLong} />
-                <View style={styles.shimmerLineShort} />
-              </View>
-              <View style={styles.shimmerArrow} />
-            </View>
-          ))}
-        </View>
-      ) : (
-        // Original empty component for no data
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>
-            {input.trim() !== ''
-              ? 'No employees found'
-              : 'No employees available'}
-          </Text>
-        </View>
-      )}
-    </>
-  )}
+          ListEmptyComponent={() => (
+            <>
+              {loading ? (
+                // Shimmer loader for loading state
+                <View style={styles.emptyContainer}>
+                  {[...Array(5)].map(
+                    (
+                      _,
+                      index, // Adjust number of shimmer items as needed (e.g., 5 placeholders)
+                    ) => (
+                      <View key={index} style={styles.shimmerItem}>
+                        <View style={styles.shimmerIcon} />
+                        <View style={styles.shimmerContent}>
+                          <View style={styles.shimmerLineLong} />
+                          <View style={styles.shimmerLineShort} />
+                        </View>
+                        <View style={styles.shimmerArrow} />
+                      </View>
+                    ),
+                  )}
+                </View>
+              ) : (
+                // Original empty component for no data
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyText}>
+                    {input.trim() !== ''
+                      ? 'No employees found'
+                      : 'No employees available'}
+                  </Text>
+                </View>
+              )}
+            </>
+          )}
           renderItem={({ item }) => (
             <TouchableOpacity
               activeOpacity={0.8}
@@ -312,7 +326,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: SIZE(20),
     paddingBottom: SIZE(30),
-
   },
   subHead: {
     flexDirection: 'row',
@@ -333,25 +346,26 @@ const styles = StyleSheet.create({
   headerContent: {
     marginLeft: SIZE(10),
   },
+      logoutButtonWrapper: {
+    position: 'relative',
+    zIndex: 50,
+  },
   logOutContainers: {
     width: SIZE(200),
-    height: SIZE(90),
     backgroundColor: '#ffffff',
     position: 'absolute',
-    top: 150,
-    right: 20,
+    top: SIZE(50),
+    right: 0,
     borderRadius: SIZE(20),
-    padding: SIZE(20),
-    justifyContent: 'center',
-    zIndex: 10,
-    elevation: 5,
+    padding: SIZE(15),
+    elevation: 8,
     shadowColor: '#000000',
     shadowOffset: {
       width: 0,
       height: 2,
     },
     shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowRadius: 3,
   },
   logContaienr: {
     flexDirection: 'row',
@@ -361,6 +375,7 @@ const styles = StyleSheet.create({
     borderRadius: SIZE(20),
     justifyContent: 'center',
     alignItems: 'center',
+       paddingHorizontal: SIZE(15),
   },
 
   bottomContainer: {
@@ -416,44 +431,44 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
- shimmerItem: {
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  padding: SIZE(10),
-  marginVertical: SIZE(5),
-  backgroundColor: '#f0f0f0', // Base color
-  borderRadius: 8,
-},
-shimmerIcon: {
-  width: SIZE(44),
-  height: SIZE(44),
-  borderRadius: SIZE(22),
-  backgroundColor: '#e0e0e0',
-},
-shimmerContent: {
-  marginLeft: SIZE(10),
-  flex: 1,
-},
-shimmerLineLong: {
-  height: SIZE(16),
-  width: '70%',
-  backgroundColor: '#e0e0e0',
-  borderRadius: 4,
-  marginBottom: SIZE(8),
-},
-shimmerLineShort: {
-  height: SIZE(14),
-  width: '50%',
-  backgroundColor: '#e0e0e0',
-  borderRadius: 4,
-},
-shimmerArrow: {
-  width: SIZE(36),
-  height: SIZE(36),
-  backgroundColor: '#e0e0e0',
-  borderRadius: SIZE(18),
-},
+  shimmerItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: SIZE(10),
+    marginVertical: SIZE(5),
+    backgroundColor: '#f0f0f0', // Base color
+    borderRadius: 8,
+  },
+  shimmerIcon: {
+    width: SIZE(44),
+    height: SIZE(44),
+    borderRadius: SIZE(22),
+    backgroundColor: '#e0e0e0',
+  },
+  shimmerContent: {
+    marginLeft: SIZE(10),
+    flex: 1,
+  },
+  shimmerLineLong: {
+    height: SIZE(16),
+    width: '70%',
+    backgroundColor: '#e0e0e0',
+    borderRadius: 4,
+    marginBottom: SIZE(8),
+  },
+  shimmerLineShort: {
+    height: SIZE(14),
+    width: '50%',
+    backgroundColor: '#e0e0e0',
+    borderRadius: 4,
+  },
+  shimmerArrow: {
+    width: SIZE(36),
+    height: SIZE(36),
+    backgroundColor: '#e0e0e0',
+    borderRadius: SIZE(18),
+  },
   emptyContainer: {
     flex: 1,
     // justifyContent: 'center',

@@ -13,6 +13,8 @@ import VerifyEmail from './VerifyEmail';
 import { useContext } from 'react';
 import Store, { Context } from './Redux/Store';
 import UserLogin from './Employee/Screens/UserLogin';
+import ResetPassword from './Employee/Screens/ResetPassword';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -43,6 +45,7 @@ export default function BottomTabNavigator() {
               component={UserLogin}
             />
             <Stack.Screen name="Register" component={Register} />
+            <Stack.Screen name="ResetPassword" component={ResetPassword} />
             <Stack.Screen name="VerifyEmail" component={VerifyEmail} />
           </Stack.Navigator>
         )}

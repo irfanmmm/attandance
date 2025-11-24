@@ -5,22 +5,21 @@ import {
   TouchableOpacity,
   View,
   TextInput,
-  TouchableWithoutFeedback,
-  Keyboard,
   StatusBar,
   Platform,
 } from 'react-native';
 import React, { useContext, useRef, useState } from 'react';
 import { Fonts, SIZE } from '../../utils/Styles';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-import { API_URL } from './utils/urls';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useToast } from 'react-native-toast-notifications';
 import CommonButton from '../../CommonButton';
 import { Context } from '../../Redux/Store';
+import { useAxios } from '../../utils/useAxios';
+import { decription } from '../../utils/decription';
 
 export default function UserLogin({ navigation }) {
+  const { fetchData } = useAxios();
   const insets = useSafeAreaInsets();
 
   const usernameRef = useRef(null);
@@ -46,36 +45,33 @@ export default function UserLogin({ navigation }) {
     }
 
     try {
-    //   const response = await fetch(`${API_URL}user-login`, {
-    //     method: 'POST',
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify({
-    //       username: username.trim(),
-    //       password,
-    //       company_code: state.userData.company_code, // from previous screen
-    //     }),
-    //   });
+      const data = await fetchData({
+        url: 'auth/user-login',
+        method: 'POST',
+        data: {
+          username: username.trim(),
+          password,
+        },
+      });
 
-    //   const data = await response.json();
+      if (data?.message === 'success') {
+        const decript = decription(data?.token);
+        console.log('dessssssss',decript);
+        
 
-      if (username
-        // data?.message === 'success'
-
-      ) {
-        // ---- UPDATE REDUX (adjust payload as needed) ----
         dispatch({
           type: 'UPDATE_USER_DATA',
           userData: {
             ...state.userData,
             is_logged: true,
             username,
-            password
-        
-            // any extra user info you receive
+            token: data?.token,
+            is_admin:decript?.is_admin
+    
           },
         });
-        // optional navigation after success
-        // navigation.replace('Home');
+
+        // navigation.replace('Home'); // Uncomment when ready
       } else {
         setLoader(false);
         toast.show(data?.message ?? 'Login failed', {
@@ -98,7 +94,11 @@ export default function UserLogin({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
+      <StatusBar
+        translucent
+        backgroundColor="transparent"
+        barStyle="dark-content"
+      />
 
       <KeyboardAwareScrollView
         extraScrollHeight={Platform.OS === 'android' ? SIZE(-100) : SIZE(100)}
@@ -106,7 +106,7 @@ export default function UserLogin({ navigation }) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingTop: insets.top }}
       >
-        {/* Brand */}
+        {/* Brand Logo */}
         <View style={styles.brandIconContainer}>
           <Image
             source={require('../../../assets/brand.png')}
@@ -168,8 +168,10 @@ export default function UserLogin({ navigation }) {
             </View>
           </TouchableOpacity>
 
+          {/* Error Message */}
           {error && <Text style={styles.errorText}>{status}</Text>}
 
+          {/* Log In Button */}
           <View style={{ marginTop: SIZE(20) }}>
             <CommonButton
               loader={loader}
@@ -181,16 +183,22 @@ export default function UserLogin({ navigation }) {
             />
           </View>
 
-   
+          {/* Forgot Password Link - NEW */}
+          <Text style={styles.forgotPasswordText}>
+            Forgot your password?{' '}
+            <Text
+              style={styles.forgotLink}
+              onPress={() => navigation.navigate('ResetPassword')}
+            >
+              Reset here
+            </Text>
+          </Text>
         </View>
       </KeyboardAwareScrollView>
     </View>
   );
 }
 
-/* -------------------------------------------------------------
-   STYLES – almost identical to your CompanyLogin, only tiny tweaks
-   ------------------------------------------------------------- */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -200,11 +208,14 @@ const styles = StyleSheet.create({
   brandIconContainer: {
     width: SIZE(220),
     height: SIZE(46),
-    marginBottom: SIZE(60),
     marginTop: SIZE(150),
+    marginBottom: SIZE(60),
+    alignSelf: 'center',
   },
-  brandIcon: { width: '100%', height: '100%' },
-
+  brandIcon: {
+    width: '100%',
+    height: '100%',
+  },
   contentContainer: {},
 
   welcomeText: {
@@ -221,7 +232,6 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.Regular,
     color: '#272727',
   },
-
   labelText: {
     fontSize: SIZE(14),
     lineHeight: SIZE(18),
@@ -244,7 +254,6 @@ const styles = StyleSheet.create({
     lineHeight: SIZE(16),
     color: '#000000',
   },
-
   errorText: {
     marginTop: SIZE(6),
     marginLeft: SIZE(30),
@@ -253,12 +262,16 @@ const styles = StyleSheet.create({
     color: '#DF0202',
     fontFamily: Fonts.Regular,
   },
-
-  registerText: {
+  forgotPasswordText: {
     marginTop: SIZE(20),
     fontSize: SIZE(16),
     textAlign: 'center',
     color: '#000000',
-    lineHeight: SIZE(18),
+    lineHeight: SIZE(20),
+    fontFamily: Fonts.Regular,
+  },
+  forgotLink: {
+    color: '#153CD8',
+    fontFamily: Fonts.Semibold,
   },
 });

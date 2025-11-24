@@ -25,6 +25,7 @@ import ErrorIcon from '../../../assets/svg/error.svg';
 import ScanIcon from '../../../assets/svg/scan.svg';
 import { BASE_URL } from '../../utils/urls';
 import { Context } from '../../Redux/Store';
+import { useAxios } from '../../utils/useAxios';
 
 export default function AdminScan({ navigation, route }) {
   const device = useCameraDevice('front');
@@ -37,16 +38,16 @@ export default function AdminScan({ navigation, route }) {
   const [status, setStatus] = useState('Capture');
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
+  const { fetchData } = useAxios();
 
   const { state } = useContext(Context);
   const code = state?.userData?.company_code;
-  const { fullname, employeecode, isEdit, selectedData, branch,isNewScan } =
+  const { fullname, employeecode, isEdit, selectedData, branch, isNewScan,agancy } =
     route.params || {};
   // const { isEdit } = route?.params || {};
   // const { selectedData } = route?.params || {};
   // const { branch } = route?.params || {};
-
-  
+  // console.log(co);
 
   const isUploadingRef = useRef(false);
 
@@ -66,25 +67,35 @@ export default function AdminScan({ navigation, route }) {
           action: 'E',
           full_name: fullname,
           branch: branch,
+          agancy:agancy
         },
       ]);
       formData.append('editable_details', editableDetails);
 
-      const response = await fetch(`${BASE_URL}edit-user`, {
+      // const response = await fetch(`${BASE_URL}edit-user`, {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'multipart/form-data',
+      //   },
+      //   body: formData,
+      // });
+
+      // if (!response.ok) {
+      //   throw new Error(
+      //     'Authentication failed. Please check your credentials.',
+      //   );
+      // }
+
+      // const data = await response.json();
+
+      const data = await fetchData({
+        url: 'edit-user',
         method: 'POST',
+        data: formData,
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        body: formData,
       });
-
-      if (!response.ok) {
-        throw new Error(
-          'Authentication failed. Please check your credentials.',
-        );
-      }
-
-      const data = await response.json();
 
       if (data?.message === 'success') {
         navigation.navigate('AdminStatus', { isEdit });
@@ -106,12 +117,10 @@ export default function AdminScan({ navigation, route }) {
         navigation.navigate('AddEmployee', {
           isEdit,
           selectedData: selectedData,
-          
-         
         });
       } else {
-        navigation.navigate('AddEmployee',{
-          isNewScan
+        navigation.navigate('AddEmployee', {
+          isNewScan,
         });
       }
 
@@ -232,7 +241,6 @@ export default function AdminScan({ navigation, route }) {
       isUploadingRef.current = true;
       setStatus('Verifying identity...');
 
-      const url = `${BASE_URL}add-employee-face`;
       const formData = new FormData();
       formData.append('file', {
         uri: `file://${pictureUri}`,
@@ -241,24 +249,29 @@ export default function AdminScan({ navigation, route }) {
       });
       formData.append('fullname', fullname);
       formData.append('employeecode', employeecode);
-      formData.append('compony_code', code);
+      // formData.append('compony_code', code);
       formData.append('branch', branch);
+      formData.append('agancy', agancy);
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000);
       // abortControllerRef.current = new AbortController();
-      const response = await fetch(url, {
+
+      // const response = await fetch(url, {
+      //   method: 'POST',
+      //   body: formData,
+      //   signal: controller.signal,
+      //   headers: { 'Content-Type': 'multipart/form-data' },
+      // });
+
+      const data = await fetchData({
+        url: 'add-employee-face',
         method: 'POST',
-        body: formData,
-        signal: controller.signal,
+        data: formData,
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       clearTimeout(timeoutId);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
 
-      const data = await response.json();
       setLoading(false);
       if (data.message === 'success') {
         navigation.navigate('AdminStatus');
@@ -361,26 +374,26 @@ export default function AdminScan({ navigation, route }) {
         device={device}
       />
       <View style={styles.frameContainer}>
-      <View style={styles.titileContainer}>
-        <Text allowFontScaling={false} style={styles.scanFaceText}>
-          Scan your Face
-        </Text>
-      </View>
-         <View >
-        <View style={styles.frame}>
-          <View style={[styles.corner, styles.topLeft]} />
-          <View style={[styles.corner, styles.topRight]} />
-          <View style={[styles.corner, styles.bottomLeft]} />
-          <View style={[styles.corner, styles.bottomRight]} />
+        <View style={styles.titileContainer}>
+          <Text allowFontScaling={false} style={styles.scanFaceText}>
+            Scan your Face
+          </Text>
+        </View>
+        <View>
+          <View style={styles.frame}>
+            <View style={[styles.corner, styles.topLeft]} />
+            <View style={[styles.corner, styles.topRight]} />
+            <View style={[styles.corner, styles.bottomLeft]} />
+            <View style={[styles.corner, styles.bottomRight]} />
+          </View>
+        </View>
+        <View style={styles.scanStatus}>
+          <ScanIcon width={SIZE(16)} height={SIZE(16)} />
+          <Text style={styles.scanText}>
+            Please align your face within the frame
+          </Text>
         </View>
       </View>
-      <View style={styles.scanStatus}>
-        <ScanIcon width={SIZE(16)} height={SIZE(16)} />
-        <Text style={styles.scanText}>
-          Please align your face within the frame
-        </Text>
-      </View>
-   </View>
       <View style={styles.bottomButtonContainer}>
         <CommonButton
           loader={loading}

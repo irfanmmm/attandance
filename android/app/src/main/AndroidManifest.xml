@@ -1,21 +1,20 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
-<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-  <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+  <!-- <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" /> -->
+
+  <!-- Include only if your app benefits from precise location access. -->
+  <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
   <uses-permission android:name="android.permission.CAMERA" />
-  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-  <uses-permission android:name="android.permission.WAKE_LOCK" />
 
   <!-- Change the service type to location -->
 
 
 
 <!-- Add these near your other permissions -->
-<uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
 <!-- (Optional but recommended for Android 13+ notifications) -->
-<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+<!-- <uses-permission android:name="android.permission.POST_NOTIFICATIONS" /> -->
 
 
     <application

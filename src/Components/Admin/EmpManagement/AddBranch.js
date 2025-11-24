@@ -32,6 +32,9 @@ import Geolocation from '@react-native-community/geolocation';
 import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
 import { useToast } from 'react-native-toast-notifications';
 import { useFocusEffect } from '@react-navigation/native';
+import { useAxios } from '../../utils/useAxios';
+import { PermissionsService } from '../../utils/permissions';
+import { useLocationShared } from '../../utils/useLocation';
 
 export default function AddBranch({ navigation, route }) {
   const insets = useSafeAreaInsets();
@@ -45,7 +48,9 @@ export default function AddBranch({ navigation, route }) {
   const [currentLocation, setCurrentLocation] = useState(null);
   const [isHighAccuracy, setIsHighAccuracy] = useState(true);
   const isHighAccuracyRef = useRef(true);
+  const { locationShared, callLocation } = useLocationShared();
 
+  const { fetchData } = useAxios();
   const toast = useToast();
 
   const [input, setInput] = useState({
@@ -71,88 +76,53 @@ export default function AddBranch({ navigation, route }) {
     setInput(prev => ({ ...prev, [name]: value }));
   };
 
-  const getPermission = async () => {
-    try {
-      const locationPermission =
-        Platform.OS === 'ios'
-          ? PERMISSIONS.IOS.LOCATION_WHEN_IN_USE
-          : PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION;
+  // const handleLocationFetch = async () => {
 
-      const status = await check(locationPermission);
+  //   setLocationLoad(true)
+  //   const { location } = await PermissionsService.requestCameraAndLocation();
+  //   console.log('called', location);
+  //   if (location !== 'granted') return;
+  //   callLocation();
 
-      if (status === RESULTS.GRANTED) {
-        setPermission('authorized');
-      } else if (status === RESULTS.DENIED) {
-        setHasAskedPermission(true);
-
-        const result = await request(locationPermission);
-        console.log(result, 'resff');
-
-        setPermission(result === RESULTS.GRANTED ? 'authorized' : result);
-
-        if (result === RESULTS.DENIED || result === RESULTS.BLOCKED) {
-          setHasAskedPermission(true);
-          Alert.alert(
-            'Location Permission Required',
-            'Please enable location access in settings to use this feature.',
-            [
-              { text: 'Cancel', style: 'cancel' },
-              {
-                text: 'Open Settings',
-                onPress: () => Linking.openSettings(),
-              },
-            ],
-          );
-        }
-      } else if (status === RESULTS.BLOCKED) {
-        setPermission('blocked');
-        Alert.alert(
-          'Location Permission Blocked',
-          'Location access is blocked. Please enable it in settings.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Open Settings', onPress: () => Linking.openSettings() },
-          ],
-        );
-      }
-    } catch (err) {
-      console.log('Permission check error:', err);
-      setPermission('error');
-    }
-  };
-
-  const handleLocationFetch = () => {
-    // If store already has location data, use it
-    if (state?.userData?.latitude && state?.userData?.longitude) {
-      console.log('Using stored location from state');
-      setInput(prev => ({
-        ...prev,
-        latitude: state?.userData?.latitude,
-        longitude: state?.userData?.longitude,
-      }));
-      setCurrentLocation(prev => ({
-        ...prev,
-        latitude: state?.userData?.latitude,
-        longitude: state?.userData?.longitude,
-      }));
-      return;
-    } else {
-      getCurrentLocation();
-    }
-
-    // Otherwise, fetch current location
-  };
-
-  //   useEffect(() => {
-  //     return () => {
-  //       stopBackgroundTracking();
-  //     };
-  //   }, []);
-
-  // const stopBackgroundTracking = async () => {
-  //   await BackgroundService.stop();
+  //   setInput(prev => ({
+  //     ...prev,
+  //     latitude: locationShared.value.latitude,
+  //     longitude: locationShared.value.longitude,
+  //   }));
+  //   setLocationLoad(false)
   // };
 
+  const handleLocationFetch = async () => {
+    setLocationLoad(true);
+
+    try {
+      const { location } = await PermissionsService.requestCameraAndLocation();
+      console.log('Permission result:', location);
+
+      if (location !== 'granted') {
+        setLocationLoad(false);
+        return;
+      }
+
+      // Wait for location to be fetched
+      const coords = await callLocation();
+
+      // Update input with the received coordinates
+      setInput(prev => ({
+        ...prev,
+        latitude: String(coords.latitude),
+        longitude: String(coords.longitude),
+      }));
+    } catch (error) {
+      console.error('Location fetch error:', error);
+      toast.show('Failed to get location', {
+        type: 'danger',
+        duration: 2000,
+      });
+    } finally {
+      setLocationLoad(false);
+    }
+  };
   useFocusEffect(
     React.useCallback(() => {
       setIsHighAccuracy(true);
@@ -160,111 +130,6 @@ export default function AddBranch({ navigation, route }) {
       return () => {};
     }, []),
   );
-
-  const getCurrentLocation = (retryCount = 0) => {
-    setLocationLoad(true);
-    setError(prev => ({ ...prev, locationErr: false }));
-
-    const useHighAccuracy =
-      retryCount === 0 ? isHighAccuracyRef.current : false;
-    console.log(
-      '🔍 Getting location, attempt:',
-      retryCount + 1,
-      'high accuracy:',
-      useHighAccuracy,
-    );
-
-    Geolocation.getCurrentPosition(
-      position => {
-    
-        console.log('✅ Location obtained:', position);
-        const { latitude, longitude } = position.coords;
-        setCurrentLocation(prev => ({ ...prev, latitude, longitude }));
-        setInput(prev => ({ ...prev, latitude, longitude }));
-        console.log({ latitude, longitude }, 'Fresh location fetched');
-            setLocationLoad(false);
-      },
-      error => {
-        console.log('❌ Location error:', error);
-       
-
-        if (error.code === 3 && retryCount === 0) {
-          console.log('⏰ Timeout - retrying with low accuracy');
-          isHighAccuracyRef.current = false;
-          
-          setIsHighAccuracy(false);
-          // Retry with low accuracy
-          //  setLocationLoad(false);
-          setTimeout(() => {
-            getCurrentLocation(1)
-          }, 1000);
-        } else {
-          console.log('hhfhfhfhfalse');
-          reject(error.message);
-        }
-      },
-      {
-        enableHighAccuracy: useHighAccuracy,
-        timeout: 2000,
-        maximumAge: 0,
-        interval: 0,
-        distanceFilter: 0,
-      },
-    );
-  };
-
-  const openMaps = () => {
-    if (currentLocation?.latitude && currentLocation?.longitude) {
-      const { latitude, longitude } = currentLocation;
-      const url = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
-      Linking.openURL(url);
-    } else {
-      Alert.alert('Error', 'Location not available');
-    }
-  };
-
-  // const saveChanges = async () => {
-  //     try {
-  //       const formData = new FormData();
-  //       formData.append('compony_code', code);
-  //       const editableDetails = JSON.stringify([
-  //         {
-  //           employee_id: input?.password,
-  //           action: 'E',
-  //           full_name: input?.username,
-  //         },
-  //       ]);
-  //       formData.append('editable_details', editableDetails);
-
-  //       const response = await fetch(`${BASE_URL}edit-user`, {
-  //         method: 'POST',
-  //         headers: {
-  //           'Content-Type': 'multipart/form-data',
-  //         },
-  //         body: formData,
-  //       });
-
-  //       if (!response.ok) {
-  //         throw new Error(
-  //           'Authentication failed. Please check your credentials.',
-  //         );
-  //       }
-
-  //       const data = await response.json();
-  //       console.log(data.data, 'deleteemol');
-
-  //       if (data?.message === 'success') {
-  //         // setData(data?.data);
-  //         navigation.goBack()
-
-  //       } else {
-  //       }
-  //     } catch (err) {
-  //       // setData([]);
-
-  //       console.log('Authentication error:', err?.message);
-  //     }
-  //   };
 
   useEffect(() => {
     const backAction = () => {
@@ -283,35 +148,24 @@ export default function AddBranch({ navigation, route }) {
     };
   }, [navigation]);
 
-  useEffect(() => {
-    if (!hasAskedPermission) {
-      getPermission();
-    }
-  }, [hasAskedPermission]);
-
   const handleNavigate = async () => {
     //  navigation.navigate("AdminScan");
     setLoader(true);
 
     try {
-      const response = await fetch(`${API_URL}add-branch`, {
+      const data = await fetchData({
+        url: 'add-branch',
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          compony_code: code,
+        data: {
+          // compony_code: code,
           branch_name: input.branch,
           latitude: input.latitude,
           longitude: input.longitude,
           radius: Number(input.radius),
-        }),
+        },
       });
+      console.log(data, '===========');
 
-      if (!response.ok) {
-        throw new Error('Failed to add employee. Please check the details.');
-      }
-      const data = await response.json();
       if (data?.message === 'success') {
         toast.show(data?.message, {
           type: 'Success',
@@ -340,6 +194,8 @@ export default function AddBranch({ navigation, route }) {
       setLoader(false);
     }
   };
+
+  console.log(permission, 'permissionpermissionpermission');
 
   return (
     <View style={styles.container}>
@@ -380,44 +236,47 @@ export default function AddBranch({ navigation, route }) {
 
                   <Text style={styles.titleText}>Add Branch</Text>
                 </View>
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  hitSlop={8}
-                  onPress={() => {
-                    setLogOut(!isLogOut);
-                  }}
-                >
-                  <LogoutIcon width={SIZE(40)} height={SIZE(40)} />
-                </TouchableOpacity>
-                {isLogOut && (
-                  <View style={styles.logOutContainer}>
-                    <TouchableOpacity
-                      hitSlop={8}
-                      activeOpacity={0.8}
-                      onPress={() => {
-                        dispatch({
-                          type: 'UPDATE_USER_DATA',
-                          userData: {
-                            ...state.userData,
-                            is_logged: false,
-                          },
-                        });
-                      }}
-                      style={styles.logContaienr}
-                    >
-                      <Log width={SIZE(16)} height={SIZE(16)} />
-                      <Text
-                        style={{
-                          color: '#1C54D7',
-                          fontSize: SIZE(14),
-                          marginLeft: SIZE(5),
+
+                <View style={styles.logoutButtonWrapper}>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    hitSlop={8}
+                    onPress={() => {
+                      setLogOut(!isLogOut);
+                    }}
+                  >
+                    <LogoutIcon width={SIZE(40)} height={SIZE(40)} />
+                  </TouchableOpacity>
+                  {isLogOut && (
+                    <View style={styles.logOutContainer}>
+                      <TouchableOpacity
+                        hitSlop={8}
+                        activeOpacity={0.8}
+                        onPress={() => {
+                          dispatch({
+                            type: 'UPDATE_USER_DATA',
+                            userData: {
+                              ...state.userData,
+                              is_logged: false,
+                            },
+                          });
                         }}
+                        style={styles.logContaienr}
                       >
-                        Logout
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
+                        <Log width={SIZE(16)} height={SIZE(16)} />
+                        <Text
+                          style={{
+                            color: '#1C54D7',
+                            fontSize: SIZE(14),
+                            marginLeft: SIZE(5),
+                          }}
+                        >
+                          Logout
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
               </View>
             </View>
             <TouchableWithoutFeedback
@@ -608,17 +467,7 @@ export default function AddBranch({ navigation, route }) {
                       </View>
 
                       <TouchableOpacity
-                        onPress={() => {
-                          if (
-                            !permission ||
-                            permission === 'denied' ||
-                            permission === 'blocked'
-                          ) {
-                            getPermission();
-                          } else {
-                            handleLocationFetch();
-                          }
-                        }}
+                        onPress={handleLocationFetch}
                         activeOpacity={0.8}
                         hitSlop={8}
                         style={{ marginLeft: SIZE(8) }}
@@ -768,25 +617,26 @@ const styles = StyleSheet.create({
     right: 0,
     marginBottom: SIZE(30),
   },
+  logoutButtonWrapper: {
+    position: 'relative',
+    zIndex: 50,
+  },
   logOutContainer: {
     width: SIZE(200),
-    height: SIZE(90),
     backgroundColor: '#ffffff',
     position: 'absolute',
-    top: 45,
-    right: 20,
+    top: SIZE(50),
+    right: 0,
     borderRadius: SIZE(20),
-    padding: SIZE(20),
-    justifyContent: 'center',
-    zIndex: 10,
-    elevation: 5,
+    padding: SIZE(15),
+    elevation: 8,
     shadowColor: '#000000',
     shadowOffset: {
       width: 0,
       height: 2,
     },
     shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowRadius: 3,
   },
   logContaienr: {
     flexDirection: 'row',
@@ -796,7 +646,7 @@ const styles = StyleSheet.create({
     borderRadius: SIZE(20),
     justifyContent: 'center',
     alignItems: 'center',
-
+    paddingHorizontal: SIZE(15),
     // justifyContent:'space-between'
   },
   buttonContainer: {

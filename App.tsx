@@ -14,6 +14,7 @@ import allReducers from './src/Components/Redux/Reducer';
 import Store, { Context } from './src/Components/Redux/Store';
 import { SIZES } from './src/Components/utils/Styles';
 import { ToastProvider } from 'react-native-toast-notifications';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 
 // import BootSplash from 'react-native-bootsplash';
@@ -51,6 +52,7 @@ const App = () => {
   
 
   return (
+    <SafeAreaProvider>
     <View style={{ flex: 1 }}>
       <StatusBar
         translucent
@@ -82,6 +84,7 @@ const App = () => {
         </ToastProvider>
       </Store>
     </View>
+    </SafeAreaProvider>
   );
 };
 

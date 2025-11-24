@@ -16,7 +16,9 @@ import Status from '../Employee/Screens/Status';
 import OnBoarding from '../Employee/OnBoarding';
 import ReportSingleView from './EmpManagement/ReportSingleView';
 import AddBranch from './EmpManagement/AddBranch';
-import AddEgency from '../Admin/EmpManagement/AddAgency';
+import AddEgency from './EmpManagement/AddAgency';
+import ResetPassword from '../Employee/Screens/ResetPassword';
+import SingleEmployeeReport from './EmpManagement/SingleEmployeeReport';
 
 function LogoTitle() {
   return (
@@ -54,6 +56,11 @@ const AdminStackNavigator = () => {
           options={{ headerShown: false }}
           name="AdminStatus"
           component={AdminStatus}
+        />
+        <Stack.Screen
+          options={{ headerShown: false }}
+          name="SingleEmployeeReport"
+          component={SingleEmployeeReport}
         />
         <Stack.Screen
           options={{ headerShown: false }}
@@ -115,12 +122,11 @@ const AdminStackNavigator = () => {
           name="AddBranch"
           component={AddBranch}
         />
-                <Stack.Screen
+        <Stack.Screen
           options={{ headerShown: false }}
           name="AddAgency"
           component={AddEgency}
         />
-     
       </Stack.Group>
     </Stack.Navigator>
   );

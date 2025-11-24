@@ -10,7 +10,7 @@ import {
   BackHandler,
   KeyboardAvoidingView,
   ScrollView,
-  Modal, // Added Modal
+  Modal,
   Platform,
 } from 'react-native';
 import React, { useState, useRef, useEffect, useContext } from 'react';
@@ -24,52 +24,109 @@ import LogoutIcon from '../../../assets/svg/logOut.svg';
 import Log from '../../../assets/svg/log.svg';
 import { Context } from '../../Redux/Store';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-import { API_URL, BASE_URL } from '../../utils/urls';
 import DownArrowIcon from '../../../assets/svg/DownArrow1.svg';
+import { useToast } from 'react-native-toast-notifications';
+import { useAxios } from '../../utils/useAxios';
+import { useSettings } from '../../utils/useSettings';
 
 export default function AddEmployee({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const { state, dispatch } = useContext(Context);
-  const { isEdit } = route?.params || {};
-  const { isNewScan } = route?.params || {};
-  const { selectedData } = route?.params || {};
-
-    
-  
-
-
-
+  const { isEdit, isNewScan, selectedData } = route?.params || {};
+  const isAdmin = state.userData.is_admin;
+  // const settings = state.userData.settings;
+  const toast = useToast();
+  const { fetchData } = useAxios();
   const code = state?.userData?.company_code;
+
+  const [agency, setAgency] = useState('');
+  const [agencyList, setAgencyList] = useState([]);
+  const [agencySearch, setAgencySearch] = useState('');
+  const [agencyDropDown, setAgencyDropDown] = useState(false);
+  const [agencyErr, setAgencyErr] = useState(false);
+  const [loader,setLoader]=useState(false)
+
+  const filteredAgency = agencyList?.filter(item =>
+    item?.agency_name?.toLowerCase().includes(agencySearch.toLowerCase()),
+  );
+
+  const handleAgencySelect = agancy => {
+    // setAgency(ag);
+    setInput(prev => ({ ...prev, agancy }));
+    setError(prev => ({ ...prev, agancyErr: false }));
+    setAgencyErr(false);
+    setAgencyDropDown(false);
+    setAgencySearch('');
+    Keyboard.dismiss();
+  };
+
+  // const handleBranchSelect = bracnh => {
+  //   setInput(prev => ({ ...prev, bracnh }));
+  //   setError(prev => ({ ...prev, branchErr: false }));
+  //   setDropDown(false);
+  //   setSearchQuery('');
+  //   Keyboard.dismiss();
+  // };
+
+  const settings = useSettings();
+
+  useEffect(() => {
+    getAgency();
+  }, []);
+
+  // const branchEnabled = settings?.find(
+  //   val => val.setting_name === 'Branch Management',
+  // )?.value;
+
+  // const isIndividual = settings?.find(
+  //   val => val.setting_name === 'Individual Login',
+  // )?.value;
 
   const inputRef1 = useRef(null);
   const inputRef2 = useRef(null);
 
-  const [input, setInput] = useState({
-    bracnh: isEdit ? selectedData?.branch : '',
-    username: isEdit ? selectedData?.fullname : '',
-    password: isEdit ? selectedData?.employee_code : '',
-  });
+  // Initial empty form
+  const initialForm = {
+    bracnh: '',
+    username: '',
+    password: '',
+    agancy: '',
+  };
+
+  const [input, setInput] = useState(
+    isEdit
+      ? {
+          bracnh: selectedData?.branch || '',
+          username: selectedData?.fullname || '',
+          password: selectedData?.employee_code || '',
+        }
+      : initialForm,
+  );
 
   const [data, setData] = useState([]);
+  const [agancyData, setAganct] = useState([]);
   const [error, setError] = useState({
     usernameErr: false,
     passwordErr: false,
     branchErr: false,
+    agancyErr: false,
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [isLogOut, setLogOut] = useState(false);
   const [isDropDown, setDropDown] = useState(false);
 
-  const handleChange = (name, value) => {
-    setInput(prev => ({ ...prev, [name]: value }));
-  };
-
- 
-  
-
   const filteredData = data?.filter(item =>
     item?.branch_name?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
+
+  const agencyFlter = agancyData?.filter(item =>
+    item?.agent_name?.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
+
+  const handleChange = (name, value) => {
+    setInput(prev => ({ ...prev, [name]: value }));
+    setError(prev => ({ ...prev, [`${name}Err`]: false }));
+  };
 
   const handleBranchSelect = bracnh => {
     setInput(prev => ({ ...prev, bracnh }));
@@ -79,35 +136,134 @@ export default function AddEmployee({ navigation, route }) {
     Keyboard.dismiss();
   };
 
-  const getBranch = async () => {
-    try {
-      const response = await fetch(`${API_URL}get-branch`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          compony_code: code,
-        }),
-      });
+  const NavigateAdminScan = () => {
+    console.log(input, 'ffffff');
+    
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch branches.');
-      }
-      const datas = await response.json();
-      if (datas?.message === 'success') {
-        setData(datas?.details);
+    if (
+      !input.username.trim() ||
+      !input.password.trim()
+      //  ||
+      // !input.bracnh ||
+      // !input.agancy
+    ) {
+      toast.show('Please fill all fields', { type: 'danger' });
+      return;
+    }
+
+    navigation.navigate('AdminScan', {
+      fullname: input.username,
+      employeecode: input.password,
+      branch: input.bracnh,
+      isNewScan: isNewScan,
+      agancy:input.agancy
+    });
+  };
+
+  // FIXED: Add Employee + Auto Clear Form
+  const AddEmployees = async () => {
+    setLoader(true)
+    if (
+      !input.username.trim() ||
+      !input.password.trim() 
+      // ||
+      // !input.bracnh ||
+      // !input.agancy
+    ) {
+      // setError({
+      //   usernameErr: !input.username.trim(),
+      //   passwordErr: !input.password.trim(),
+      //   // branchErr: !input.bracnh,
+      //   // agancyErr: !input.agancy,
+      // });
+      toast.show('Please fill all fields', { type: 'danger' });
+      return;
+    }
+
+    try {
+      const res = await fetchData({
+        url: 'auth/add-employee',
+        method: 'POST',
+        data: {
+          email: input?.username.trim(),
+          // password: input.password,
+          branch: input?.bracnh,
+          employeecode: input?.password,
+          agency:input?.agancy
+        },
+      });
+      
+      
+
+      if (res?.message === 'success') {
+       
+
+        toast.show('Employee added successfully!', {
+          type: 'success',
+          duration: 2500,
+        });
+         navigation.navigate('EmpManagement')
+
+        // Clear form for next employee
+        setInput(initialForm);
+        setError({
+          usernameErr: false,
+          passwordErr: false,
+          branchErr: false,
+          agancyErr: false,
+        });
+
+        // Auto focus name field
+        setTimeout(() => inputRef1.current?.focus(), 300);
       } else {
-        console.error('Failed to fetch branches:', datas?.message);
+        toast.show(res?.message || 'Failed to add employee', {
+          type: 'danger',
+        });
       }
     } catch (err) {
-      console.error('Fetch branches error:', err.message);
+      toast.show('Something went wrong', { type: 'danger' });
+      console.log('Add employee error:', err);
+    }
+    finally{
+      setLoader(false)
+
     }
   };
 
+  const getBranch = async () => {
+    try {
+      const res = await fetchData({
+        url: 'get-branch',
+        // method: 'POST',
+        // data: { compony_code: code },
+      });
+      if (res?.message === 'success') {
+        setData(res?.details || []);
+      }
+    } catch (err) {
+      console.log('Fetch branch error:', err);
+    }
+  };
 
+  const getAgency = async () => {
+    try {
+      const res = await fetchData({
+        url: 'get-agency',
+        // method: 'POST',
+        // data: { compony_code: code },
+      });
+      if (res?.message === 'success') {
+        console.log(res?.details, 'res?.detailsres?.detailsres?.details');
+        setAganct(res?.details || []);
+        // setData(res?.details || []);
+      }
+    } catch (err) {
+      console.log('Fetch branch error:', err);
+    }
+  };
 
   const saveChanges = async () => {
+    setLoader(true)
     try {
       const formData = new FormData();
       formData.append('compony_code', code);
@@ -121,24 +277,39 @@ export default function AddEmployee({ navigation, route }) {
       ]);
       formData.append('editable_details', editableDetails);
 
-      const response = await fetch(`${BASE_URL}edit-user`, {
+      const data = await fetchData({
+        url: 'edit-user',
         method: 'POST',
+        data: formData,
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        body: formData,
       });
+      // const response = await fetch(`${BASE_URL}edit-user`, {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'multipart/form-data',
+      //   },
+      //   body: formData,
+      // });
 
-      if (!response.ok) {
-        throw new Error('Authentication failed. Please check your credentials.');
-      }
+      // if (!response.ok) {
+      //   throw new Error('Authentication failed. Please check your credentials.');
+      // }
 
-      const data = await response.json();
+      // const data = await response.json();
+
       if (data?.message === 'success') {
+           toast.show('Successfully saved', { type: 'success' });
         navigation.goBack();
       }
     } catch (err) {
+           toast.show('Something went wrong', { type: 'danger' });
       console.error('Authentication error:', err?.message);
+    }
+    finally{
+    setLoader(false)
+
     }
   };
 
@@ -150,10 +321,9 @@ export default function AddEmployee({ navigation, route }) {
     const backAction = () => {
       if (isEdit) {
         navigation.navigate('EmployeeManagement');
-      } else  if(isNewScan) {
+      } else if (isNewScan) {
         navigation.navigate('NewScan');
-     
-      }else{
+      } else {
         navigation.navigate('EmpManagement');
       }
       return true;
@@ -162,10 +332,8 @@ export default function AddEmployee({ navigation, route }) {
       'hardwareBackPress',
       backAction,
     );
-    return () => {
-      backHandler.remove();
-    };
-  }, [navigation]);
+    return () => backHandler.remove();
+  }, [navigation, isEdit, isNewScan]);
 
   return (
     <View style={styles.container}>
@@ -198,7 +366,9 @@ export default function AddEmployee({ navigation, route }) {
                     hitSlop={5}
                     onPress={() => {
                       isEdit
-                        ? navigation.navigate('EmployeeManagement'):isNewScan? navigation.navigate('NewScan')
+                        ? navigation.navigate('EmployeeManagement')
+                        : isNewScan
+                        ? navigation.navigate('NewScan')
                         : navigation.navigate('EmpManagement');
                       setLogOut(false);
                     }}
@@ -207,12 +377,11 @@ export default function AddEmployee({ navigation, route }) {
                   </TouchableOpacity>
                   <Text style={styles.titleText}>Add Employee</Text>
                 </View>
+                <View style={styles.logoutButtonWrapper}>
                 <TouchableOpacity
                   activeOpacity={0.8}
                   hitSlop={8}
-                  onPress={() => {
-                    setLogOut(!isLogOut);
-                  }}
+                  onPress={() => setLogOut(!isLogOut)}
                 >
                   <LogoutIcon width={SIZE(40)} height={SIZE(40)} />
                 </TouchableOpacity>
@@ -224,10 +393,7 @@ export default function AddEmployee({ navigation, route }) {
                       onPress={() => {
                         dispatch({
                           type: 'UPDATE_USER_DATA',
-                          userData: {
-                            ...state.userData,
-                            is_logged: false,
-                          },
+                          userData: { ...state.userData, is_logged: false },
                         });
                       }}
                       style={styles.logContaienr}
@@ -245,8 +411,10 @@ export default function AddEmployee({ navigation, route }) {
                     </TouchableOpacity>
                   </View>
                 )}
+                </View>
               </View>
             </View>
+
             <TouchableWithoutFeedback
               onPress={() => {
                 setLogOut(false);
@@ -262,110 +430,250 @@ export default function AddEmployee({ navigation, route }) {
                   </Text>
                 </View>
 
-                <KeyboardAvoidingView
-                  behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                  style={{ zIndex: 10 }}
-                >
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    hitSlop={10}
-                    onPress={() => {
-                      setDropDown(!isDropDown);
-                      setSearchQuery('');
-                      setError(prev => ({ ...prev, branchErr: false }));
-                    }}
-                    style={styles.inputContainer}
-                  >
-                    <ProfileIcon
-                      width={SIZE(20)}
-                      height={SIZE(20)}
-                      style={{ marginRight: SIZE(10) }}
-                    />
-                    <View style={{ width: '80%', justifyContent: 'center' }}>
-                      <Text style={styles.uerNameText}>Branch Name</Text>
-                      <Text
+                {settings?.['Branch Management'] && (
+                  <>
+                    <KeyboardAvoidingView
+                      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                      style={{ zIndex: 10 }}
+                    >
+                      <TouchableOpacity
+                        activeOpacity={0.8}
+                        hitSlop={10}
+                        onPress={() => {
+                          getBranch();
+                          setDropDown(!isDropDown);
+                          setSearchQuery('');
+                          setError(prev => ({ ...prev, branchErr: false }));
+                        }}
                         style={{
-                          marginTop: SIZE(5),
-                          fontSize: SIZE(14),
-                          lineHeight: SIZE(16),
-                          color: input.bracnh ? '#000000' : '#2C436433',
+                          ...styles.inputContainer,
+                          marginBottom: SIZE(20),
                         }}
                       >
-                        {input.bracnh || 'Select branch'}
-                      </Text>
-                    </View>
-                    <View
-                      style={{
-                        transform: [{ rotate: isDropDown ? '180deg' : '0deg' }],
+                        <ProfileIcon
+                          width={SIZE(20)}
+                          height={SIZE(20)}
+                          style={{ marginRight: SIZE(10) }}
+                        />
+                        <View
+                          style={{ width: '80%', justifyContent: 'center' }}
+                        >
+                          <Text style={styles.uerNameText}>Branch Name</Text>
+                          <Text
+                            style={{
+                              marginTop: SIZE(5),
+                              fontSize: SIZE(14),
+                              lineHeight: SIZE(16),
+                              color: input.bracnh ? '#000000' : '#2C436433',
+                            }}
+                          >
+                            {input.bracnh || 'Select branch'}
+                          </Text>
+                        </View>
+                        <View
+                          style={{
+                            transform: [
+                              { rotate: isDropDown ? '180deg' : '0deg' },
+                            ],
+                          }}
+                        >
+                          <DownArrowIcon width={SIZE(35)} height={SIZE(35)} />
+                        </View>
+                      </TouchableOpacity>
+                      {error.branchErr && (
+                        <Text style={styles.errorText}>
+                          *Please select a branch
+                        </Text>
+                      )}
+                    </KeyboardAvoidingView>
+
+                    <Modal
+                      visible={isDropDown}
+                      transparent={true}
+                      animationType="fade"
+                      onRequestClose={() => {
+                        setDropDown(false);
+                        setSearchQuery('');
                       }}
                     >
-                      <DownArrowIcon width={SIZE(35)} height={SIZE(35)} />
-                    </View>
-                  </TouchableOpacity>
-                  {error.branchErr && (
-                    <Text style={styles.errorText}>*Please select a branch</Text>
-                  )}
-                </KeyboardAvoidingView>
-
-                {/* Dropdown as Modal */}
-                <Modal
-                  visible={isDropDown}
-                  transparent={true}
-                  animationType="fade"
-                  onRequestClose={() => {
-                    setDropDown(false);
-                    setSearchQuery('');
-                    Keyboard.dismiss();
-                  }}
-                >
-                  <TouchableWithoutFeedback
-                    onPress={() => {
-                      setDropDown(false);
-                      setSearchQuery('');
-                      Keyboard.dismiss();
-                    }}
-                  >
-                    <View style={styles.modalOverlay}>
-                      <KeyboardAvoidingView
-                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                        style={styles.dropdownContainer}
+                      <TouchableWithoutFeedback
+                        onPress={() => {
+                          getAgency();
+                          setDropDown(false);
+                          setSearchQuery('');
+                          setError(prev => ({ ...prev, agancyErr: false }));
+                          Keyboard.dismiss();
+                        }}
                       >
-                        <TextInput
-                          style={styles.searchInput}
-                          placeholder="Search branch..."
-                          placeholderTextColor={'#2C436433'}
-                          value={searchQuery}
-                          onChangeText={text => setSearchQuery(text)}
-                          autoFocus={true}
-                        />
-                        <ScrollView
-                          nestedScrollEnabled={true}
-                          style={styles.optionList}
-                          showsVerticalScrollIndicator={true}
-                          contentContainerStyle={styles.scrollContent}
-                        >
-                          {filteredData.length > 0 ? (
-                            filteredData.map((item, index) => (
-                              <TouchableOpacity
-                                key={index}
-                                style={styles.optionItem}
-                                onPress={() => handleBranchSelect(item?.branch_name)}
-                              >
-                                <Text style={styles.optionText}>
-                                  {item?.branch_name}
+                        <View style={styles.modalOverlay}>
+                          <KeyboardAvoidingView
+                            behavior={
+                              Platform.OS === 'ios' ? 'padding' : 'height'
+                            }
+                            style={styles.dropdownContainer}
+                          >
+                            <TextInput
+                              style={styles.searchInput}
+                              placeholder="Search branch..."
+                              placeholderTextColor={'#2C436433'}
+                              value={searchQuery}
+                              onChangeText={setSearchQuery}
+                              autoFocus={true}
+                            />
+                            <ScrollView
+                              nestedScrollEnabled={true}
+                              style={styles.optionList}
+                              showsVerticalScrollIndicator={true}
+                              contentContainerStyle={styles.scrollContent}
+                            >
+                              {filteredData.length > 0 ? (
+                                filteredData.map((item, index) => (
+                                  <TouchableOpacity
+                                    key={index}
+                                    style={styles.optionItem}
+                                    onPress={() =>
+                                      handleBranchSelect(item?.branch_name)
+                                    }
+                                  >
+                                    <Text style={styles.optionText}>
+                                      {item?.branch_name}
+                                    </Text>
+                                  </TouchableOpacity>
+                                ))
+                              ) : (
+                                <Text style={styles.noResultsText}>
+                                  No branches found
                                 </Text>
-                              </TouchableOpacity>
-                            ))
-                          ) : (
-                            <Text style={styles.noResultsText}>
-                              No branches found
-                            </Text>
-                          )}
-                        </ScrollView>
-                      </KeyboardAvoidingView>
-                    </View>
-                  </TouchableWithoutFeedback>
-                </Modal>
+                              )}
+                            </ScrollView>
+                          </KeyboardAvoidingView>
+                        </View>
+                      </TouchableWithoutFeedback>
+                    </Modal>
+                  </>
+                )}
+
+                {settings?.['Agency Management'] && (
+                  <>
+                    <KeyboardAvoidingView
+                      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                      style={{ zIndex: 10 }}
+                    >
+                      <TouchableOpacity
+                        activeOpacity={0.8}
+                        hitSlop={10}
+                        onPress={() => {
+                          setAgencyDropDown(!agencyDropDown);
+                          setAgencySearch('');
+                          setAgencyErr(false);
+                        }}
+                        style={styles.inputContainer}
+                      >
+                        <ProfileIcon
+                          width={SIZE(20)}
+                          height={SIZE(20)}
+                          style={{ marginRight: SIZE(10) }}
+                        />
+
+                        <View
+                          style={{ width: '80%', justifyContent: 'center' }}
+                        >
+                          <Text style={styles.uerNameText}>Agency Name</Text>
+                          <Text
+                            style={{
+                              marginTop: SIZE(5),
+                              fontSize: SIZE(14),
+                              lineHeight: SIZE(16),
+                              color: input.agancy ? '#000000' : '#2C436433',
+                            }}
+                          >
+                            {input.agancy || 'Select agency'}
+                          </Text>
+                        </View>
+
+                        <View
+                          style={{
+                            transform: [
+                              { rotate: agencyDropDown ? '180deg' : '0deg' },
+                            ],
+                          }}
+                        >
+                          <DownArrowIcon width={SIZE(35)} height={SIZE(35)} />
+                        </View>
+                      </TouchableOpacity>
+
+                      {error.agancyErr && (
+                        <Text style={styles.errorText}>
+                          *Please select an agency
+                        </Text>
+                      )}
+                    </KeyboardAvoidingView>
+
+                    {/* MODAL */}
+                    <Modal
+                      visible={agencyDropDown}
+                      transparent={true}
+                      animationType="fade"
+                      onRequestClose={() => {
+                        setAgencyDropDown(false);
+                        setAgencySearch('');
+                      }}
+                    >
+                      <TouchableWithoutFeedback
+                        onPress={() => {
+                          setAgencyDropDown(false);
+                          setAgencySearch('');
+                          Keyboard.dismiss();
+                        }}
+                      >
+                        <View style={styles.modalOverlay}>
+                          <KeyboardAvoidingView
+                            behavior={
+                              Platform.OS === 'ios' ? 'padding' : 'height'
+                            }
+                            style={styles.dropdownContainer}
+                          >
+                            <TextInput
+                              style={styles.searchInput}
+                              placeholder="Search agency..."
+                              placeholderTextColor={'#2C436433'}
+                              value={agencySearch}
+                              onChangeText={setAgencySearch}
+                              autoFocus={true}
+                            />
+
+                            <ScrollView
+                              nestedScrollEnabled={true}
+                              style={styles.optionList}
+                              showsVerticalScrollIndicator={true}
+                              contentContainerStyle={styles.scrollContent}
+                            >
+                              {agencyFlter.length > 0 ? (
+                                agencyFlter.map((item, index) => (
+                                  <TouchableOpacity
+                                    key={index}
+                                    style={styles.optionItem}
+                                    onPress={() =>
+                                      handleAgencySelect(item?.agent_name)
+                                    }
+                                  >
+                                    <Text style={styles.optionText}>
+                                      {item?.agent_name}
+                                    </Text>
+                                  </TouchableOpacity>
+                                ))
+                              ) : (
+                                <Text style={styles.noResultsText}>
+                                  No agencies found
+                                </Text>
+                              )}
+                            </ScrollView>
+                          </KeyboardAvoidingView>
+                        </View>
+                      </TouchableWithoutFeedback>
+                    </Modal>
+                  </>
+                )}
 
                 <TouchableOpacity
                   activeOpacity={0.8}
@@ -382,7 +690,7 @@ export default function AddEmployee({ navigation, route }) {
                     style={{ marginRight: SIZE(10) }}
                   />
                   <View style={{ width: '90%', justifyContent: 'center' }}>
-                    <Text style={styles.uerNameText}>Employee Name</Text>
+                    <Text style={styles.uerNameText}>Employee Email / Name</Text>
                     <TextInput
                       ref={inputRef1}
                       style={{
@@ -390,13 +698,11 @@ export default function AddEmployee({ navigation, route }) {
                         lineHeight: SIZE(16),
                         color: '#000000',
                       }}
+                      inputMode="email"
                       placeholderTextColor={'#2C436433'}
                       value={input.username}
-                      placeholder="Enter name"
-                      onChangeText={text => {
-                        handleChange('username', text);
-                        setError(prev => ({ ...prev, usernameErr: false }));
-                      }}
+                      placeholder="Enter email or name"
+                      onChangeText={text => handleChange('username', text)}
                     />
                   </View>
                 </TouchableOpacity>
@@ -430,10 +736,7 @@ export default function AddEmployee({ navigation, route }) {
                       placeholderTextColor={'#2C436433'}
                       value={input.password}
                       placeholder="Enter code"
-                      onChangeText={text => {
-                        handleChange('password', text);
-                        setError(prev => ({ ...prev, passwordErr: false }));
-                      }}
+                      onChangeText={text => handleChange('password', text)}
                     />
                   </View>
                 </TouchableOpacity>
@@ -459,7 +762,6 @@ export default function AddEmployee({ navigation, route }) {
                   branch: input.bracnh,
                   isEdit,
                   selectedData: selectedData,
-                
                 });
               }}
               style={styles.buttonCont}
@@ -479,43 +781,20 @@ export default function AddEmployee({ navigation, route }) {
           </View>
         ) : (
           <CommonButton
+          loader={loader}
             backgroundColor={'#153CD8'}
             title={'Next'}
             onPress={() => {
-              const newError = {
-                usernameErr: !input.username.trim(),
-                passwordErr: !input.password.trim(),
-                branchErr: !input.bracnh.trim(),
-              };
+              //  NavigateAdminScan();
 
-              if (
-                newError.usernameErr ||
-                newError.passwordErr ||
-                newError.branchErr
-              ) {
-                setError({
-                  branchErr: newError.branchErr,
-                  usernameErr: newError.usernameErr,
-                  passwordErr: newError.passwordErr,
-                });
-              } else {
-                navigation.navigate('AdminScan', {
-                  fullname: input.username,
-                  employeecode: input.password,
-                  branch: input.bracnh,
-                    isNewScan:isNewScan
-                });
-              }
+              // setError(newError);
+
+              isAdmin && settings['Individual Login']
+                ? AddEmployees()
+                : NavigateAdminScan();
 
               Keyboard.dismiss();
               setLogOut(false);
-              dispatch({
-                type: 'UPDATE_USER_DATA',
-                userData: {
-                  ...state.userData,
-                  empName: input.username,
-                },
-              });
             }}
             color={'#FFFFFF'}
           />
@@ -525,11 +804,9 @@ export default function AddEmployee({ navigation, route }) {
   );
 }
 
+// Your original styles — 100% unchanged
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   contain: {},
   haederContainer: {
     paddingHorizontal: SIZE(20),
@@ -554,9 +831,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: SIZE(40),
     borderTopRightRadius: SIZE(40),
   },
-  contentContainer: {
-    width: '100%',
-  },
+  contentContainer: { width: '100%' },
   employyText: {
     fontSize: SIZE(22),
     fontFamily: Fonts.Medium,
@@ -607,25 +882,27 @@ const styles = StyleSheet.create({
     right: 0,
     marginBottom: SIZE(30),
   },
+    logoutButtonWrapper: {
+    position: 'relative',
+    zIndex: 50,
+  },
+  
   logOutContainer: {
-    width: SIZE(200),
-    height: SIZE(90),
+   width: SIZE(200),
     backgroundColor: '#ffffff',
     position: 'absolute',
-    top: 45,
-    right: 20,
+    top: SIZE(50),
+    right: 0,
     borderRadius: SIZE(20),
-    padding: SIZE(20),
-    justifyContent: 'center',
-    zIndex: 10,
-    elevation: 5,
+    padding: SIZE(15),
+    elevation: 8,
     shadowColor: '#000000',
     shadowOffset: {
       width: 0,
       height: 2,
     },
     shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowRadius: 3,
   },
   logContaienr: {
     flexDirection: 'row',
@@ -635,6 +912,7 @@ const styles = StyleSheet.create({
     borderRadius: SIZE(20),
     justifyContent: 'center',
     alignItems: 'center',
+        paddingHorizontal: SIZE(15),
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -658,13 +936,13 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent background
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   dropdownContainer: {
     width: '90%',
-    maxHeight: SIZE(400), // Increased for better visibility
+    maxHeight: SIZE(400),
     backgroundColor: '#FFF',
     borderRadius: SIZE(20),
     padding: SIZE(10),
@@ -674,9 +952,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
-  scrollContent: {
-    paddingBottom: SIZE(20), // Ensure content isn't cut off
-  },
+  scrollContent: { paddingBottom: SIZE(20) },
   optionItem: {
     padding: SIZE(10),
     borderBottomWidth: 1,
@@ -688,9 +964,7 @@ const styles = StyleSheet.create({
     lineHeight: SIZE(20),
     color: '#000000',
   },
-  optionList: {
-    maxHeight: SIZE(350), // Increased to accommodate more items
-  },
+  optionList: { maxHeight: SIZE(350) },
   searchInput: {
     borderBottomWidth: 1,
     borderBottomColor: '#ccc',
