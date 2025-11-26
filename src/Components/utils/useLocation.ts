@@ -9,6 +9,8 @@ export function useLocationShared() {
     longitude: 0,
     timestamp: 0,
   });
+  // console.log(isHighAccuracy,'ddd');
+  
 
   const callLocation = useCallback(() => {
     return new Promise((resolve, reject) => {
@@ -31,10 +33,10 @@ export function useLocationShared() {
           reject(error);
         },
         {
-          enableHighAccuracy: isHighAccuracy,
+          enableHighAccuracy: false,
           distanceFilter: 10,
           timeout: 20000,
-          maximumAge: 30000,
+          maximumAge: 3000,
         },
       );
     });

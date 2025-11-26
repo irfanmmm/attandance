@@ -59,7 +59,7 @@ export default function ResetPassword({ navigation, route }) {
     }
     if (newPassword.length < 3) {
       setError(true);
-      setStatus('*Password must be at least 6 characters');
+      setStatus('*Password must be at least 3 characters');
       return;
     }
     if (newPassword !== confirmPassword) {

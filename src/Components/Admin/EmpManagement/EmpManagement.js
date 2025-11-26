@@ -19,6 +19,7 @@ import Profiles from '../../../assets/svg/profiles.svg';
 import Plus from '../../../assets/svg/plus.svg';
 import Employee from '../../../assets/svg/Employee.svg';
 import Document from '../../../assets/svg/Document.svg';
+import { storage } from '../../utils/Storage';
 
 const Navigations = {
   Attendance: 'Attendance',
@@ -27,12 +28,18 @@ const Navigations = {
   'Add Branches': 'AddBranch',
   'Add Agency': 'AddAgency',
 };
-export default function EmpManagement({ navigation }) {
+export default function EmpManagement({ navigation,route }) {
   const insets = useSafeAreaInsets();
   const { state, dispatch } = useContext(Context);
   const [isLogOut, setLogOut] = useState(false);
   const settings = state.userData.settings;
     const isAdmin = state.userData.is_admin;
+
+const { isAuthentication = false } = route?.params || {};
+
+
+    
+    
 
   const isAgency = settings?.find(
     val => val.setting_name === 'Agency Management',
@@ -41,13 +48,15 @@ export default function EmpManagement({ navigation }) {
     val => val.setting_name === 'Branch Management',
   )?.value;
 
+
   const handleNavigate = item => {
     navigation.navigate(Navigations[item.title]);
   };
 
   useEffect(() => {
     const backAction = () => {
-      isAdmin?navigation.navigate('NewScan'): navigation.navigate('Authentication')
+      isAdmin ? navigation.navigate('NewScan'):navigation.navigate('Authentication')
+      // : navigation.navigate('Authentication')
       // Navigate to the login page
       // navigation.navigate('Authentication'); // Replace 'Login' with your login screen name
       return true; // Prevent default back action (e.g., exiting the app)
@@ -140,13 +149,31 @@ export default function EmpManagement({ navigation }) {
                   hitSlop={8}
                   activeOpacity={0.8}
                   onPress={() => {
-                    dispatch({
-                      type: 'UPDATE_USER_DATA',
-                      userData: {
-                        ...state.userData,
-                        is_logged: false,
-                      },
-                    });
+                         dispatch({
+                                                // ← instantly update in-memory state
+                                                type: 'UPDATE_USER_DATA',
+                                                userData: {
+                                                  is_logged: false,
+                                                  token: null,
+                                                  refresh_token: null,
+                                                  company_code: '',
+                                                  empName: '',
+                                                  username: '',
+                                                  password: '',
+                                                  is_admin: false,
+                                                  settings: null,
+                                                  latitude: '',
+                                                  longitude: '',
+                                                },
+                                              });
+                                              storage.clearAll();
+                    // dispatch({
+                    //   type: 'UPDATE_USER_DATA',
+                    //   userData: {
+                    //     ...state.userData,
+                    //     is_logged: false,
+                    //   },
+                    // });
                   }}
                   style={styles.logContaienr}
                 >
@@ -159,7 +186,7 @@ export default function EmpManagement({ navigation }) {
                                             marginLeft: SIZE(8),
                     }}
                   >
-                    Logout
+                    Logou
                   </Text>
                 </TouchableOpacity>
               </View>

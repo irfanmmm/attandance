@@ -25,12 +25,14 @@ import LeftArrow from '../../../assets/svg/leftArrow.svg';
 import { useAxios } from '../../utils/useAxios';
 import RNBlobUtil from 'react-native-blob-util';
 import { BASE_URL } from '../../utils/urls';
+import { useToast } from 'react-native-toast-notifications';
 
 export default function ReportSingleView({ route, navigation }) {
   const { empName = 'All Employees', empCode = '' } = route?.params || {};
   const { state } = useContext(Context);
   const { fetchData } = useAxios();
   const insets = useSafeAreaInsets();
+    const toast = useToast();
 
   const today = new Date();
   const [startDate, setStartDate] = useState(
@@ -120,9 +122,10 @@ const downloadFile = async (fileUrl) => {
   })
     .fetch('GET', finalUrl)
     .then(res => {
-      console.log('Downloaded file pdddddddddath:', path);
+     toast.show('Successfully downloaded', { type: 'success', duration: 2000 });
     })
     .catch(err => {
+        toast.show('Download failed', { type: 'danger', duration: 2000 });
       console.log('Download Error:', err);
     })
     .finally(() => {

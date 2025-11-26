@@ -15,11 +15,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CommonButton from './CommonButton';
 import { BASE_URL } from './utils/urls';
 import { useToast } from 'react-native-toast-notifications';
-import TickIcon from '../assets/svg/blueTick.svg'
+import TickIcon from '../assets/svg/blueTick.svg';
+import { useAxios } from './utils/useAxios';
 
 export default function Register({ navigation }) {
   const insets = useSafeAreaInsets();
   const toast = useToast();
+  const { fetchData } = useAxios();
 
   const inputRefs = useRef({});
 
@@ -69,7 +71,7 @@ export default function Register({ navigation }) {
     {
       key: 'phone',
       label: 'Phone No.',
-      placeholder: '+91',
+      placeholder: 'Enter phone number',
       keyboardType: 'phone-pad',
       returnKeyType: 'next',
       secureTextEntry: false,
@@ -123,8 +125,8 @@ export default function Register({ navigation }) {
       newErrors.noOfEmployees = 'Please enter a valid number';
 
     if (!formData.phone.trim()) newErrors.phone = 'Phone number is required';
-    else if (formData.phone.length < 10)
-      newErrors.phone = 'Please enter a valid phone number';
+    // else if (formData.phone.length < 10)
+    //   newErrors.phone = 'Please enter a valid phone number';
 
     if (!formData.email.trim()) newErrors.email = 'Email is required';
     else if (!/\S+@\S+\.\S+/.test(formData.email))
@@ -157,31 +159,37 @@ export default function Register({ navigation }) {
         mobile_no: formData.phone,
         emp_count: formData.noOfEmployees,
         password: formData.password,
-        client:formData.officeKitCode
+        client: formData.officeKitCode,
       };
 
       if (isOfficeKitUser && formData.officeKitCode.trim()) {
         payload.office_kit_code = formData.officeKitCode.trim();
       }
 
-      const response = await fetch(`${BASE_URL}signup`, {
+      const response = await fetchData({
+        url: 'auth/signup',
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        data: payload,
       });
+      // const response = await fetch(`${BASE_URL}signup`, {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify(payload),
+      // });
 
-      if (!response.ok) throw new Error('Authentication failed.');
+      // if (!response.ok) throw new Error('Authentication failed.');
 
-      const data = await response.json();
+      // const data = await response.json();
 
-      if (data?.message === 'success') {
+      if (response?.message === 'success') {
         toast.show('Success', { type: 'success', duration: 2000 });
         setTimeout(
           () => navigation.navigate('VerifyEmail', { email: formData.email }),
           1000,
         );
       } else {
-        toast.show(data?.message || 'Registration failed', {
+        toast.show(response?.message || 'Registration failed', {
           type: 'danger',
           duration: 2000,
         });
@@ -221,7 +229,7 @@ export default function Register({ navigation }) {
             secureTextEntry={field.secureTextEntry}
             autoCapitalize={field.autoCapitalize || 'sentences'}
             onChangeText={text => updateField(field.key, text)}
-            maxLength={field.maxLength}
+            // maxLength={field.maxLength}
             onSubmitEditing={() => {
               if (field.nextField) {
                 inputRefs.current[field.nextField]?.focus();
@@ -312,11 +320,27 @@ export default function Register({ navigation }) {
         {/* ========== CUSTOM CHECKBOX ========== */}
         <View style={styles.checkboxRow}>
           <TouchableOpacity
-            onPress={() => setIsOfficeKitUser(prev => !prev)}
+            // onPress={() => setIsOfficeKitUser(prev => !prev)}
+            onPress={() => {
+              setIsOfficeKitUser(prev => {
+                const newValue = !prev;
+
+                // If user is UNCHECKING the box → clear the company code
+                if (!newValue) {
+                  setFormData(prev => ({ ...prev, officeKitCode: '' }));
+                  setErrors(prev => {
+                    const { officeKitCode, ...rest } = prev;
+                    return rest; 
+                  });
+                }
+
+                return newValue;
+              });
+            }}
             style={styles.customCheckbox}
             activeOpacity={0.7}
           >
-            {isOfficeKitUser && <TickIcon width={SIZE(20)} height={SIZE(20)}/>}
+            {isOfficeKitUser && <TickIcon width={SIZE(20)} height={SIZE(20)} />}
           </TouchableOpacity>
 
           <TouchableOpacity

@@ -29,10 +29,12 @@ import Log from '../../../assets/svg/log.svg';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import LinearGradient from 'react-native-linear-gradient';
 import { useAxios } from '../../utils/useAxios';
+import { useToast } from 'react-native-toast-notifications';
+import { storage } from '../../utils/Storage';
 
 export default function Authentication() {
   const insets = useSafeAreaInsets();
-
+  const toast = useToast();
   const { fetchData } = useAxios();
   const { state, dispatch } = useContext(Context); // Add camera ready state
   const code = state.userData.company_code;
@@ -107,14 +109,21 @@ export default function Authentication() {
         },
       });
       console.log(data);
-      if (data.message === 'success') {
-        navigation.navigate('EmpManagement');
+      if (data?.message === 'success') {
+        navigation.navigate('EmpManagement', {
+          isAuthentication: true,
+        });
       } else {
+        toast.show('Something went wrong', { type: 'danger', duration: 2000 });
         setErr(true);
       }
 
       // const data = await response.json();
     } catch (err) {
+      toast.show(data?.message || 'Something went wrong', {
+        type: 'danger',
+        duration: 2000,
+      });
       // setError({ usernameErr: true, passwordErr: true });
       console.log('Authentication error:', err.message);
       setErr(true);
@@ -184,7 +193,7 @@ export default function Authentication() {
 
                 {/* <Text style={{color:'#ffffff',fontSize:16,lineHeight:20}}>Log Out</Text>
                  */}
-                            <View style={styles.logoutButtonWrapper}>
+                <View style={styles.logoutButtonWrapper}>
                   <TouchableOpacity
                     activeOpacity={0.8}
                     hitSlop={8}
@@ -202,23 +211,43 @@ export default function Authentication() {
                       hitSlop={8}
                       activeOpacity={0.8}
                       onPress={() => {
+                       // ← clear persisted data
                         dispatch({
+                          // ← instantly update in-memory state
                           type: 'UPDATE_USER_DATA',
                           userData: {
-                            ...state.userData,
                             is_logged: false,
+                            token: null,
+                            refresh_token: null,
+                            company_code: '',
+                            empName: '',
+                            username: '',
+                            password: '',
+                            is_admin: false,
+                            settings: null,
+                            latitude: '',
+                            longitude: '',
                           },
+                          
                         });
+                         storage.clearAll(); 
+                        // dispatch({
+                        //   type: 'UPDATE_USER_DATA',
+                        //   userData: {
+                        //     ...state.userData,
+                        //     is_logged: false,
+                        //   },
+                        // });
                       }}
                       style={styles.logContaienr}
                     >
                       <Log width={SIZE(16)} height={SIZE(16)} />
                       <Text
                         style={{
-                       color: '#1C54D7',
-    fontSize: SIZE(14),
-    fontFamily: Fonts.Medium,
-    marginLeft: SIZE(8),
+                          color: '#1C54D7',
+                          fontSize: SIZE(14),
+                          fontFamily: Fonts.Medium,
+                          marginLeft: SIZE(8),
                         }}
                       >
                         Logout
@@ -409,9 +438,9 @@ const styles = StyleSheet.create({
     right: 0,
     marginBottom: SIZE(30),
   },
-    logoutButtonWrapper: {
+  logoutButtonWrapper: {
     position: 'relative',
-    zIndex: 50,
+    zIndex: 9999,
   },
   logOutContainer: {
     width: SIZE(200),
@@ -423,6 +452,7 @@ const styles = StyleSheet.create({
     padding: SIZE(15),
     elevation: 8,
     shadowColor: '#000000',
+    zIndex: 9999,
     shadowOffset: {
       width: 0,
       height: 2,
@@ -438,7 +468,7 @@ const styles = StyleSheet.create({
     borderRadius: SIZE(20),
     justifyContent: 'center',
     alignItems: 'center',
-      paddingHorizontal: SIZE(15),
+    paddingHorizontal: SIZE(15),
 
     // justifyContent:'space-between'
   },

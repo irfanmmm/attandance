@@ -128,6 +128,9 @@ const NewScan = ({ navigation }) => {
   };
 
   const captureFrame = async () => {
+
+  
+    
     if (
       !camera.current ||
       isCapturingRef.current ||
@@ -140,6 +143,8 @@ const NewScan = ({ navigation }) => {
       loading: true,
       error: false,
     });
+
+
     isCapturingRef.current = true;
     try {
       setIsFrameProcessorEnabled(false);
@@ -149,20 +154,20 @@ const NewScan = ({ navigation }) => {
         enableShutterSound: false,
       });
 
-      console.log('📸 Captured photo:', photo.path);
+      console.log('📸 Captured photo:', photo?.path);
 
       const formData = new FormData();
       formData.append('file', {
-        uri: `file://${photo.path}`,
+        uri: `file://${photo?.path}`,
         name: 'face.jpg',
         type: 'image/jpeg',
       });
+        const coords = await callLocation();
+      // const location = locationShared.value;
+      // console.log('fjffjjf', coords);
 
-      const location = locationShared.value;
-      console.log('fjffjjf', location);
-
-      formData.append('latitude', location.latitude ?? '');
-      formData.append('longitude', location.longitude ?? '');
+      formData.append('latitude', coords.latitude ?? '');
+      formData.append('longitude', coords.longitude ?? '');
 
       const data = await fetchData({
         url: 'compare-face',
@@ -170,6 +175,8 @@ const NewScan = ({ navigation }) => {
         data: formData,
         headers: { 'Content-Type': 'multipart/form-data' },
       });
+
+      
 
       if (data.message === 'success') {
         updateState({
@@ -315,16 +322,31 @@ const NewScan = ({ navigation }) => {
         style={StyleSheet.absoluteFill}
         frameProcessor={activeFrameProcessor}
       />
+      {/* {console.log(!settings?.['Individual Login'])}
+      {console.log(isAdmin,'isAdminisAdminisAdmin')} */}
+      
 
       <View style={styles.header}>
         <TouchableOpacity
           hitSlop={10}
           onPress={() => {
-            isAdmin
-              ? navigation.navigate('EmpManagement')
-              : navigation.navigate('SingleEmployeeReport', {
-                  isNewScan: true,
-                });
+            if (!settings?.['Individual Login']) {
+              console.log('djhdjdjd--------');
+              
+              navigation.navigate('Authentication');
+            } else if (isAdmin) {
+              navigation.navigate('EmpManagement');
+            } else {
+              navigation.navigate('SingleEmployeeReport', {
+                isNewScan: true,
+              });
+            }
+            // settings?.['Individual Login']? navigation.navigate('Authentication'):
+            // isAdmin
+            //   ? navigation.navigate('EmpManagement')
+            //   : navigation.navigate('SingleEmployeeReport', {
+            //       isNewScan: true,
+            //     });
             // isAdmin
             //   ? navigation.navigate('EmpManagement')
             //   : navigation.navigate('Authentication');
@@ -333,7 +355,11 @@ const NewScan = ({ navigation }) => {
           activeOpacity={0.7}
         >
           <Text allowFontScaling={false} style={styles.adminText}>
-            {isAdmin ? 'Admin' : 'Attndance Report'}
+            {!settings?.['Individual Login']
+              ? 'Admin'
+              : isAdmin
+              ? 'Admin'
+              : 'Attndance Report'}
           </Text>
         </TouchableOpacity>
       </View>

@@ -23,6 +23,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import { API_URL } from '../../utils/urls';
 import { useToast } from 'react-native-toast-notifications';
 import { useAxios } from '../../utils/useAxios';
+import { storage } from '../../utils/Storage';
 
 export default function AddAgency({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -57,20 +58,26 @@ export default function AddAgency({ navigation }) {
         toast.show('Agency added successfully', { type: 'success' });
         navigation.navigate('EmpManagement');
       } else {
-        toast.show(response?.message || 'Failed to add agency', { type: 'danger' });
+        toast.show(response?.message || 'Failed to add agency', {
+          type: 'danger',
+        });
       }
     } catch (err) {
       toast.show('Something went wrong', { type: 'danger' });
+      console.log(err);
     } finally {
       setLoader(false);
     }
   };
 
   useEffect(() => {
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-      navigation.navigate('EmpManagement');
-      return true;
-    });
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      () => {
+        navigation.navigate('EmpManagement');
+        return true;
+      },
+    );
     return () => backHandler.remove();
   }, [navigation]);
 
@@ -95,7 +102,9 @@ export default function AddAgency({ navigation }) {
             resizeMode="cover"
           >
             {/* Header */}
-            <View style={{ ...styles.contain, paddingTop: insets.top + SIZE(20) }}>
+            <View
+              style={{ ...styles.contain, paddingTop: insets.top + SIZE(20) }}
+            >
               <View style={styles.haederContainer}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <TouchableOpacity
@@ -121,9 +130,27 @@ export default function AddAgency({ navigation }) {
                         activeOpacity={0.8}
                         onPress={() => {
                           dispatch({
+                            // ← instantly update in-memory state
                             type: 'UPDATE_USER_DATA',
-                            userData: { ...state.userData, is_logged: false },
+                            userData: {
+                              is_logged: false,
+                              token: null,
+                              refresh_token: null,
+                              company_code: '',
+                              empName: '',
+                              username: '',
+                              password: '',
+                              is_admin: false,
+                              settings: null,
+                              latitude: '',
+                              longitude: '',
+                            },
                           });
+                          storage.clearAll();
+                          // dispatch({
+                          //   type: 'UPDATE_USER_DATA',
+                          //   userData: { ...state.userData, is_logged: false },
+                          // });
                           setLogOut(false);
                         }}
                         style={styles.logoutOption}
@@ -162,7 +189,7 @@ export default function AddAgency({ navigation }) {
                     placeholder="Enter agency name"
                     placeholderTextColor={'#2C436433'}
                     value={agencyName}
-                    onChangeText={(text) => {
+                    onChangeText={text => {
                       setAgencyName(text);
                       setError(false);
                     }}
@@ -170,7 +197,9 @@ export default function AddAgency({ navigation }) {
                 </View>
               </TouchableOpacity>
 
-              {error && <Text style={styles.errorText}>*Please enter agency name</Text>}
+              {error && (
+                <Text style={styles.errorText}>*Please enter agency name</Text>
+              )}
 
               {/* Spacer to prevent bottom button overlap */}
               <View style={styles.spacer} />

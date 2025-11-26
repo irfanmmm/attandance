@@ -28,6 +28,7 @@ import DownArrowIcon from '../../../assets/svg/DownArrow1.svg';
 import { useToast } from 'react-native-toast-notifications';
 import { useAxios } from '../../utils/useAxios';
 import { useSettings } from '../../utils/useSettings';
+import { storage } from '../../utils/Storage';
 
 export default function AddEmployee({ navigation, route }) {
   const insets = useSafeAreaInsets();
@@ -391,10 +392,29 @@ export default function AddEmployee({ navigation, route }) {
                       hitSlop={8}
                       activeOpacity={0.8}
                       onPress={() => {
-                        dispatch({
-                          type: 'UPDATE_USER_DATA',
-                          userData: { ...state.userData, is_logged: false },
-                        });
+                             dispatch({
+                                                    // ← instantly update in-memory state
+                                                    type: 'UPDATE_USER_DATA',
+                                                    userData: {
+                                                      is_logged: false,
+                                                      token: null,
+                                                      refresh_token: null,
+                                                      company_code: '',
+                                                      empName: '',
+                                                      username: '',
+                                                      password: '',
+                                                      is_admin: false,
+                                                      settings: null,
+                                                      latitude: '',
+                                                      longitude: '',
+                                                    },
+                                                  });
+                                                  storage.clearAll();
+              
+                        // dispatch({
+                        //   type: 'UPDATE_USER_DATA',
+                        //   userData: { ...state.userData, is_logged: false },
+                        // });
                       }}
                       style={styles.logContaienr}
                     >
@@ -526,6 +546,8 @@ export default function AddEmployee({ navigation, route }) {
                               showsVerticalScrollIndicator={true}
                               contentContainerStyle={styles.scrollContent}
                             >
+                              {console.log(filteredData,'datadatadatadatadatadata')
+                              }
                               {filteredData.length > 0 ? (
                                 filteredData.map((item, index) => (
                                   <TouchableOpacity
@@ -536,6 +558,8 @@ export default function AddEmployee({ navigation, route }) {
                                     }
                                   >
                                     <Text style={styles.optionText}>
+                                      {console.log(item?.branch_name,'item?.branch_nameitem?.branch_nameitem?.branch_name')
+                                      }
                                       {item?.branch_name}
                                     </Text>
                                   </TouchableOpacity>

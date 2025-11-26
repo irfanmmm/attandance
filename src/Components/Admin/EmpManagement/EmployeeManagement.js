@@ -34,6 +34,7 @@ import { BASE_URL } from '../../utils/urls';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAxios } from '../../utils/useAxios';
 import { useToast } from 'react-native-toast-notifications';
+import { storage } from '../../utils/Storage';
 
 export default function EmployeeManagement({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -167,7 +168,7 @@ export default function EmployeeManagement({ navigation }) {
 
       if (data?.message === 'success') {    
         toast.show('Successfully Deleted', {
-          type: 'success',
+          type: 'danger',
           duration: 2500,
         });
 
@@ -265,13 +266,31 @@ export default function EmployeeManagement({ navigation }) {
                       hitSlop={8}
                       activeOpacity={0.8}
                       onPress={() => {
-                        dispatch({
-                          type: 'UPDATE_USER_DATA',
-                          userData: {
-                            ...state.userData,
-                            is_logged: false,
-                          },
-                        });
+                             dispatch({
+                                                    // ← instantly update in-memory state
+                                                    type: 'UPDATE_USER_DATA',
+                                                    userData: {
+                                                      is_logged: false,
+                                                      token: null,
+                                                      refresh_token: null,
+                                                      company_code: '',
+                                                      empName: '',
+                                                      username: '',
+                                                      password: '',
+                                                      is_admin: false,
+                                                      settings: null,
+                                                      latitude: '',
+                                                      longitude: '',
+                                                    },
+                                                  });
+                                                  storage.clearAll();
+                        // dispatch({
+                        //   type: 'UPDATE_USER_DATA',
+                        //   userData: {
+                        //     ...state.userData,
+                        //     is_logged: false,
+                        //   },
+                        // });
                       }}
                       style={styles.logContaienr}
                     >

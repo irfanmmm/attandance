@@ -27,6 +27,8 @@ import EmpIcon from '../../../assets/svg/empIcon.svg';
 import IsCheckIcon from '../../../assets/svg/isCheck.svg';
 import CommonButton from '../../CommonButton';
 import { useAxios } from '../../utils/useAxios';
+import { useToast } from 'react-native-toast-notifications';
+import { storage } from '../../utils/Storage';
 
 const TYPE_LEAVES = {
   Present: 'P',
@@ -81,6 +83,7 @@ export default function Attendance({ navigation }) {
 
   const { state, dispatch } = useContext(Context);
   const code = state?.userData?.company_code;
+    const toast = useToast();
 
   useEffect(() => {
     const backAction = () => {
@@ -244,6 +247,7 @@ export default function Attendance({ navigation }) {
 
       console.log(data, 'responsejffjfjfj');
       if (data?.message === 'success') {
+              toast.show('Successfully marked attendance.', { type: 'success', duration: 2000 });
         getEmpDetails(startDate);
 
         setEmployeeLeaveTypes({});
@@ -251,6 +255,7 @@ export default function Attendance({ navigation }) {
         // setFilteredData(data?.data);
         // setData(data?.data);
       } else {
+            toast.show('Something went wrong ', { type: 'danger', duration: 2000 });
       }
     } catch (err) {
       // setData([]);
@@ -297,8 +302,8 @@ export default function Attendance({ navigation }) {
                 <BackIcon width={SIZE(24)} height={SIZE(24)} />
               </TouchableOpacity>
               <View style={{ marginLeft: SIZE(12) }}>
-                <Text style={styles.titleText}>Attendance Report</Text>
-                <Text style={styles.subTxt}>View or download reports</Text>
+                <Text style={styles.titleText}>Attendance </Text>
+                <Text style={styles.subTxt}>Mark attendance and leaves.</Text>
               </View>
             </View>
             <View style={styles.logoutButtonWrapper}>
@@ -317,13 +322,31 @@ export default function Attendance({ navigation }) {
                     hitSlop={8}
                     activeOpacity={0.8}
                     onPress={() => {
-                      dispatch({
-                        type: 'UPDATE_USER_DATA',
-                        userData: {
-                          ...state.userData,
-                          is_logged: false,
-                        },
-                      });
+                           dispatch({
+                                                  // ← instantly update in-memory state
+                                                  type: 'UPDATE_USER_DATA',
+                                                  userData: {
+                                                    is_logged: false,
+                                                    token: null,
+                                                    refresh_token: null,
+                                                    company_code: '',
+                                                    empName: '',
+                                                    username: '',
+                                                    password: '',
+                                                    is_admin: false,
+                                                    settings: null,
+                                                    latitude: '',
+                                                    longitude: '',
+                                                  },
+                                                });
+                                                storage.clearAll();
+                      // dispatch({
+                      //   type: 'UPDATE_USER_DATA',
+                      //   userData: {
+                      //     ...state.userData,
+                      //     is_logged: false,
+                      //   },
+                      // });
                     }}
                     style={styles.logContaienr}
                   >
