@@ -1,4 +1,5 @@
 import {
+  Alert,
   BackHandler,
   FlatList,
   ScrollView,
@@ -28,18 +29,14 @@ const Navigations = {
   'Add Branches': 'AddBranch',
   'Add Agency': 'AddAgency',
 };
-export default function EmpManagement({ navigation,route }) {
+export default function EmpManagement({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const { state, dispatch } = useContext(Context);
   const [isLogOut, setLogOut] = useState(false);
   const settings = state.userData.settings;
-    const isAdmin = state.userData.is_admin;
+  const isAdmin = state.userData.is_admin;
 
-const { isAuthentication = false } = route?.params || {};
-
-
-    
-    
+  const { isAuthentication = false } = route?.params || {};
 
   const isAgency = settings?.find(
     val => val.setting_name === 'Agency Management',
@@ -48,27 +45,67 @@ const { isAuthentication = false } = route?.params || {};
     val => val.setting_name === 'Branch Management',
   )?.value;
 
-
   const handleNavigate = item => {
     navigation.navigate(Navigations[item.title]);
   };
-
   useEffect(() => {
     const backAction = () => {
-      isAdmin ? navigation.navigate('NewScan'):navigation.navigate('Authentication')
-      // : navigation.navigate('Authentication')
-      // Navigate to the login page
-      // navigation.navigate('Authentication'); // Replace 'Login' with your login screen name
-      return true; // Prevent default back action (e.g., exiting the app)
+      if (isAdmin) {
+        // Admin → directly navigate to NewScan
+        navigation.navigate('NewScan');
+      } else {
+        // Non-admin → show confirm alert
+        Alert.alert(
+          'Confirm',
+          'Are you sure you want to go back?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Yes',
+              onPress: () => {
+             
+                dispatch({
+                  type: 'UPDATE_USER_DATA',
+                  userData: {
+                    ...state.userData,
+                    initialRoute: 'NewScan',
+                  },
+                });
+                   navigation.navigate('NewScan');
+              },
+            },
+          ],
+          { cancelable: true },
+        );
+      }
+
+      return true; // Prevent default back action
     };
+
     const backHandler = BackHandler.addEventListener(
       'hardwareBackPress',
       backAction,
     );
-    return () => {
-      backHandler.remove();
-    };
-  }, [navigation]);
+
+    return () => backHandler.remove();
+  }, [navigation, isAdmin]);
+
+  // useEffect(() => {
+  //   const backAction = () => {
+  //     isAdmin ? navigation.navigate('NewScan'):navigation.navigate('Authentication')
+  //     // : navigation.navigate('Authentication')
+  //     // Navigate to the login page
+  //     // navigation.navigate('Authentication'); // Replace 'Login' with your login screen name
+  //     return true; // Prevent default back action (e.g., exiting the app)
+  //   };
+  //   const backHandler = BackHandler.addEventListener(
+  //     'hardwareBackPress',
+  //     backAction,
+  //   );
+  //   return () => {
+  //     backHandler.remove();
+  //   };
+  // }, [navigation]);
 
   const data = [
     {
@@ -107,7 +144,7 @@ const { isAuthentication = false } = route?.params || {};
   ];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container]}>
       <TouchableOpacity
         activeOpacity={0.8}
         hitSlop={10}
@@ -115,7 +152,7 @@ const { isAuthentication = false } = route?.params || {};
           navigation.navigate('AddEmployee');
           setLogOut(false);
         }}
-        style={styles.AddEmpContainer}
+        style={[styles.AddEmpContainer, { bottom: insets.bottom + 30 }]}
       >
         <Plus width={SIZE(24)} height={SIZE(24)} />
       </TouchableOpacity>
@@ -130,67 +167,68 @@ const { isAuthentication = false } = route?.params || {};
               paddingHorizontal: SIZE(20),
             }}
           >
-                 <View style={styles.logoutButtonWrapper}>
-            <View style={{ alignItems: 'flex-end' }}>
-              <TouchableOpacity
-                activeOpacity={0.8}
-                hitSlop={8}
-                onPress={() => {
-                  setLogOut(!isLogOut);
-                }}
-                style={styles.logOutContainer}
-              >
-                <LogoutIcon width={SIZE(40)} height={SIZE(40)} />
-              </TouchableOpacity>
-            </View>
-            {isLogOut && (
-              <View style={styles.logOutContainers}>
+            <View style={styles.logoutButtonWrapper}>
+              <View style={{ alignItems: 'flex-end' }}>
                 <TouchableOpacity
-                  hitSlop={8}
                   activeOpacity={0.8}
+                  hitSlop={8}
                   onPress={() => {
-                         dispatch({
-                                                // ← instantly update in-memory state
-                                                type: 'UPDATE_USER_DATA',
-                                                userData: {
-                                                  is_logged: false,
-                                                  token: null,
-                                                  refresh_token: null,
-                                                  company_code: '',
-                                                  empName: '',
-                                                  username: '',
-                                                  password: '',
-                                                  is_admin: false,
-                                                  settings: null,
-                                                  latitude: '',
-                                                  longitude: '',
-                                                },
-                                              });
-                                              storage.clearAll();
-                    // dispatch({
-                    //   type: 'UPDATE_USER_DATA',
-                    //   userData: {
-                    //     ...state.userData,
-                    //     is_logged: false,
-                    //   },
-                    // });
+                    setLogOut(!isLogOut);
                   }}
-                  style={styles.logContaienr}
+                  style={styles.logOutContainer}
                 >
-                  <Log width={SIZE(16)} height={SIZE(16)} />
-                  <Text
-                    style={{
-                             color: '#1C54D7',
-                                            fontSize: SIZE(14),
-                                            fontFamily: Fonts.Medium,
-                                            marginLeft: SIZE(8),
-                    }}
-                  >
-                    Logou
-                  </Text>
+                  <LogoutIcon width={SIZE(40)} height={SIZE(40)} />
                 </TouchableOpacity>
               </View>
-            )}
+              {isLogOut && (
+                <View style={styles.logOutContainers}>
+                  <TouchableOpacity
+                    hitSlop={8}
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      dispatch({
+                        // ← instantly update in-memory state
+                        type: 'UPDATE_USER_DATA',
+                        userData: {
+                          is_logged: false,
+                          token: null,
+                          refresh_token: null,
+                          company_code: '',
+                          empName: '',
+                          username: '',
+                          password: '',
+                          is_admin: false,
+                          settings: null,
+                          latitude: '',
+                          longitude: '',
+                              initialRoute:'NewScan'
+                        },
+                      });
+                      storage.clearAll();
+                      // dispatch({
+                      //   type: 'UPDATE_USER_DATA',
+                      //   userData: {
+                      //     ...state.userData,
+                      //     is_logged: false,
+                      //   },
+                      // });
+                    }}
+                    style={styles.logContaienr}
+                  >
+                    <Log width={SIZE(16)} height={SIZE(16)} />
+                    <Text
+                      style={{
+                        color: '#1C54D7',
+                        fontSize: SIZE(14),
+                        fontFamily: Fonts.Medium,
+                        marginLeft: SIZE(8),
+                      }}
+                    >
+                      Logou
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
             <View style={styles.headerContent}>
               <Text style={styles.headerText}>
@@ -270,12 +308,12 @@ const styles = StyleSheet.create({
   logOutContainer: {
     // alignItems: 'flex-end',
   },
-        logoutButtonWrapper: {
+  logoutButtonWrapper: {
     position: 'relative',
     zIndex: 50,
   },
   logOutContainers: {
-   width: SIZE(200),
+    width: SIZE(200),
     backgroundColor: '#ffffff',
     position: 'absolute',
     top: SIZE(50),
@@ -299,8 +337,7 @@ const styles = StyleSheet.create({
     borderRadius: SIZE(20),
     justifyContent: 'center',
     alignItems: 'center',
-       paddingHorizontal: SIZE(15),
-
+    paddingHorizontal: SIZE(15),
   },
   headerContent: {
     paddingTop: SIZE(20),
@@ -354,7 +391,7 @@ const styles = StyleSheet.create({
     width: SIZE(60),
     height: SIZE(60),
     backgroundColor: '#133EED',
-    bottom: 30,
+
     right: 30,
     borderRadius: SIZE(30),
     alignItems: 'center',

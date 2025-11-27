@@ -19,6 +19,8 @@ import AddBranch from './EmpManagement/AddBranch';
 import AddEgency from './EmpManagement/AddAgency';
 import ResetPassword from '../Employee/Screens/ResetPassword';
 import SingleEmployeeReport from './EmpManagement/SingleEmployeeReport';
+import { Context } from '../Redux/Store';
+import { useContext } from 'react';
 
 function LogoTitle() {
   return (
@@ -40,9 +42,11 @@ function LogoTitle() {
 
 const AdminStackNavigator = () => {
   const Stack = createNativeStackNavigator();
+    const { state } = useContext(Context);
+    const initialRoute = state.userData.initialRoute || "NewScan";
   return (
     <Stack.Navigator
-      initialRouteName="NewScan"
+      initialRouteName={initialRoute}
       screenOptions={{ headerShown: true }}
     >
       <Stack.Group>

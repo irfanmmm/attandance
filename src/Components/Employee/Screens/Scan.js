@@ -137,7 +137,7 @@ export default function Face({ navigation }) {
         updateState({ status: "Response received", loading: false });
 
         // Handle response
-        if (data.message === "success") {
+        if (data?.message === "success") {
           navigation.navigate("Status");
         } else {
           updateState({

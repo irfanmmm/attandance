@@ -107,17 +107,13 @@ export default function SingleEmployeeReport({ route, navigation }) {
         },
       });
 
-      if (!response.ok) {
-        throw new Error(
-          'Authentication failed. Please check your credentials.',
-        );
-      }
+ 
 
-      const responseData = await response.json();
-      if (responseData?.message === 'success') {
-        console.log(responseData?.data, 'responseData?.data');
 
-        setData(responseData?.data || []);
+      if (res?.message === 'success') {
+        console.log(res?.data, 'responseData?.data');
+
+        setData(res?.data || []);
       } else {
         setData([]);
       }
@@ -334,10 +330,7 @@ export default function SingleEmployeeReport({ route, navigation }) {
           
           
         /> */}
-      {console.log(
-        startDate,
-        'const { fullname, employeecode } = route.params || {}; ',
-      )}
+
 
       <DatePicker
         mode="date"

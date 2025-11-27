@@ -133,7 +133,7 @@ export default function EmployeeManagement({ navigation }) {
       formData.append('compony_code', code);
       const editableDetails = JSON.stringify([
         {
-          employee_id: selectedData?.employee_code,
+          employee_code: selectedData?.employee_code,
           action: 'D',
           full_name: selectedData?.fullname,
           branch: selectedData?.branch,
@@ -281,6 +281,7 @@ export default function EmployeeManagement({ navigation }) {
                                                       settings: null,
                                                       latitude: '',
                                                       longitude: '',
+                                                          initialRoute:'NewScan'
                                                     },
                                                   });
                                                   storage.clearAll();

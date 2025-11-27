@@ -26,6 +26,7 @@ import ScanIcon from '../../../assets/svg/scan.svg';
 import { BASE_URL } from '../../utils/urls';
 import { Context } from '../../Redux/Store';
 import { useAxios } from '../../utils/useAxios';
+import { useToast } from 'react-native-toast-notifications';
 
 export default function AdminScan({ navigation, route }) {
   const device = useCameraDevice('front');
@@ -39,6 +40,7 @@ export default function AdminScan({ navigation, route }) {
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
   const { fetchData } = useAxios();
+    const toast = useToast();
 
   const { state } = useContext(Context);
   const code = state?.userData?.company_code;
@@ -63,11 +65,11 @@ export default function AdminScan({ navigation, route }) {
       });
       const editableDetails = JSON.stringify([
         {
-          employee_id: employeecode,
+          employee_code: employeecode,
           action: 'E',
           full_name: fullname,
           branch: branch,
-          agancy:agancy
+          agency:agancy
         },
       ]);
       formData.append('editable_details', editableDetails);
@@ -251,7 +253,7 @@ export default function AdminScan({ navigation, route }) {
       formData.append('employeecode', employeecode);
       // formData.append('compony_code', code);
       formData.append('branch', branch);
-      formData.append('agancy', agancy);
+      formData.append('agency', agancy);
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000);
@@ -273,16 +275,18 @@ export default function AdminScan({ navigation, route }) {
       clearTimeout(timeoutId);
 
       setLoading(false);
-      if (data.message === 'success') {
+      if (data?.message === 'success') {
         navigation.navigate('AdminStatus');
       } else {
         console.log(data);
 
         setFailed(true);
         setStatus('Failed to verify, try again!');
+      toast.show(data?.message|| 'Something went wrong', { type: 'danger' });
         setIsProcessing(false);
       }
     } catch (error) {
+      toast.show('Something went wrong', { type: 'danger' });
       setFailed(true);
       setLoading(false);
       console.log('Upload error:', error);

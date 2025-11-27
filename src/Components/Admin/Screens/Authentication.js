@@ -113,6 +113,14 @@ export default function Authentication() {
         navigation.navigate('EmpManagement', {
           isAuthentication: true,
         });
+            dispatch({
+          type: 'UPDATE_USER_DATA',
+          userData: {
+            ...state.userData,
+            initialRoute:'EmpManagement'
+           
+          },
+        });
       } else {
         toast.show('Something went wrong', { type: 'danger', duration: 2000 });
         setErr(true);
@@ -227,6 +235,7 @@ export default function Authentication() {
                             settings: null,
                             latitude: '',
                             longitude: '',
+                                initialRoute:'NewScan'
                           },
                           
                         });
@@ -353,7 +362,7 @@ export default function Authentication() {
         </TouchableWithoutFeedback>
       </KeyboardAwareScrollView>
 
-      <View style={styles.bottomButtonContainer}>
+      <View style={[styles.bottomButtonContainer,{ paddingBottom: insets.bottom }]}>
         <CommonButton
           loader={loader}
           backgroundColor={'#153CD8'}

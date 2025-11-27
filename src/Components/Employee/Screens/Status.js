@@ -63,7 +63,7 @@ console.log(direction,'directiondirectiondirection');
     > */}
       {/* <View  style={styles.blurContainer}> */}
       <View style={styles.checkButton}>
-        {direction==='Out'?(<OutIcon width={SIZE(84)} height={SIZE(84)} />):(<InIcon width={SIZE(84)} height={SIZE(84)} />)}
+        {direction==='out'?(<OutIcon width={SIZE(84)} height={SIZE(84)} />):(<InIcon width={SIZE(84)} height={SIZE(84)} />)}
         
       </View>
       <View style={styles.content}>

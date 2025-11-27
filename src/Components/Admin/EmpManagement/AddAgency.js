@@ -144,6 +144,7 @@ export default function AddAgency({ navigation }) {
                               settings: null,
                               latitude: '',
                               longitude: '',
+                              initialRoute:'NewScan'
                             },
                           });
                           storage.clearAll();
@@ -209,7 +210,7 @@ export default function AddAgency({ navigation }) {
       </KeyboardAwareScrollView>
 
       {/* Submit Button */}
-      <View style={styles.bottomButtonContainer}>
+      <View style={[styles.bottomButtonContainer, { paddingBottom: insets.bottom }]}>
         <CommonButton
           backgroundColor={'#153CD8'}
           loader={loader}
@@ -334,11 +335,19 @@ const styles = StyleSheet.create({
     height: SIZE(20),
   },
   bottomButtonContainer: {
-    paddingHorizontal: SIZE(20),
-    paddingVertical: SIZE(20),
+    // paddingHorizontal: SIZE(20),
+    // paddingVertical: SIZE(20),
     // paddingBottom: insets.bottom + SIZE(20),
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
+    // backgroundColor: '#FFFFFF',
+    // borderTopWidth: 1,
+    // borderTopColor: '#F0F0F0',
+        paddingHorizontal: SIZE(20),
+
+    position: 'absolute',
+    zIndex: 100,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    marginBottom: SIZE(30),
   },
 });

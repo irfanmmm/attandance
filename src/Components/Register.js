@@ -358,7 +358,7 @@ export default function Register({ navigation }) {
         <View style={{ height: SIZE(100) }} />
       </KeyboardAwareScrollView>
 
-      <View style={styles.bottomButtonContainer}>
+      <View style={[styles.bottomButtonContainer,{ paddingBottom: insets.bottom }]}>
         <CommonButton
           backgroundColor={'#153CD8'}
           title={'Register'}
@@ -472,7 +472,7 @@ const styles = StyleSheet.create({
     height: SIZE(100),
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: SIZE(20),
+    marginBottom: SIZE(30),
   },
   companyCodeLink: { alignItems: 'center', marginTop: SIZE(15) },
   existingUserText: {

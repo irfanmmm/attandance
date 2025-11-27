@@ -12,6 +12,7 @@ import {
   ScrollView,
   Modal,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import React, { useState, useRef, useEffect, useContext } from 'react';
 import { Fonts, SIZE } from '../../utils/Styles';
@@ -45,7 +46,7 @@ export default function AddEmployee({ navigation, route }) {
   const [agencySearch, setAgencySearch] = useState('');
   const [agencyDropDown, setAgencyDropDown] = useState(false);
   const [agencyErr, setAgencyErr] = useState(false);
-  const [loader,setLoader]=useState(false)
+  const [loader, setLoader] = useState(false);
 
   const filteredAgency = agencyList?.filter(item =>
     item?.agency_name?.toLowerCase().includes(agencySearch.toLowerCase()),
@@ -70,10 +71,6 @@ export default function AddEmployee({ navigation, route }) {
   // };
 
   const settings = useSettings();
-
-  useEffect(() => {
-    getAgency();
-  }, []);
 
   // const branchEnabled = settings?.find(
   //   val => val.setting_name === 'Branch Management',
@@ -100,6 +97,7 @@ export default function AddEmployee({ navigation, route }) {
           bracnh: selectedData?.branch || '',
           username: selectedData?.fullname || '',
           password: selectedData?.employee_code || '',
+          agancy: selectedData?.agency || '',
         }
       : initialForm,
   );
@@ -115,6 +113,7 @@ export default function AddEmployee({ navigation, route }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLogOut, setLogOut] = useState(false);
   const [isDropDown, setDropDown] = useState(false);
+  const [isGenerateLoader, setGenerateLoader] = useState(false);
 
   const filteredData = data?.filter(item =>
     item?.branch_name?.toLowerCase().includes(searchQuery.toLowerCase()),
@@ -139,7 +138,6 @@ export default function AddEmployee({ navigation, route }) {
 
   const NavigateAdminScan = () => {
     console.log(input, 'ffffff');
-    
 
     if (
       !input.username.trim() ||
@@ -157,16 +155,16 @@ export default function AddEmployee({ navigation, route }) {
       employeecode: input.password,
       branch: input.bracnh,
       isNewScan: isNewScan,
-      agancy:input.agancy
+      agancy: input.agancy,
     });
   };
 
   // FIXED: Add Employee + Auto Clear Form
   const AddEmployees = async () => {
-    setLoader(true)
+    setLoader(true);
     if (
       !input.username.trim() ||
-      !input.password.trim() 
+      !input.password.trim()
       // ||
       // !input.bracnh ||
       // !input.agancy
@@ -190,20 +188,20 @@ export default function AddEmployee({ navigation, route }) {
           // password: input.password,
           branch: input?.bracnh,
           employeecode: input?.password,
-          agency:input?.agancy
+          agency: input?.agancy,
         },
       });
-      
-      
 
       if (res?.message === 'success') {
-       
-
         toast.show('Employee added successfully!', {
           type: 'success',
           duration: 2500,
         });
-         navigation.navigate('EmpManagement')
+        {
+          isNewScan
+            ? navigation.navigate('NewScan')
+            : navigation.navigate('EmpManagement');
+        }
 
         // Clear form for next employee
         setInput(initialForm);
@@ -224,10 +222,8 @@ export default function AddEmployee({ navigation, route }) {
     } catch (err) {
       toast.show('Something went wrong', { type: 'danger' });
       console.log('Add employee error:', err);
-    }
-    finally{
-      setLoader(false)
-
+    } finally {
+      setLoader(false);
     }
   };
 
@@ -239,6 +235,8 @@ export default function AddEmployee({ navigation, route }) {
         // data: { compony_code: code },
       });
       if (res?.message === 'success') {
+        console.log(res?.details, 'branchdffhf');
+
         setData(res?.details || []);
       }
     } catch (err) {
@@ -262,18 +260,41 @@ export default function AddEmployee({ navigation, route }) {
       console.log('Fetch branch error:', err);
     }
   };
+  const generateCode = async () => {
+    setGenerateLoader(true);
+    try {
+      const response = await fetchData({
+        url: 'auth/generate-employee-code',
+        // method: 'POST',
+      });
 
+      if (response?.message === 'success') {
+        console.log(response, 'dddfththt');
+
+        setInput(prev => ({
+          ...prev,
+          password: response?.employee_code || '',
+        }));
+      }
+    } catch (error) {
+      toast.show('Failed to generate code', { type: 'danger' });
+    } finally {
+      setGenerateLoader(false);
+    }
+  };
   const saveChanges = async () => {
-    setLoader(true)
+    Keyboard.dismiss();
+    setLoader(true);
     try {
       const formData = new FormData();
       formData.append('compony_code', code);
       const editableDetails = JSON.stringify([
         {
-          employee_id: input?.password,
+          employee_code: input?.password,
           action: 'E',
           full_name: input?.username,
           branch: input?.bracnh,
+          agency: input?.agancy,
         },
       ]);
       formData.append('editable_details', editableDetails);
@@ -301,21 +322,20 @@ export default function AddEmployee({ navigation, route }) {
       // const data = await response.json();
 
       if (data?.message === 'success') {
-           toast.show('Successfully saved', { type: 'success' });
+        toast.show('Successfully saved', { type: 'success' });
         navigation.goBack();
       }
     } catch (err) {
-           toast.show('Something went wrong', { type: 'danger' });
+      toast.show('Something went wrong', { type: 'danger' });
       console.error('Authentication error:', err?.message);
-    }
-    finally{
-    setLoader(false)
-
+    } finally {
+      setLoader(false);
     }
   };
 
   useEffect(() => {
     getBranch();
+    getAgency();
   }, []);
 
   useEffect(() => {
@@ -379,58 +399,59 @@ export default function AddEmployee({ navigation, route }) {
                   <Text style={styles.titleText}>Add Employee</Text>
                 </View>
                 <View style={styles.logoutButtonWrapper}>
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  hitSlop={8}
-                  onPress={() => setLogOut(!isLogOut)}
-                >
-                  <LogoutIcon width={SIZE(40)} height={SIZE(40)} />
-                </TouchableOpacity>
-                {isLogOut && (
-                  <View style={styles.logOutContainer}>
-                    <TouchableOpacity
-                      hitSlop={8}
-                      activeOpacity={0.8}
-                      onPress={() => {
-                             dispatch({
-                                                    // ← instantly update in-memory state
-                                                    type: 'UPDATE_USER_DATA',
-                                                    userData: {
-                                                      is_logged: false,
-                                                      token: null,
-                                                      refresh_token: null,
-                                                      company_code: '',
-                                                      empName: '',
-                                                      username: '',
-                                                      password: '',
-                                                      is_admin: false,
-                                                      settings: null,
-                                                      latitude: '',
-                                                      longitude: '',
-                                                    },
-                                                  });
-                                                  storage.clearAll();
-              
-                        // dispatch({
-                        //   type: 'UPDATE_USER_DATA',
-                        //   userData: { ...state.userData, is_logged: false },
-                        // });
-                      }}
-                      style={styles.logContaienr}
-                    >
-                      <Log width={SIZE(16)} height={SIZE(16)} />
-                      <Text
-                        style={{
-                          color: '#1C54D7',
-                          fontSize: SIZE(14),
-                          marginLeft: SIZE(5),
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    hitSlop={8}
+                    onPress={() => setLogOut(!isLogOut)}
+                  >
+                    <LogoutIcon width={SIZE(40)} height={SIZE(40)} />
+                  </TouchableOpacity>
+                  {isLogOut && (
+                    <View style={styles.logOutContainer}>
+                      <TouchableOpacity
+                        hitSlop={8}
+                        activeOpacity={0.8}
+                        onPress={() => {
+                          dispatch({
+                            // ← instantly update in-memory state
+                            type: 'UPDATE_USER_DATA',
+                            userData: {
+                              is_logged: false,
+                              token: null,
+                              refresh_token: null,
+                              company_code: '',
+                              empName: '',
+                              username: '',
+                              password: '',
+                              is_admin: false,
+                              settings: null,
+                              latitude: '',
+                              longitude: '',
+                                  initialRoute:'NewScan'
+                            },
+                          });
+                          storage.clearAll();
+
+                          // dispatch({
+                          //   type: 'UPDATE_USER_DATA',
+                          //   userData: { ...state.userData, is_logged: false },
+                          // });
                         }}
+                        style={styles.logContaienr}
                       >
-                        Logout
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
+                        <Log width={SIZE(16)} height={SIZE(16)} />
+                        <Text
+                          style={{
+                            color: '#1C54D7',
+                            fontSize: SIZE(14),
+                            marginLeft: SIZE(5),
+                          }}
+                        >
+                          Logout
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </View>
               </View>
             </View>
@@ -546,8 +567,6 @@ export default function AddEmployee({ navigation, route }) {
                               showsVerticalScrollIndicator={true}
                               contentContainerStyle={styles.scrollContent}
                             >
-                              {console.log(filteredData,'datadatadatadatadatadata')
-                              }
                               {filteredData.length > 0 ? (
                                 filteredData.map((item, index) => (
                                   <TouchableOpacity
@@ -558,8 +577,10 @@ export default function AddEmployee({ navigation, route }) {
                                     }
                                   >
                                     <Text style={styles.optionText}>
-                                      {console.log(item?.branch_name,'item?.branch_nameitem?.branch_nameitem?.branch_name')
-                                      }
+                                      {console.log(
+                                        item?.branch_name,
+                                        'item?.branch_nameitem?.branch_nameitem?.branch_name',
+                                      )}
                                       {item?.branch_name}
                                     </Text>
                                   </TouchableOpacity>
@@ -714,7 +735,9 @@ export default function AddEmployee({ navigation, route }) {
                     style={{ marginRight: SIZE(10) }}
                   />
                   <View style={{ width: '90%', justifyContent: 'center' }}>
-                    <Text style={styles.uerNameText}>Employee Email / Name</Text>
+                    <Text style={styles.uerNameText}>
+                      Employee Email / Name
+                    </Text>
                     <TextInput
                       ref={inputRef1}
                       style={{
@@ -733,6 +756,7 @@ export default function AddEmployee({ navigation, route }) {
                 {error.usernameErr && (
                   <Text style={styles.errorText}>*Please enter name</Text>
                 )}
+                {console.log(isEdit, 'isEditisEdit')}
 
                 <TouchableOpacity
                   activeOpacity={0.8}
@@ -748,9 +772,10 @@ export default function AddEmployee({ navigation, route }) {
                     height={SIZE(20)}
                     style={{ marginRight: SIZE(10) }}
                   />
-                  <View style={{ width: '90%', justifyContent: 'center' }}>
+                  <View style={{ width: '80%', justifyContent: 'center' }}>
                     <Text style={styles.uerNameText}>Employee Code</Text>
                     <TextInput
+                      editable={!isEdit}
                       ref={inputRef2}
                       style={{
                         fontSize: SIZE(14),
@@ -763,6 +788,40 @@ export default function AddEmployee({ navigation, route }) {
                       onChangeText={text => handleChange('password', text)}
                     />
                   </View>
+                  {!isEdit && (
+                    <TouchableOpacity
+                      style={{
+                        borderWidth: 1,
+                        borderColor: '#153CD8',
+                        borderRadius: SIZE(20),
+                        width: SIZE(40),
+                        height: SIZE(20),
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        backgroundColor: '#ffffff',
+                      }}
+                      onPress={() => {
+                        generateCode();
+                      }}
+                      activeOpacity={0.8}
+                      hitSlop={10}
+                    >
+                      {isGenerateLoader ? (
+                        <ActivityIndicator size={'small'} />
+                      ) : (
+                        <Text
+                          style={{
+                            fontSize: SIZE(10),
+                            color: '#153CD8',
+                            lineHeight: SIZE(12),
+                            fontFamily: Fonts.Regular,
+                          }}
+                        >
+                          auto
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  )}
                 </TouchableOpacity>
                 {error.passwordErr && (
                   <Text style={styles.errorText}>*Please enter code</Text>
@@ -773,7 +832,9 @@ export default function AddEmployee({ navigation, route }) {
         </TouchableWithoutFeedback>
       </KeyboardAwareScrollView>
 
-      <View style={styles.bottomButtonContainer}>
+      <View
+        style={[styles.bottomButtonContainer, { paddingBottom: insets.bottom }]}
+      >
         {isEdit ? (
           <View style={styles.buttonContainer}>
             <TouchableOpacity
@@ -796,16 +857,28 @@ export default function AddEmployee({ navigation, route }) {
               onPress={saveChanges}
               activeOpacity={0.8}
               hitSlop={10}
-              style={{ ...styles.buttonCont, backgroundColor: '#153CD8' }}
+              style={{
+                ...styles.buttonCont,
+                backgroundColor: '#153CD8',
+                flexDirection: 'row',
+                alignItems: 'center',
+              }}
             >
-              <Text style={{ ...styles.buttonTxt, color: '#FFFFFF' }}>
+              {loader && <ActivityIndicator size={'small'} color={'#ffffff'} />}
+              <Text
+                style={{
+                  ...styles.buttonTxt,
+                  color: '#FFFFFF',
+                  marginLeft: SIZE(5),
+                }}
+              >
                 Save Changes
               </Text>
             </TouchableOpacity>
           </View>
         ) : (
           <CommonButton
-          loader={loader}
+            loader={loader}
             backgroundColor={'#153CD8'}
             title={'Next'}
             onPress={() => {
@@ -906,13 +979,13 @@ const styles = StyleSheet.create({
     right: 0,
     marginBottom: SIZE(30),
   },
-    logoutButtonWrapper: {
+  logoutButtonWrapper: {
     position: 'relative',
     zIndex: 50,
   },
-  
+
   logOutContainer: {
-   width: SIZE(200),
+    width: SIZE(200),
     backgroundColor: '#ffffff',
     position: 'absolute',
     top: SIZE(50),
@@ -936,7 +1009,7 @@ const styles = StyleSheet.create({
     borderRadius: SIZE(20),
     justifyContent: 'center',
     alignItems: 'center',
-        paddingHorizontal: SIZE(15),
+    paddingHorizontal: SIZE(15),
   },
   buttonContainer: {
     flexDirection: 'row',

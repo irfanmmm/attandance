@@ -14,7 +14,14 @@ import {
   View,
 } from 'react-native';
 import { faceDetectorPluggin } from 'react-native-face-detector-mlkit';
-import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import BackgroundService from 'react-native-background-actions';
 import {
   Camera,
@@ -40,6 +47,8 @@ import { useSettings } from '../../utils/useSettings';
 import { PermissionsService } from '../../utils/permissions';
 import { useAxios } from '../../utils/useAxios';
 import { useLocationShared } from '../../utils/useLocation';
+import DeviceInfo from 'react-native-device-info';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const xyzFrameProcessor = VisionCameraProxy.initFrameProcessorPlugin('xyz', {
   model: 'fast',
@@ -58,9 +67,11 @@ const NewScan = ({ navigation }) => {
   const [permission, setPermission] = useState(null);
   const camera = useRef(null);
   const { locationShared, callLocation } = useLocationShared();
+  const settings = useSettings();
 
   const [loading, setLoading] = useState(false);
   const lastRunRef = useRef(0);
+  const insets = useSafeAreaInsets();
 
   const [error, setError] = useState(false);
   const [isFrameProcessorEnabled, setIsFrameProcessorEnabled] = useState(true);
@@ -72,7 +83,6 @@ const NewScan = ({ navigation }) => {
   const { state } = useContext(Context);
 
   const isAdmin = state.userData.is_admin;
-  const settings = useSettings();
   const isHighAccuracyRef = useRef(true);
 
   const abortControllerRef = useRef(null);
@@ -104,6 +114,58 @@ const NewScan = ({ navigation }) => {
     }, []),
   );
 
+  const getversion = async () => {
+    try {
+      const res = await fetchData({
+        url: 'app-version',
+        // method: 'POST',
+        // data: { compony_code: code },
+      });
+      if (res?.message === 'success') {
+        const platform = Platform.OS;
+        if (res?.[platform]?.force) {
+          checkForUpdate(res?.[platform]?.version);
+        }
+      }
+    } catch (err) {
+      console.log('Fetch branch error:', err);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      getversion();
+      settings?.['Location Tracking'] && callLocation();
+    }, [settings]),
+  );
+  const checkForUpdate = latestVersion => {
+    // Change this to your latest version
+    // const latestVersion = "2.0.0";                    // ← UPDATE THIS
+    const currentVersion = DeviceInfo.getVersion(); // e.g., 1.5.3
+    console.log(currentVersion, 'currentVersion');
+
+    if (currentVersion < latestVersion) {
+      Alert.alert(
+        'Update Required',
+        'Please update the app to continue.',
+        [
+          {
+            text: 'Update Now',
+            onPress: () => {
+              const link =
+                Platform.OS === 'android'
+                  ? 'https://play.google.com/store/apps/details?id=com.officekitlence'
+                  : 'https://apps.apple.com/us/app/facekit/id6753619593';
+
+              Linking.openURL(link);
+            },
+          },
+        ],
+        { cancelable: false }, // User cannot skip
+      );
+    }
+  };
+
   const updateState = updates => {
     Object.entries(updates).forEach(([key, value]) => {
       switch (key) {
@@ -128,9 +190,6 @@ const NewScan = ({ navigation }) => {
   };
 
   const captureFrame = async () => {
-
-  
-    
     if (
       !camera.current ||
       isCapturingRef.current ||
@@ -143,7 +202,6 @@ const NewScan = ({ navigation }) => {
       loading: true,
       error: false,
     });
-
 
     isCapturingRef.current = true;
     try {
@@ -162,12 +220,11 @@ const NewScan = ({ navigation }) => {
         name: 'face.jpg',
         type: 'image/jpeg',
       });
-        const coords = await callLocation();
-      // const location = locationShared.value;
-      // console.log('fjffjjf', coords);
 
-      formData.append('latitude', coords.latitude ?? '');
-      formData.append('longitude', coords.longitude ?? '');
+      const location = locationShared.value;
+
+      formData.append('latitude', location.latitude ?? '');
+      formData.append('longitude', location.longitude ?? '');
 
       const data = await fetchData({
         url: 'compare-face',
@@ -176,9 +233,7 @@ const NewScan = ({ navigation }) => {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
-      
-
-      if (data.message === 'success') {
+      if (data?.message === 'success') {
         updateState({
           status: 'Response received',
           loading: false,
@@ -324,15 +379,14 @@ const NewScan = ({ navigation }) => {
       />
       {/* {console.log(!settings?.['Individual Login'])}
       {console.log(isAdmin,'isAdminisAdminisAdmin')} */}
-      
 
       <View style={styles.header}>
         <TouchableOpacity
           hitSlop={10}
           onPress={() => {
             if (!settings?.['Individual Login']) {
-              console.log('djhdjdjd--------');
-              
+          
+
               navigation.navigate('Authentication');
             } else if (isAdmin) {
               navigation.navigate('EmpManagement');
@@ -406,7 +460,7 @@ const NewScan = ({ navigation }) => {
         </View>
       </View>
 
-      <View style={styles.statusContainer}>
+      <View style={[styles.statusContainer,{  bottom: insets.bottom+ 30,}]}>
         <View
           style={{
             ...styles.statusMessage,
@@ -530,7 +584,7 @@ const styles = StyleSheet.create({
   },
   statusContainer: {
     position: 'absolute',
-    bottom: 30,
+  
     alignSelf: 'center',
     zIndex: 25,
     alignItems: 'center',

@@ -201,6 +201,7 @@ export default function Report({ navigation }) {
                                                       settings: null,
                                                       latitude: '',
                                                       longitude: '',
+                                                          initialRoute:'NewScan'
                                                     },
                                                   });
                                                   storage.clearAll();

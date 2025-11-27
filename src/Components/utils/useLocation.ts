@@ -9,10 +9,10 @@ export function useLocationShared() {
     longitude: 0,
     timestamp: 0,
   });
-  // console.log(isHighAccuracy,'ddd');
-  
+  console.log(isHighAccuracy, 'ddd');
 
-  const callLocation = useCallback(() => {
+  const callLocation = (accuracy = null) => {
+    console.log(accuracy || isHighAccuracy, '*******');
     return new Promise((resolve, reject) => {
       Geolocation.getCurrentPosition(
         position => {
@@ -33,14 +33,14 @@ export function useLocationShared() {
           reject(error);
         },
         {
-          enableHighAccuracy: false,
+          enableHighAccuracy: accuracy || isHighAccuracy,
           distanceFilter: 10,
-          timeout: 20000,
+          timeout: 2000,
           maximumAge: 3000,
         },
       );
     });
-  }, []);
+  };
 
   return { locationShared, callLocation };
 }

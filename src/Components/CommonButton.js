@@ -66,18 +66,18 @@ export default function CommonButton({
 const styles = StyleSheet.create({
   button: {
     borderRadius: SIZE(30),
-    paddingVertical: SIZE(18),
-  
+    // hieght: SIZE(100),
+    height: SIZE(50),
+
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-    
   },
   text: {
     fontSize: SIZE(14),
     fontFamily: Fonts.Regular,
-    lineHeight: SIZE(16),
+    lineHeight: SIZE(20),
     textAlign: 'center',
   },
 });

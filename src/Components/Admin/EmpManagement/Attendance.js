@@ -80,10 +80,14 @@ export default function Attendance({ navigation }) {
   const [startDate, setStartDate] = useState(new Date());
 
   const [selectedTab, setSelectedTab] = useState('');
-
+  const [loader,setLoader]=useState(false)
+  
   const { state, dispatch } = useContext(Context);
   const code = state?.userData?.company_code;
     const toast = useToast();
+
+    // console.log(filteredData,'filteredDatafilteredData');
+    
 
   useEffect(() => {
     const backAction = () => {
@@ -126,11 +130,14 @@ export default function Attendance({ navigation }) {
         url: 'attandance-report-all',
         method: 'POST',
         data: {
-          date: formatDateForAPI(startDate),
+          starting_date: formatDateForAPI(date),
+          ending_date:formatDateForAPI(date)
         },
       });
 
       if (data?.message === 'success') {
+        console.log(data,'dddddddhtahghg');
+        
         setFilteredData(
           data?.data.map(v => ({
             ...v,
@@ -149,7 +156,7 @@ export default function Attendance({ navigation }) {
     }
   };
 
-  console.log(filteredData, 'filteredData');
+  // console.log(filteredData, 'filteredData');
 
   const formatDateForAPI = date => {
     const year = date?.getFullYear();
@@ -209,6 +216,7 @@ export default function Attendance({ navigation }) {
   };
 
   const markAttendance = async () => {
+    setLoader(true)
     try {
       // const response = await fetch(`${BASE_URL}edit-attandance`, {
       //   method: 'POST',
@@ -241,13 +249,13 @@ export default function Attendance({ navigation }) {
           date: formatDateForAPI(startDate),
           editable_details: filteredData
             .filter(i => i.isEdited)
-            .map(i => ({ employee_id: i.employee_id, action: i.present })),
+            .map(i => ({ employee_code: i.employee_id, action: i.present ,employee_name:i.fullname})),
         },
       });
 
       console.log(data, 'responsejffjfjfj');
       if (data?.message === 'success') {
-              toast.show('Successfully marked attendance.', { type: 'success', duration: 2000 });
+        toast.show('Successfully marked attendance.', { type: 'success', duration: 2000 });
         getEmpDetails(startDate);
 
         setEmployeeLeaveTypes({});
@@ -261,6 +269,8 @@ export default function Attendance({ navigation }) {
       // setData([]);
       // setFilteredData([]);
       console.log('Authentication error:', err?.message);
+    }finally{
+      setLoader(false)
     }
   };
 
@@ -337,6 +347,7 @@ export default function Attendance({ navigation }) {
                                                     settings: null,
                                                     latitude: '',
                                                     longitude: '',
+                                                        initialRoute:'NewScan'
                                                   },
                                                 });
                                                 storage.clearAll();
@@ -605,8 +616,9 @@ export default function Attendance({ navigation }) {
                   paddingVertical: SIZE(20),
                 }}
               >
-                <View style={{ marginBottom: SIZE(30) }}>
+                <View style={[ {marginBottom: SIZE(30),paddingBottom: insets.bottom }] }>
                   <CommonButton
+                  loader={loader}
                     // arrow={true}
                     backgroundColor={'#153CD8'}
                     title={'Save Attendance'}

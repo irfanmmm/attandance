@@ -32,11 +32,12 @@ export default function ReportSingleView({ route, navigation }) {
   const { state } = useContext(Context);
   const { fetchData } = useAxios();
   const insets = useSafeAreaInsets();
-    const toast = useToast();
+  const toast = useToast();
 
   const today = new Date();
   const [startDate, setStartDate] = useState(
     new Date(today.getFullYear(), today.getMonth(), 1),
+    // new Date()
   );
   const [endDate, setEndDate] = useState(new Date());
   const [showStartPicker, setShowStartPicker] = useState(false);
@@ -53,17 +54,18 @@ export default function ReportSingleView({ route, navigation }) {
   const companyCode = state.userData.company_code;
 
   // Back button
-  useEffect(() => {
-    const backAction = () => {
-      navigation.navigate('Report');
-      return true;
-    };
-    const backHandler = BackHandler.addEventListener(
-      'hardwareBackPress',
-      backAction,
-    );
-    return () => backHandler.remove();
-  }, [navigation]);
+  // useEffect(() => {
+  //   const backAction = () => {
+  //     navigation.navigate('Report');
+  //     return true;
+
+  //   };
+  //   const backHandler = BackHandler.addEventListener(
+  //     'hardwareBackPress',
+  //     backAction,
+  //   );
+  //   return () => backHandler.remove();
+  // }, [navigation]);
 
   // Format date for display
   const formatDateForDisplay = date => date.toLocaleDateString('en-GB');
@@ -99,57 +101,58 @@ export default function ReportSingleView({ route, navigation }) {
     return `${year}-${month}-${day}`;
   };
 
-const downloadFile = async (fileUrl) => {
-  const fileExt = fileUrl.split('.').pop();
-  
-  const query = `?starting_at=${formatDateForAPI(startDate)}&ending_at=${formatDateForAPI(endDate)}&compony_code=${companyCode}`;
-  const finalUrl = fileUrl + query;
+  const downloadFile = async fileUrl => {
+    const fileExt = fileUrl.split('.').pop();
 
-  const path = `${RNBlobUtil.fs.dirs.DownloadDir}/report.${fileExt}`;
+    const query = `?starting_at=${formatDateForAPI(
+      startDate,
+    )}&ending_at=${formatDateForAPI(endDate)}&compony_code=${companyCode}`;
+    const finalUrl = fileUrl + query;
 
-  RNBlobUtil.config({
-    fileCache: true,
-    addAndroidDownloads: {
-      useDownloadManager: true,
-      notification: true,
-      mime:
-        fileExt === 'pdf'
-          ? 'application/pdf'
-          : 'application/vnd.ms-excel',
-      description: 'File downloaded',
-      path: path,
-    },
-  })
-    .fetch('GET', finalUrl)
-    .then(res => {
-     toast.show('Successfully downloaded', { type: 'success', duration: 2000 });
+    const path = `${RNBlobUtil.fs.dirs.DownloadDir}/report.${fileExt}`;
+
+    RNBlobUtil.config({
+      fileCache: true,
+      addAndroidDownloads: {
+        useDownloadManager: true,
+        notification: true,
+        mime:
+          fileExt === 'pdf' ? 'application/pdf' : 'application/vnd.ms-excel',
+        description: 'File downloaded',
+        path: path,
+      },
     })
-    .catch(err => {
+      .fetch('GET', finalUrl)
+      .then(res => {
+        toast.show('Successfully downloaded', {
+          type: 'success',
+          duration: 2000,
+        });
+      })
+      .catch(err => {
         toast.show('Download failed', { type: 'danger', duration: 2000 });
-      console.log('Download Error:', err);
-    })
-    .finally(() => {
-      setPdfLoader(false);
-    });
-};
+        console.log('Download Error:', err);
+      })
+      .finally(() => {
+        setPdfLoader(false);
+      });
+  };
 
-     useEffect(() => {
-        const backAction = () => {
-          // Navigate to the login page
-          navigation.goBack()
-        //   navigation.navigate('Report'); // Replace 'Login' with your login screen name
-          return true; // Prevent default back action (e.g., exiting the app)
-        };
-        const backHandler = BackHandler.addEventListener(
-          'hardwareBackPress',
-          backAction,
-        );
-        return () => {
-          backHandler.remove(); 
-        };
-      }, [navigation]);
-
-
+  useEffect(() => {
+    const backAction = () => {
+      // Navigate to the login page
+      navigation.navigate('EmpManagement');
+      //   navigation.navigate('Report'); // Replace 'Login' with your login screen name
+      return true; // Prevent default back action (e.g., exiting the app)
+    };
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      backAction,
+    );
+    return () => {
+      backHandler.remove();
+    };
+  }, [navigation]);
 
   const handleDownload = async () => {
     setPdfLoader(true);
@@ -235,7 +238,9 @@ const downloadFile = async (fileUrl) => {
             }}
           >
             <View style={styles.leftContainer}>
-              <TouchableOpacity onPress={() => navigation.goBack()}>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('EmpManagement')}
+              >
                 <BackArrow width={SIZE(24)} height={SIZE(24)} />
               </TouchableOpacity>
               <View style={styles.profileContent}>
@@ -246,7 +251,7 @@ const downloadFile = async (fileUrl) => {
                 </View>
               </View>
             </View>
-            <TouchableOpacity
+            {/* <TouchableOpacity
               activeOpacity={0.8}
               hitSlop={10}
               onPress={() => {
@@ -258,58 +263,63 @@ const downloadFile = async (fileUrl) => {
               ) : (
                 <DownloadIcon width={SIZE(24)} height={SIZE(24)} />
               )}
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
 
           {/* Date Filter */}
-          {/* <View style={styles.dateFilterCard}>
-          <View style={styles.dateRow}>
-            <View style={styles.dateField}>
-              <Text style={styles.label}>From Date</Text>
-              <TouchableOpacity
-                style={styles.dateButton}
-                onPress={() => setShowStartPicker(true)}
-              >
-                <CalanderIcon width={SIZE(20)} height={SIZE(20)} />
-                <Text style={styles.dateText}>
-                  {formatDateForDisplay(startDate)}
-                </Text>
-              </TouchableOpacity>
+          <View style={styles.dateFilterCard}>
+            <View style={styles.dateRow}>
+              <View style={styles.dateField}>
+                <Text style={styles.label}>From Date</Text>
+                <TouchableOpacity
+                  style={styles.dateButton}
+                  onPress={() => setShowStartPicker(true)}
+                >
+                  <CalanderIcon width={SIZE(20)} height={SIZE(20)} />
+                  <Text style={styles.dateText}>
+                    {formatDateForDisplay(startDate)}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.dateField}>
+                <Text style={styles.label}>To Date</Text>
+                <TouchableOpacity
+                  style={styles.dateButton}
+                  onPress={() => setShowEndPicker(true)}
+                >
+                  <CalanderIcon width={SIZE(20)} height={SIZE(20)} />
+                  <Text style={styles.dateText}>
+                    {formatDateForDisplay(endDate)}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
-            <View style={styles.dateField}>
-              <Text style={styles.label}>To Date</Text>
-              <TouchableOpacity
-                style={styles.dateButton}
-                onPress={() => setShowEndPicker(true)}
-              >
-                <CalanderIcon width={SIZE(20)} height={SIZE(20)} />
-                <Text style={styles.dateText}>
-                  {formatDateForDisplay(endDate)}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
 
-          <TouchableOpacity
-            style={[
-              styles.applyBtn,
-              !isFilterApplied && styles.applyBtnDisabled,
-            ]}
-            disabled={!isFilterApplied}
-            onPress={() => {
-              applyDateFilter();
-            }}
-          >
-            <Text
+            <TouchableOpacity
               style={[
-                styles.applyTxt,
-                !isFilterApplied && styles.applyTxtDisabled,
+                styles.applyBtn,
+                // !isFilterApplied && styles.applyBtnDisabled,
               ]}
+              // disabled={!isFilterApplied}
+              onPress={() => {
+                // applyDateFilter();
+                handleDownload();
+              }}
             >
-              Apply Filter
-            </Text>
-          </TouchableOpacity>
-        </View> */}
+              {pdfLoader ? (
+                <ActivityIndicator size={'small'} color={'#ffffff'} />
+              ) : (
+                <Text
+                  style={[
+                    styles.applyTxt,
+                    // !isFilterApplied && styles.applyTxtDisabled,
+                  ]}
+                >
+                  Download
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
 
           {/* Search Bar */}
           <View style={styles.searchSection}>
@@ -371,7 +381,8 @@ const downloadFile = async (fileUrl) => {
                   style={styles.tabContainer}
                   onPress={() => {
                     Keyboard.dismiss();
-                    navigation.navigate('ReportSingleView', {
+
+                    navigation.navigate('SingleEmployeeReport', {
                       empCode: item?.employee_code,
                       empName: item?.fullname,
                     });
@@ -536,7 +547,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: SIZE(100),
+    // paddingTop: SIZE(100),
   },
   emptyText: {
     fontSize: SIZE(16),

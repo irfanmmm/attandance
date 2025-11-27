@@ -14,7 +14,8 @@ const loadInitialState = () => ({
     longitude: '',
     username: '',
     password: '',
-    is_admin:false
+    is_admin:false,
+    initialRoute:'NewScan'
     
   },
 });

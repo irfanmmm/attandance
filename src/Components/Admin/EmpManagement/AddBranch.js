@@ -36,13 +36,14 @@ import { useAxios } from '../../utils/useAxios';
 import { PermissionsService } from '../../utils/permissions';
 import { useLocationShared } from '../../utils/useLocation';
 import { storage } from '../../utils/Storage';
+import { useSettings } from '../../utils/useSettings';
 
 export default function AddBranch({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const { state, dispatch } = useContext(Context);
 
   const code = state?.userData?.company_code;
-
+  const settings = useSettings();
   const inputRef1 = useRef(null);
   const [permission, setPermission] = useState(null);
   const [locationLoad, setLocationLoad] = useState(false);
@@ -107,7 +108,7 @@ export default function AddBranch({ navigation, route }) {
       }
 
       // Wait for location to be fetched
-      const coords = await callLocation();
+      const coords = await callLocation(isHighAccuracy);
 
       // Update input with the received coordinates
       setInput(prev => ({
@@ -117,6 +118,7 @@ export default function AddBranch({ navigation, route }) {
       }));
     } catch (error) {
       console.error('Location fetch error:', error);
+      setIsHighAccuracy(!isHighAccuracy);
       toast.show('Failed to get location', {
         type: 'danger',
         duration: 2000,
@@ -149,6 +151,9 @@ export default function AddBranch({ navigation, route }) {
       backHandler.remove();
     };
   }, [navigation]);
+
+
+  
 
   const handleNavigate = async () => {
     //  navigation.navigate("AdminScan");
@@ -270,6 +275,7 @@ export default function AddBranch({ navigation, route }) {
                               settings: null,
                               latitude: '',
                               longitude: '',
+                                  initialRoute:'NewScan'
                             },
                           });
                           storage.clearAll();
@@ -352,159 +358,172 @@ export default function AddBranch({ navigation, route }) {
                     />
                   </View>
                 </TouchableOpacity>
-                {error.radiusErr && (
+                {error.bracnhErr && (
                   <Text style={styles.errorText}>*Please enter branch</Text>
                 )}
-
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  hitSlop={10}
-                  onPress={() => {
-                    inputRef1.current?.focus();
-                    setError(prev => ({ ...prev, bracnhErr: false }));
-                  }}
-                  style={{ ...styles.inputContainer, marginTop: SIZE(16) }}
-                >
-                  <ProfileIcon
-                    width={SIZE(20)}
-                    height={SIZE(20)}
-                    style={{ marginRight: SIZE(10) }}
-                  />
-
-                  <View style={{ width: '90%', justifyContent: 'center' }}>
-                    <Text style={styles.uerNameText}>Radius</Text>
-                    <TextInput
-                      keyboardType="numeric"
-                      ref={inputRef1}
-                      style={{
-                        // flex:1,
-                        fontSize: SIZE(14),
-                        lineHeight: SIZE(16),
-                        color: '#000000',
-                      }}
-                      placeholderTextColor={'#2C436433'}
-                      value={input.radius}
-                      placeholder="Enter radius"
-                      onChangeText={text => {
-                        handleChange('radius', text);
+                {settings?.['Location Tracking'] && (
+                  <>
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      hitSlop={10}
+                      onPress={() => {
+                        inputRef1.current?.focus();
                         setError(prev => ({ ...prev, bracnhErr: false }));
                       }}
-                    />
-                  </View>
-                </TouchableOpacity>
-                {error.bracnhErr && (
-                  <Text style={styles.errorText}>*Please enter radius</Text>
-                )}
-
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  hitSlop={10}
-                  //   onPress={() => {
-                  //     inputRef2.current?.focus();
-                  //     setError(prev => ({ ...prev, latitudeErr: false }));
-                  //   }}
-                  style={{ ...styles.inputContainer, marginTop: SIZE(16) }}
-                >
-                  <LockIcon
-                    width={SIZE(20)}
-                    height={SIZE(20)}
-                    style={{ marginRight: SIZE(10) }}
-                  />
-
-                  <View style={{ width: '90%', justifyContent: 'center' }}>
-                    <Text style={styles.uerNameText}>Location</Text>
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                      }}
+                      style={{ ...styles.inputContainer, marginTop: SIZE(16) }}
                     >
-                      <View style={{ flexDirection: 'row', flex: 1 }}>
+                      <ProfileIcon
+                        width={SIZE(20)}
+                        height={SIZE(20)}
+                        style={{ marginRight: SIZE(10) }}
+                      />
+
+                      <View style={{ width: '90%', justifyContent: 'center' }}>
+                        <Text style={styles.uerNameText}>Radius</Text>
                         <TextInput
-                          editable={true}
                           keyboardType="numeric"
+                          ref={inputRef1}
                           style={{
+                            // flex:1,
                             fontSize: SIZE(14),
                             lineHeight: SIZE(16),
-                            flex: 1,
                             color: '#000000',
-                            borderBottomWidth: 1,
-                            borderBottomColor: error?.latitudeErr
-                              ? '#FF0000'
-                              : '#E0E0E0',
-                            paddingVertical: SIZE(4),
                           }}
                           placeholderTextColor={'#2C436433'}
-                          value={String(input?.latitude || '')}
-                          placeholder="Latitude"
+                          value={input.radius}
+                          placeholder="Enter radius"
                           onChangeText={text => {
-                            // Allow only numbers, decimal point, and minus sign
-                            const sanitized = text.replace(/[^0-9.-]/g, '');
-                            handleChange('latitude', sanitized);
-                            setError(prev => ({ ...prev, latitudeErr: false }));
-                          }}
-                        />
-
-                        <Text
-                          style={{
-                            fontSize: SIZE(14),
-                            marginHorizontal: SIZE(4),
-                            alignSelf: 'center',
-                            color: '#666',
-                          }}
-                        >
-                          ,
-                        </Text>
-
-                        <TextInput
-                          editable={true}
-                          keyboardType="numeric"
-                          style={{
-                            fontSize: SIZE(14),
-                            lineHeight: SIZE(16),
-                            flex: 1,
-                            color: '#000000',
-                            borderBottomWidth: 1,
-                            borderBottomColor: error?.longitudeErr
-                              ? '#FF0000'
-                              : '#E0E0E0',
-                            paddingVertical: SIZE(4),
-                          }}
-                          placeholderTextColor={'#2C436433'}
-                          value={String(input?.longitude || '')}
-                          placeholder="Longitude"
-                          onChangeText={text => {
-                            // Allow only numbers, decimal point, and minus sign
-                            const sanitized = text.replace(/[^0-9.-]/g, '');
-                            handleChange('longitude', sanitized);
-                            setError(prev => ({
-                              ...prev,
-                              longitudeErr: false,
-                            }));
+                            handleChange('radius', text);
+                            setError(prev => ({ ...prev, bracnhErr: false }));
                           }}
                         />
                       </View>
+                    </TouchableOpacity>
+                    {error.radiusErr && (
+                      <Text style={styles.errorText}>*Please enter radius</Text>
+                    )}
+                  </>
+                )}
 
-                      <TouchableOpacity
-                        onPress={handleLocationFetch}
-                        activeOpacity={0.8}
-                        hitSlop={8}
-                        style={{ marginLeft: SIZE(8) }}
-                      >
-                        {locationLoad ? (
-                          <ActivityIndicator size={'small'} color={'#153CD8'} />
-                        ) : (
-                          <Text style={styles.location}>📍</Text>
-                        )}
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-                {error.locationErr && (
-                  <Text style={styles.errorText}>
-                    *Unable to get location, Please try again later
-                  </Text>
+                {settings?.['Location Tracking'] && (
+                  <>
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      hitSlop={10}
+                      //   onPress={() => {
+                      //     inputRef2.current?.focus();
+                      //     setError(prev => ({ ...prev, latitudeErr: false }));
+                      //   }}
+                      style={{ ...styles.inputContainer, marginTop: SIZE(16) }}
+                    >
+                      <LockIcon
+                        width={SIZE(20)}
+                        height={SIZE(20)}
+                        style={{ marginRight: SIZE(10) }}
+                      />
+
+                      <View style={{ width: '90%', justifyContent: 'center' }}>
+                        <Text style={styles.uerNameText}>Location</Text>
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                          }}
+                        >
+                          <View style={{ flexDirection: 'row', flex: 1 }}>
+                            <TextInput
+                              editable={true}
+                              keyboardType="numeric"
+                              style={{
+                                fontSize: SIZE(14),
+                                lineHeight: SIZE(16),
+                                flex: 1,
+                                color: '#000000',
+                                borderBottomWidth: 1,
+                                borderBottomColor: error?.latitudeErr
+                                  ? '#FF0000'
+                                  : '#E0E0E0',
+                                paddingVertical: SIZE(4),
+                              }}
+                              placeholderTextColor={'#2C436433'}
+                              value={String(input?.latitude || '')}
+                              placeholder="Latitude"
+                              onChangeText={text => {
+                                // Allow only numbers, decimal point, and minus sign
+                                const sanitized = text.replace(/[^0-9.-]/g, '');
+                                handleChange('latitude', sanitized);
+                                setError(prev => ({
+                                  ...prev,
+                                  latitudeErr: false,
+                                }));
+                              }}
+                            />
+
+                            <Text
+                              style={{
+                                fontSize: SIZE(14),
+                                marginHorizontal: SIZE(4),
+                                alignSelf: 'center',
+                                color: '#666',
+                              }}
+                            >
+                              ,
+                            </Text>
+
+                            <TextInput
+                              editable={true}
+                              keyboardType="numeric"
+                              style={{
+                                fontSize: SIZE(14),
+                                lineHeight: SIZE(16),
+                                flex: 1,
+                                color: '#000000',
+                                borderBottomWidth: 1,
+                                borderBottomColor: error?.longitudeErr
+                                  ? '#FF0000'
+                                  : '#E0E0E0',
+                                paddingVertical: SIZE(4),
+                              }}
+                              placeholderTextColor={'#2C436433'}
+                              value={String(input?.longitude || '')}
+                              placeholder="Longitude"
+                              onChangeText={text => {
+                                // Allow only numbers, decimal point, and minus sign
+                                const sanitized = text.replace(/[^0-9.-]/g, '');
+                                handleChange('longitude', sanitized);
+                                setError(prev => ({
+                                  ...prev,
+                                  longitudeErr: false,
+                                }));
+                              }}
+                            />
+                          </View>
+
+                          <TouchableOpacity
+                            onPress={handleLocationFetch}
+                            activeOpacity={0.8}
+                            hitSlop={8}
+                            style={{ marginLeft: SIZE(8) }}
+                          >
+                            {locationLoad ? (
+                              <ActivityIndicator
+                                size={'small'}
+                                color={'#153CD8'}
+                              />
+                            ) : (
+                              <Text style={styles.location}>📍</Text>
+                            )}
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                    {error.locationErr && (
+                      <Text style={styles.errorText}>
+                        *Unable to get location, Please try again later
+                      </Text>
+                    )}
+                  </>
                 )}
               </View>
             </TouchableWithoutFeedback>
@@ -512,29 +531,39 @@ export default function AddBranch({ navigation, route }) {
         </TouchableWithoutFeedback>
       </KeyboardAwareScrollView>
 
-      <View style={styles.bottomButtonContainer}>
+
+      <View style={[styles.bottomButtonContainer, { paddingBottom: insets.bottom }]}>
+        
         <CommonButton
           backgroundColor={'#153CD8'}
           loader={loader}
           title={'Submit'}
           onPress={() => {
-            const newError = {
-              bracnhErr: !input.branch.trim(),
-              latitudeErr: !String(input.latitude).trim(), // Convert to string
-              longitudeErr: !String(input.longitude).trim(), // Convert to string
-              radiusErr: !String(input.radius).trim(), // Convert to string
-            };
+            // Step 1: Always check branch (required)
+            const branchEmpty = !input.branch?.trim();
 
-            if (
-              newError.bracnhErr ||
-              newError.latitudeErr ||
-              newError.longitudeErr ||
-              newError.radiusErr
-            ) {
+            // Step 2: Only check location & radius IF Location Tracking is ON
+            const isLocationTrackingOn = settings?.['Location Tracking'];
+
+            const latitudeEmpty = isLocationTrackingOn
+              ? !String(input.latitude).trim()
+              : false;
+            const longitudeEmpty = isLocationTrackingOn
+              ? !String(input.longitude).trim()
+              : false;
+            const radiusEmpty = isLocationTrackingOn
+              ? !String(input.radius).trim()
+              : false;
+
+            // Step 3: Show errors only if needed
+            const hasError =
+              branchEmpty || latitudeEmpty || longitudeEmpty || radiusEmpty;
+
+            if (hasError) {
               setError({
-                bracnhErr: newError.bracnhErr,
-                locationErr: newError.latitudeErr || newError.longitudeErr,
-                radiusErr: newError.radiusErr,
+                bracnhErr: branchEmpty,
+                locationErr: latitudeEmpty || longitudeEmpty, 
+                radiusErr: radiusEmpty,
               });
             } else {
               handleNavigate();
