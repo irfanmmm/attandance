@@ -37,6 +37,7 @@ import { PermissionsService } from '../../utils/permissions';
 import { useLocationShared } from '../../utils/useLocation';
 import { storage } from '../../utils/Storage';
 import { useSettings } from '../../utils/useSettings';
+import { useDerivedValue, runOnJS } from 'react-native-reanimated';
 
 export default function AddBranch({ navigation, route }) {
   const insets = useSafeAreaInsets();
@@ -75,6 +76,16 @@ export default function AddBranch({ navigation, route }) {
   const [hasAskedPermission, setHasAskedPermission] = useState(false);
   const [loader, setLoader] = useState(false);
 
+
+  useDerivedValue(() => {
+    'worklet';
+    const coords = locationShared.value;
+    runOnJS(setInput)({
+      latitude: coords.latitude,
+      longitude: coords.longitude,
+    });
+  });
+
   const handleChange = (name, value) => {
     setInput(prev => ({ ...prev, [name]: value }));
   };
@@ -108,14 +119,14 @@ export default function AddBranch({ navigation, route }) {
       }
 
       // Wait for location to be fetched
-      const coords = await callLocation(isHighAccuracy);
+      callLocation(isHighAccuracy);
 
       // Update input with the received coordinates
-      setInput(prev => ({
-        ...prev,
-        latitude: String(coords.latitude),
-        longitude: String(coords.longitude),
-      }));
+      // setInput(prev => ({
+      //   ...prev,
+      //   latitude: String(coords.latitude),
+      //   longitude: String(coords.longitude),
+      // }));
     } catch (error) {
       console.error('Location fetch error:', error);
       setIsHighAccuracy(!isHighAccuracy);
@@ -151,9 +162,6 @@ export default function AddBranch({ navigation, route }) {
       backHandler.remove();
     };
   }, [navigation]);
-
-
-  
 
   const handleNavigate = async () => {
     //  navigation.navigate("AdminScan");
@@ -275,7 +283,7 @@ export default function AddBranch({ navigation, route }) {
                               settings: null,
                               latitude: '',
                               longitude: '',
-                                  initialRoute:'NewScan'
+                              initialRoute: 'NewScan',
                             },
                           });
                           storage.clearAll();
@@ -319,7 +327,7 @@ export default function AddBranch({ navigation, route }) {
                   <Text style={styles.employyText}>Branch Info</Text>
                   <Text style={styles.subText}>
                     Fill in your details below. This helps us {'\n'}register
-                    securely.
+                    securely
                   </Text>
                 </View>
 
@@ -531,9 +539,9 @@ export default function AddBranch({ navigation, route }) {
         </TouchableWithoutFeedback>
       </KeyboardAwareScrollView>
 
-
-      <View style={[styles.bottomButtonContainer, { paddingBottom: insets.bottom }]}>
-        
+      <View
+        style={[styles.bottomButtonContainer, { paddingBottom: insets.bottom }]}
+      >
         <CommonButton
           backgroundColor={'#153CD8'}
           loader={loader}
@@ -562,7 +570,7 @@ export default function AddBranch({ navigation, route }) {
             if (hasError) {
               setError({
                 bracnhErr: branchEmpty,
-                locationErr: latitudeEmpty || longitudeEmpty, 
+                locationErr: latitudeEmpty || longitudeEmpty,
                 radiusErr: radiusEmpty,
               });
             } else {

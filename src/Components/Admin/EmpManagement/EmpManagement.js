@@ -136,7 +136,7 @@ export default function EmpManagement({ navigation, route }) {
       ? [
           {
             title: 'Add Agency',
-            subTxt: 'Create Agency.',
+            subTxt: 'Create Agency',
             icon: <Employee width={SIZE(20)} height={SIZE(20)} />,
           },
         ]
@@ -224,7 +224,7 @@ export default function EmpManagement({ navigation, route }) {
                         marginLeft: SIZE(8),
                       }}
                     >
-                      Logou
+                      Logout
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -232,7 +232,7 @@ export default function EmpManagement({ navigation, route }) {
             </View>
             <View style={styles.headerContent}>
               <Text style={styles.headerText}>
-                {'Manage Your \nWork force with Ease'}
+                {'Manage Your \nWork Force With Ease'}
               </Text>
               <Text style={styles.headerSubText}>
                 {
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
   },
   titleText: {
     fontSize: SIZE(18),
-    lineHeight: SIZE(20),
+    lineHeight: SIZE(22),
     color: '#000000',
     fontFamily: Fonts.Medium,
   },

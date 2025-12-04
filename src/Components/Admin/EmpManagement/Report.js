@@ -170,65 +170,65 @@ export default function Report({ navigation }) {
                     </Text>
                   </View>
                 </View>
-                      <View style={styles.logoutButtonWrapper}>
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  hitSlop={8}
-                  onPress={() => {
-                    setLogOut(!isLogOut);
-                  }}
-                >
-                  <LogoutIcon width={SIZE(40)} height={SIZE(40)} />
-                </TouchableOpacity>
-                {isLogOut && (
-                  <View style={styles.logOutContainers}>
-                    <TouchableOpacity
-                      hitSlop={8}
-                      activeOpacity={0.8}
-                      onPress={() => {
-                             dispatch({
-                                                    // ← instantly update in-memory state
-                                                    type: 'UPDATE_USER_DATA',
-                                                    userData: {
-                                                      is_logged: false,
-                                                      token: null,
-                                                      refresh_token: null,
-                                                      company_code: '',
-                                                      empName: '',
-                                                      username: '',
-                                                      password: '',
-                                                      is_admin: false,
-                                                      settings: null,
-                                                      latitude: '',
-                                                      longitude: '',
-                                                          initialRoute:'NewScan'
-                                                    },
-                                                  });
-                                                  storage.clearAll();
-                        // dispatch({
-                        //   type: 'UPDATE_USER_DATA',
-                        //   userData: {
-                        //     ...state.userData,
-                        //     is_logged: false,
-                        //   },
-                        // });
-                      }}
-                      style={styles.logContaienr}
-                    >
-                      <Log width={SIZE(16)} height={SIZE(16)} />
-                      <Text
-                        style={{
-                                       color: '#1C54D7',
-                           fontSize: SIZE(14),
-                           fontFamily: Fonts.Medium,
-                           marginLeft: SIZE(8),
+                <View style={styles.logoutButtonWrapper}>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    hitSlop={8}
+                    onPress={() => {
+                      setLogOut(!isLogOut);
+                    }}
+                  >
+                    <LogoutIcon width={SIZE(40)} height={SIZE(40)} />
+                  </TouchableOpacity>
+                  {isLogOut && (
+                    <View style={styles.logOutContainers}>
+                      <TouchableOpacity
+                        hitSlop={8}
+                        activeOpacity={0.8}
+                        onPress={() => {
+                          dispatch({
+                            // ← instantly update in-memory state
+                            type: 'UPDATE_USER_DATA',
+                            userData: {
+                              is_logged: false,
+                              token: null,
+                              refresh_token: null,
+                              company_code: '',
+                              empName: '',
+                              username: '',
+                              password: '',
+                              is_admin: false,
+                              settings: null,
+                              latitude: '',
+                              longitude: '',
+                              initialRoute: 'NewScan',
+                            },
+                          });
+                          storage.clearAll();
+                          // dispatch({
+                          //   type: 'UPDATE_USER_DATA',
+                          //   userData: {
+                          //     ...state.userData,
+                          //     is_logged: false,
+                          //   },
+                          // });
                         }}
+                        style={styles.logContaienr}
                       >
-                        Logout
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
+                        <Log width={SIZE(16)} height={SIZE(16)} />
+                        <Text
+                          style={{
+                            color: '#1C54D7',
+                            fontSize: SIZE(14),
+                            fontFamily: Fonts.Medium,
+                            marginLeft: SIZE(8),
+                          }}
+                        >
+                          Logout
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </View>
               </View>
             </TouchableWithoutFeedback>
@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
   headerContent: {
     marginLeft: SIZE(10),
   },
-      logoutButtonWrapper: {
+  logoutButtonWrapper: {
     position: 'relative',
     zIndex: 50,
   },
@@ -395,7 +395,7 @@ const styles = StyleSheet.create({
     borderRadius: SIZE(20),
     justifyContent: 'center',
     alignItems: 'center',
-       paddingHorizontal: SIZE(15),
+    paddingHorizontal: SIZE(15),
   },
 
   bottomContainer: {

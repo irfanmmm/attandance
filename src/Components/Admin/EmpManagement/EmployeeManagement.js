@@ -35,6 +35,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useAxios } from '../../utils/useAxios';
 import { useToast } from 'react-native-toast-notifications';
 import { storage } from '../../utils/Storage';
+import { useLogout } from '../../utils/useLogout';
 
 export default function EmployeeManagement({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -42,6 +43,7 @@ export default function EmployeeManagement({ navigation }) {
   const code = state?.userData?.company_code;
   const { fetchData } = useAxios();
     const toast = useToast();
+      const handleLogout = useLogout();
   
 
   console.log(code, 'ddd');
@@ -110,6 +112,7 @@ export default function EmployeeManagement({ navigation }) {
       console.log(data, 'datadatadatadata');
 
       if (data?.message === 'success') {
+        
         setFilteredData(data?.data);
         console.log(data?.data, 'data?.datadata?.datadata?.datadata?.data');
 
@@ -246,7 +249,7 @@ export default function EmployeeManagement({ navigation }) {
               </TouchableOpacity>
               <View style={{ marginLeft: SIZE(12) }}>
                 <Text style={styles.titleText}>Employee Management</Text>
-                <Text style={styles.subTxt}>Manage employee details.</Text>
+                <Text style={styles.subTxt}>Manage employee details</Text>
               </View>
             </View>
             <View>
@@ -266,25 +269,7 @@ export default function EmployeeManagement({ navigation }) {
                       hitSlop={8}
                       activeOpacity={0.8}
                       onPress={() => {
-                             dispatch({
-                                                    // ← instantly update in-memory state
-                                                    type: 'UPDATE_USER_DATA',
-                                                    userData: {
-                                                      is_logged: false,
-                                                      token: null,
-                                                      refresh_token: null,
-                                                      company_code: '',
-                                                      empName: '',
-                                                      username: '',
-                                                      password: '',
-                                                      is_admin: false,
-                                                      settings: null,
-                                                      latitude: '',
-                                                      longitude: '',
-                                                          initialRoute:'NewScan'
-                                                    },
-                                                  });
-                                                  storage.clearAll();
+                        handleLogout()
                         // dispatch({
                         //   type: 'UPDATE_USER_DATA',
                         //   userData: {
@@ -412,7 +397,7 @@ export default function EmployeeManagement({ navigation }) {
               <View style={styles.modalContent}>
                 <Text style={styles.title}>Delete Employee</Text>
                 <Text style={styles.subText}>
-                  Are you sure you want to delete 'John Deo - EMP001'?
+                  Are you sure you want to delete '{selectedData?.fullname} - {selectedData?.employee_code}'?
                 </Text>
               </View>
               <View style={styles.buttonWrapper}>
@@ -471,7 +456,7 @@ const styles = StyleSheet.create({
   },
   titleText: {
     fontSize: SIZE(22),
-    lineHeight: SIZE(24),
+    lineHeight: SIZE(26),
     fontFamily: Fonts.Medium,
     color: '#FFFFFF',
   },

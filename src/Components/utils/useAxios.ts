@@ -1,12 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import axios, { AxiosError, AxiosRequestConfig } from 'axios';
-import Storage from './Storage';
+import Storage, { storage } from './Storage';
 import { API_URL, BASE_URL } from './urls';
+import { useLogout } from './useLogout';
 
 export const useAxios = (defaultAxiosConfig?: AxiosRequestConfig) => {
   const [data, setData] = useState<any>(null);
+  const tomoutRef = useRef<number>(0);
   const [error, setError] = useState<AxiosError | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const handleLogout = useLogout();
 
   // Set up axios interceptor for adding authorization token
   useEffect(() => {
@@ -31,11 +34,7 @@ export const useAxios = (defaultAxiosConfig?: AxiosRequestConfig) => {
       async error => {
         console.warn(error.response && error.response.status === 401);
         if (error.response && error.response.status === 401) {
-          // Perform logout: clear AsyncStorage and update Redux state
-          try {
-          } catch (err) {
-            console.error('Error during logout:', err);
-          }
+          handleLogout();
         }
         return Promise.reject(error);
       },
@@ -67,6 +66,7 @@ export const useAxios = (defaultAxiosConfig?: AxiosRequestConfig) => {
       const response = await axios({
         ...mergedConfig,
         url: API_URL + config?.url,
+        timeout: 8000,
       });
       setData(response.data);
       console.log('respos');

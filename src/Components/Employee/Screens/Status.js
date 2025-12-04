@@ -68,7 +68,7 @@ console.log(direction,'directiondirectiondirection');
       </View>
       <View style={styles.content}>
         <Text style={styles.greeting}>Hello, {username}</Text>
-        <Text style={styles.status}>{direction==='Out'?"Check-Out successful":"Check-In successful"}</Text>
+        <Text style={styles.status}>{direction==='out'?"Check-Out successful":"Check-In successful"}</Text>
         <Text style={styles.wish}>Have a nice day!</Text>
       </View>
       {/* </View> */}

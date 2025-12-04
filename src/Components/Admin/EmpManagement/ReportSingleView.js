@@ -109,7 +109,7 @@ export default function ReportSingleView({ route, navigation }) {
     )}&ending_at=${formatDateForAPI(endDate)}&compony_code=${companyCode}`;
     const finalUrl = fileUrl + query;
 
-    const path = `${RNBlobUtil.fs.dirs.DownloadDir}/report.${fileExt}`;
+    const path = `${RNBlobUtil.fs.dirs.DownloadDir}/report.csv`;
 
     RNBlobUtil.config({
       fileCache: true,

@@ -31,11 +31,14 @@ import LinearGradient from 'react-native-linear-gradient';
 import { useAxios } from '../../utils/useAxios';
 import { useToast } from 'react-native-toast-notifications';
 import { storage } from '../../utils/Storage';
+import { useLogout } from '../../utils/useLogout';
 
 export default function Authentication() {
   const insets = useSafeAreaInsets();
   const toast = useToast();
   const { fetchData } = useAxios();
+  const handleLogout = useLogout();
+
   const { state, dispatch } = useContext(Context); // Add camera ready state
   const code = state.userData.company_code;
 
@@ -113,12 +116,11 @@ export default function Authentication() {
         navigation.navigate('EmpManagement', {
           isAuthentication: true,
         });
-            dispatch({
+        dispatch({
           type: 'UPDATE_USER_DATA',
           userData: {
             ...state.userData,
-            initialRoute:'EmpManagement'
-           
+            initialRoute: 'EmpManagement',
           },
         });
       } else {
@@ -218,36 +220,7 @@ export default function Authentication() {
                     <TouchableOpacity
                       hitSlop={8}
                       activeOpacity={0.8}
-                      onPress={() => {
-                       // ← clear persisted data
-                        dispatch({
-                          // ← instantly update in-memory state
-                          type: 'UPDATE_USER_DATA',
-                          userData: {
-                            is_logged: false,
-                            token: null,
-                            refresh_token: null,
-                            company_code: '',
-                            empName: '',
-                            username: '',
-                            password: '',
-                            is_admin: false,
-                            settings: null,
-                            latitude: '',
-                            longitude: '',
-                                initialRoute:'NewScan'
-                          },
-                          
-                        });
-                         storage.clearAll(); 
-                        // dispatch({
-                        //   type: 'UPDATE_USER_DATA',
-                        //   userData: {
-                        //     ...state.userData,
-                        //     is_logged: false,
-                        //   },
-                        // });
-                      }}
+                      onPress={handleLogout}
                       style={styles.logContaienr}
                     >
                       <Log width={SIZE(16)} height={SIZE(16)} />
@@ -301,7 +274,7 @@ export default function Authentication() {
                     style={styles.input}
                     placeholderTextColor={'#2C436433'}
                     value={input.username}
-                    placeholder="Enter name"
+                    placeholder="Enter Name"
                     onChangeText={text => {
                       handleChange('username', text);
                       setError(prev => ({ ...prev, usernameErr: false }));
@@ -343,7 +316,7 @@ export default function Authentication() {
                     placeholderTextColor={'#2C436433'}
                     value={input.password}
                     // secureTextEntry
-                    placeholder="Enter password"
+                    placeholder="Enter Password"
                     onChangeText={text => {
                       handleChange('password', text);
                       setError(prev => ({ ...prev, passwordErr: false }));
@@ -362,7 +335,9 @@ export default function Authentication() {
         </TouchableWithoutFeedback>
       </KeyboardAwareScrollView>
 
-      <View style={[styles.bottomButtonContainer,{ paddingBottom: insets.bottom }]}>
+      <View
+        style={[styles.bottomButtonContainer, { paddingBottom: insets.bottom }]}
+      >
         <CommonButton
           loader={loader}
           backgroundColor={'#153CD8'}

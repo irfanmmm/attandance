@@ -29,7 +29,7 @@ import {
   useFrameProcessor,
   VisionCameraProxy,
 } from 'react-native-vision-camera';
-import { Worklets, useRunOnJS } from 'react-native-worklets-core';
+import { useRunOnJS } from 'react-native-worklets-core';
 import { BASE_URL } from '../../utils/urls';
 import { Fonts, SIZE } from '../../utils/Styles';
 import CommonButton from '../../CommonButton';
@@ -65,6 +65,7 @@ const NewScan = ({ navigation }) => {
   const { fetchData } = useAxios();
   const [isActive, setIsActive] = useState(false);
   const [permission, setPermission] = useState(null);
+  const axiosSignal = useRef(null);
   const camera = useRef(null);
   const { locationShared, callLocation } = useLocationShared();
   const settings = useSettings();
@@ -85,34 +86,17 @@ const NewScan = ({ navigation }) => {
   const isAdmin = state.userData.is_admin;
   const isHighAccuracyRef = useRef(true);
 
-  const abortControllerRef = useRef(null);
-  useFocusEffect(
-    React.useCallback(() => {
-      console.log('📱 NewScan screen focused');
-      setIsActive(true);
-      isHighAccuracyRef.current = true;
-
-      let watchId;
-      // if(settings?.['Location Tracking']){
-
-      // }
+  useEffect(() => {
+    isHighAccuracyRef.current = true;
+    if (settings?.['Location Tracking']) {
       PermissionsService.requestCameraAndLocation().then(res => {
         setPermission(res);
         if (res.location === 'granted') {
           callLocation();
         }
       });
-
-      return () => {
-        console.log('📱 NewScan screen unfocused - cleaning up');
-        setIsActive(false);
-        if (abortControllerRef.current) {
-          abortControllerRef.current.abort();
-          console.log('Aborted fetch due to screen unfocus');
-        }
-      };
-    }, []),
-  );
+    }
+  }, [settings]);
 
   const getversion = async () => {
     try {
@@ -135,8 +119,14 @@ const NewScan = ({ navigation }) => {
   useFocusEffect(
     useCallback(() => {
       getversion();
-      settings?.['Location Tracking'] && callLocation();
-    }, [settings]),
+      setIsActive(true);
+      console.log('📱 NewScan screen unfocused - cleaning up');
+      return () => {
+        axiosSignal?.current?.abort();
+        setIsActive(false);
+        console.log('unmount this screen');
+      };
+    }, []),
   );
   const checkForUpdate = latestVersion => {
     // Change this to your latest version
@@ -166,7 +156,8 @@ const NewScan = ({ navigation }) => {
     }
   };
 
-  const updateState = updates => {
+  const updateState = async updates => {
+    if (lastRunRef.current > Date.now() - 400) return;
     Object.entries(updates).forEach(([key, value]) => {
       switch (key) {
         case 'loading':
@@ -190,18 +181,21 @@ const NewScan = ({ navigation }) => {
   };
 
   const captureFrame = async () => {
-    if (
-      !camera.current ||
-      isCapturingRef.current ||
-      lastRunRef.current > Date.now() - 800
-    ) {
+    const location = locationShared.value;
+    const isInvalidLocation =
+      !location || !location.latitude || !location.longitude;
+
+    if (isInvalidLocation) {
+      updateState({
+        status: 'Finding your location...',
+        loading: true,
+        error: false,
+      });
       return;
     }
-    updateState({
-      status: 'Verifying identity...',
-      loading: true,
-      error: false,
-    });
+    if (!camera.current || isCapturingRef.current) {
+      return;
+    }
 
     isCapturingRef.current = true;
     try {
@@ -221,16 +215,28 @@ const NewScan = ({ navigation }) => {
         type: 'image/jpeg',
       });
 
-      const location = locationShared.value;
+      console.log(
+        isInvalidLocation,
+        'location.latitude == null && location.longitude == nulllocation.latitude == null && location.longitude == nulllocation.latitude == null && location.longitude == null',
+      );
+
+      updateState({
+        status: 'Verifying identity...',
+        loading: true,
+        error: false,
+      });
 
       formData.append('latitude', location.latitude ?? '');
       formData.append('longitude', location.longitude ?? '');
+
+      axiosSignal.current = new AbortController();
 
       const data = await fetchData({
         url: 'compare-face',
         method: 'POST',
         data: formData,
         headers: { 'Content-Type': 'multipart/form-data' },
+        signal: axiosSignal.current.signal,
       });
 
       if (data?.message === 'success') {
@@ -243,7 +249,6 @@ const NewScan = ({ navigation }) => {
           username: data?.details?.fullname,
           direction: data?.details?.direction,
         });
-        setIsActive(false);
 
         isCapturingRef.current = false;
       } else {
@@ -309,7 +314,6 @@ const NewScan = ({ navigation }) => {
     navigation.navigate('AddEmployee', {
       isNewScan: true,
     });
-    setIsActive(false);
   };
 
   const format = device?.formats?.find(
@@ -385,8 +389,6 @@ const NewScan = ({ navigation }) => {
           hitSlop={10}
           onPress={() => {
             if (!settings?.['Individual Login']) {
-          
-
               navigation.navigate('Authentication');
             } else if (isAdmin) {
               navigation.navigate('EmpManagement');
@@ -460,16 +462,16 @@ const NewScan = ({ navigation }) => {
         </View>
       </View>
 
-      <View style={[styles.statusContainer,{  bottom: insets.bottom+ 30,}]}>
+      <View style={[styles.statusContainer, { bottom: insets.bottom + 30 }]}>
         <View
           style={{
             ...styles.statusMessage,
-            marginBottom: error ? SIZE(7) : null,
+            // marginBottom: error ? SIZE(7) : null,
             backgroundColor: !error ? '#00000099' : '#FF0000',
           }}
         >
           {loading && <ActivityIndicator color={'#ffffff'} size={'small'} />}
-          {error && <ErrorIcon width={24} height={24} />}
+          {/* {error && <ErrorIcon width={24} height={24} />} */}
           <Text allowFontScaling={false} style={styles.statusText}>
             {status}
           </Text>
@@ -584,7 +586,7 @@ const styles = StyleSheet.create({
   },
   statusContainer: {
     position: 'absolute',
-  
+
     alignSelf: 'center',
     zIndex: 25,
     alignItems: 'center',

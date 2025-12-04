@@ -269,7 +269,7 @@ export default function AddEmployee({ navigation, route }) {
       });
 
       if (response?.message === 'success') {
-        console.log(response, 'dddfththt');
+        // console.log(response, 'dddfththt');
 
         setInput(prev => ({
           ...prev,
@@ -364,7 +364,7 @@ export default function AddEmployee({ navigation, route }) {
         enableOnAndroid={true}
         contentContainerStyle={{ flexGrow: 1 }}
         bounces={false}
-        extraScrollHeight={Platform.OS === 'ios' ? 100 : 50}
+        // extraScrollHeight={Platform.OS === 'ios' ? 100 : -50}
       >
         <TouchableWithoutFeedback
           onPress={() => {
@@ -555,7 +555,7 @@ export default function AddEmployee({ navigation, route }) {
                           >
                             <TextInput
                               style={styles.searchInput}
-                              placeholder="Search branch..."
+                              placeholder="Search Branch..."
                               placeholderTextColor={'#2C436433'}
                               value={searchQuery}
                               onChangeText={setSearchQuery}
@@ -680,7 +680,7 @@ export default function AddEmployee({ navigation, route }) {
                           >
                             <TextInput
                               style={styles.searchInput}
-                              placeholder="Search agency..."
+                              placeholder="Search Agency..."
                               placeholderTextColor={'#2C436433'}
                               value={agencySearch}
                               onChangeText={setAgencySearch}
@@ -748,7 +748,7 @@ export default function AddEmployee({ navigation, route }) {
                       inputMode="email"
                       placeholderTextColor={'#2C436433'}
                       value={input.username}
-                      placeholder="Enter email or name"
+                      placeholder="Enter Email or Name"
                       onChangeText={text => handleChange('username', text)}
                     />
                   </View>
@@ -784,7 +784,7 @@ export default function AddEmployee({ navigation, route }) {
                       }}
                       placeholderTextColor={'#2C436433'}
                       value={input.password}
-                      placeholder="Enter code"
+                      placeholder="Enter Code"
                       onChangeText={text => handleChange('password', text)}
                     />
                   </View>
@@ -1020,6 +1020,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderColor: '#153CD8',
+    backgroundColor:'#ffffff',
     borderWidth: 1,
     width: SIZE(170),
     height: SIZE(44),

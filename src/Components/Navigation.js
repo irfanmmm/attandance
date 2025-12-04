@@ -15,6 +15,11 @@ import Store, { Context } from './Redux/Store';
 import UserLogin from './Employee/Screens/UserLogin';
 import ResetPassword from './Employee/Screens/ResetPassword';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAxios } from './utils/useAxios';
+import DeviceInfo from 'react-native-device-info';
+import { Alert, Linking, Platform } from 'react-native';
+import { checkForUpdate } from './utils/validate_version';
+import { useIdileState } from './utils/useIdileState';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -23,6 +28,8 @@ export default function BottomTabNavigator() {
   const { state } = useContext(Context);
 
   const isLogged = state.userData.is_logged;
+
+useIdileState()
 
   return (
     <NavigationContainer>

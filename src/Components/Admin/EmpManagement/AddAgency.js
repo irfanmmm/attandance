@@ -169,7 +169,7 @@ export default function AddAgency({ navigation }) {
             <View style={styles.bottomContainer}>
               <View style={styles.contentContainer}>
                 <Text style={styles.employyText}>Agency Info</Text>
-                <Text style={styles.subText}>Enter agency name below.</Text>
+                <Text style={styles.subText}>Enter your agency name below</Text>
               </View>
 
               {/* Agency Name */}

@@ -313,7 +313,7 @@ export default function Attendance({ navigation }) {
               </TouchableOpacity>
               <View style={{ marginLeft: SIZE(12) }}>
                 <Text style={styles.titleText}>Attendance </Text>
-                <Text style={styles.subTxt}>Mark attendance and leaves.</Text>
+                <Text style={styles.subTxt}>Mark attendance and leaves</Text>
               </View>
             </View>
             <View style={styles.logoutButtonWrapper}>
