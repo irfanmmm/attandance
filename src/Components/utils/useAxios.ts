@@ -19,9 +19,11 @@ export const useAxios = (defaultAxiosConfig?: AxiosRequestConfig) => {
         const userData = Storage.getItem('user_data');
         if (userData) {
           let userDataParsed = JSON.parse(userData);
-          if (userDataParsed.token) {
+          if (userDataParsed?.token) {
             request.headers = request.headers || {};
-            request.headers['Authorization'] = `Bearer ${userDataParsed.token}`;
+            request.headers[
+              'Authorization'
+            ] = `Bearer ${userDataParsed?.token}`;
           }
         }
         return request;
@@ -32,8 +34,8 @@ export const useAxios = (defaultAxiosConfig?: AxiosRequestConfig) => {
     const responseInterceptor = axios.interceptors.response.use(
       response => response,
       async error => {
-        console.warn(error.response && error.response.status === 401);
-        if (error.response && error.response.status === 401) {
+        // console.warn(error.response && error.response.status === 401);
+        if (error?.response?.status === 401) {
           handleLogout();
         }
         return Promise.reject(error);
@@ -66,11 +68,8 @@ export const useAxios = (defaultAxiosConfig?: AxiosRequestConfig) => {
       const response = await axios({
         ...mergedConfig,
         url: API_URL + config?.url,
-        timeout: 8000,
       });
       setData(response.data);
-      console.log('respos');
-
       return response.data;
     } catch (err: any) {
       const axiosError = err as AxiosError;

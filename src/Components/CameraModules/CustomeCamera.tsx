@@ -8,10 +8,16 @@ import {
 import React, { useMemo } from 'react';
 import {
   Camera,
+  CameraProps,
   useCameraDevice,
   useCameraDevices,
 } from 'react-native-vision-camera';
 import { Fonts, SIZE } from '../utils/Styles';
+
+
+// interface Props extends CameraProps{
+
+// }
 
 const CustomeCamera = () => {
   const device = useCameraDevice('front');

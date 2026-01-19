@@ -33,16 +33,29 @@ class FaceDetectorCommon() {
     val width = boundingBox.width().toDouble() * scaleX
     val height = boundingBox.height().toDouble() * scaleY
     val x = boundingBox.left.toDouble()
+    
     val y = boundingBox.top.toDouble()
+    val left = boundingBox.left.toDouble()
+    val right = boundingBox.right.toDouble()
+    val top = boundingBox.top.toDouble()
+    val bottom = boundingBox.bottom.toDouble()
+
+
+
 
     bounds["width"] = width
     bounds["height"] = height
     bounds["x"] = x * scaleX
     bounds["y"] = y * scaleY
+    bounds["left"] = left
+    bounds["top"] = top
+    bounds["right"] = right
+    bounds["bottom"] = bottom
+
+
 
     if (!autoMode) return bounds
 
-    // using front camera
     if (cameraFacing == Position.FRONT) {
       when (orientation) {
         // device is portrait

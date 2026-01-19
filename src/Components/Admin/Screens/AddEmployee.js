@@ -13,8 +13,9 @@ import {
   Modal,
   Platform,
   ActivityIndicator,
+  FlatList,
 } from 'react-native';
-import React, { useState, useRef, useEffect, useContext } from 'react';
+import React, { useState, useRef, useEffect, useContext, use } from 'react';
 import { Fonts, SIZE } from '../../utils/Styles';
 import BackIcon from '../../../assets/svg/back.svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -42,15 +43,13 @@ export default function AddEmployee({ navigation, route }) {
   const code = state?.userData?.company_code;
 
   const [agency, setAgency] = useState('');
-  const [agencyList, setAgencyList] = useState([]);
   const [agencySearch, setAgencySearch] = useState('');
   const [agencyDropDown, setAgencyDropDown] = useState(false);
   const [agencyErr, setAgencyErr] = useState(false);
   const [loader, setLoader] = useState(false);
-
-  const filteredAgency = agencyList?.filter(item =>
-    item?.agency_name?.toLowerCase().includes(agencySearch.toLowerCase()),
-  );
+  const [hasMore, setHasMore] = useState(true);
+  const [offset, setOffset] = useState(1);
+  const [showGender, setShowGender] = useState('');
 
   const handleAgencySelect = agancy => {
     // setAgency(ag);
@@ -61,6 +60,12 @@ export default function AddEmployee({ navigation, route }) {
     setAgencySearch('');
     Keyboard.dismiss();
   };
+
+  const genderOptions = [
+    { label: 'Male', value: 'M' },
+    { label: 'Female', value: 'F' },
+    // You can add 'Other' or 'Prefer not to say' later if needed
+  ];
 
   // const handleBranchSelect = bracnh => {
   //   setInput(prev => ({ ...prev, bracnh }));
@@ -89,6 +94,7 @@ export default function AddEmployee({ navigation, route }) {
     username: '',
     password: '',
     agancy: '',
+    gender: '',
   };
 
   const [input, setInput] = useState(
@@ -98,6 +104,7 @@ export default function AddEmployee({ navigation, route }) {
           username: selectedData?.fullname || '',
           password: selectedData?.employee_code || '',
           agancy: selectedData?.agency || '',
+          gender: selectedData?.gender || '',
         }
       : initialForm,
   );
@@ -109,15 +116,17 @@ export default function AddEmployee({ navigation, route }) {
     passwordErr: false,
     branchErr: false,
     agancyErr: false,
+    genderErr: false,
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [isLogOut, setLogOut] = useState(false);
   const [isDropDown, setDropDown] = useState(false);
   const [isGenerateLoader, setGenerateLoader] = useState(false);
+  const [branchId, setBranchId] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [genderDropDown, setGenderDropDown] = useState(false);
 
-  const filteredData = data?.filter(item =>
-    item?.branch_name?.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  // const [genderErr, setGenderErr] = useState(false);
 
   const agencyFlter = agancyData?.filter(item =>
     item?.agent_name?.toLowerCase().includes(searchQuery.toLowerCase()),
@@ -136,63 +145,110 @@ export default function AddEmployee({ navigation, route }) {
     Keyboard.dismiss();
   };
 
-  const NavigateAdminScan = () => {
-    console.log(input, 'ffffff');
+  const handleGenderSelect = selectedGender => {
+    setInput(prev => ({ ...prev, gender: selectedGender }));
+    setError(prev => ({ ...prev, genderErr: false }));
+    // setGenderErr(false);
+    setGenderDropDown(false);
+    Keyboard.dismiss();
+  };
 
-    if (
-      !input.username.trim() ||
-      !input.password.trim()
-      //  ||
-      // !input.bracnh ||
-      // !input.agancy
-    ) {
-      toast.show('Please fill all fields', { type: 'danger' });
-      return;
-    }
+  const NavigateAdminScan = () => {
+    if (!validateForm()) return;
+    // console.log(input, 'ffffff');
+
+    // if (
+    //   !input.username.trim() ||
+    //   !input.password.trim()
+    //   //  ||
+    //   // !input.bracnh ||
+    //   // !input.agancy
+    // ) {
+    //   toast.show('Please fill all fields', { type: 'danger' });
+    //   return;
+    // }
 
     navigation.navigate('AdminScan', {
       fullname: input.username,
       employeecode: input.password,
-      branch: input.bracnh,
+      branch: branchId,
       isNewScan: isNewScan,
-      agancy: input.agancy,
+      agancy: agency,
+      gender: input.gender,
     });
+
+    dispatch({
+      type: 'UPDATE_USER_DATA',
+      userData: { ...state.userData, username: input.username },
+    });
+  };
+  console.log(input.gender, 'inputgendetrhjhh----------');
+  const validateForm = () => {
+    const cleanUsername = input.username.trim();
+    const cleanPassword = input.password.trim();
+    const cleanBranch = input.bracnh?.trim(); // use optional chaining in case it's undefined
+    const cleanAgency = input.agancy?.trim();
+    const cleanGender = input.gender?.trim();
+    let newError = {
+      usernameErr: !cleanUsername,
+      passwordErr: !cleanPassword,
+      branchErr: false,
+      agancyErr: false,
+      genderErr: false,
+    };
+
+    // Only validate Branch if Branch Management is ON
+    if (settings?.['Branch Management'] && !cleanBranch) {
+      newError.branchErr = true;
+    }
+
+    // Only validate Agency if Agency Management is ON
+    if (settings?.['Agency Management'] && !cleanAgency) {
+      newError.agancyErr = true;
+    }
+    if (!cleanGender) {
+      newError.genderErr = true;
+    }
+
+    setError(newError);
+
+    const hasError =
+      newError.usernameErr ||
+      newError.passwordErr ||
+      newError.branchErr ||
+      newError.agancyErr ||
+      newError.genderErr;
+    if (hasError) {
+      toast.show('Please fill all required fields', { type: 'danger' });
+      return false;
+    }
+    return true;
   };
 
   // FIXED: Add Employee + Auto Clear Form
   const AddEmployees = async () => {
+    if (!validateForm()) return;
     setLoader(true);
-    if (
-      !input.username.trim() ||
-      !input.password.trim()
-      // ||
-      // !input.bracnh ||
-      // !input.agancy
-    ) {
-      // setError({
-      //   usernameErr: !input.username.trim(),
-      //   passwordErr: !input.password.trim(),
-      //   // branchErr: !input.bracnh,
-      //   // agancyErr: !input.agancy,
-      // });
-      toast.show('Please fill all fields', { type: 'danger' });
-      return;
-    }
 
     try {
       const res = await fetchData({
         url: 'auth/add-employee',
         method: 'POST',
         data: {
-          email: input?.username.trim(),
+          email: input?.username,
           // password: input.password,
-          branch: input?.bracnh,
+          branch: branchId,
           employeecode: input?.password,
-          agency: input?.agancy,
+          agency: agency,
+          gender: input.gender,
         },
       });
 
       if (res?.message === 'success') {
+        dispatch({
+          type: 'UPDATE_USER_DATA',
+          userData: { ...state.userData, username: input.username },
+        });
         toast.show('Employee added successfully!', {
           type: 'success',
           duration: 2500,
@@ -227,29 +283,45 @@ export default function AddEmployee({ navigation, route }) {
     }
   };
 
-  const getBranch = async () => {
+  const getBranch = async (isNewSearch = false) => {
+    if (loading) return;
+    setLoading(true);
     try {
+      const currentOffset = isNewSearch ? 1 : offset;
       const res = await fetchData({
         url: 'get-branch',
-        // method: 'POST',
-        // data: { compony_code: code },
+        method: 'POST',
+        data: {
+          offset: currentOffset,
+          limit: 10,
+          search: searchQuery.trim(),
+        },
       });
       if (res?.message === 'success') {
-        console.log(res?.details, 'branchdffhf');
-
-        setData(res?.details || []);
+        const newBranches = res?.details?.data || [];
+        setData(prev =>
+          isNewSearch ? newBranches : [...prev, ...newBranches],
+        );
+        const currentPage = res?.details?.pagination?.currentPage;
+        const totalPages = res?.details?.pagination?.totalPages;
+        setHasMore(currentPage < totalPages);
+        if (newBranches.length > 0 && currentPage < totalPages) {
+          setOffset(prev => prev + 10);
+        }
       }
     } catch (err) {
       console.log('Fetch branch error:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getAgency = async () => {
+  const getAgency = async branchId => {
     try {
       const res = await fetchData({
         url: 'get-agency',
-        // method: 'POST',
-        // data: { compony_code: code },
+        method: 'POST',
+        data: { _id: branchId },
       });
       if (res?.message === 'success') {
         console.log(res?.details, 'res?.detailsres?.detailsres?.details');
@@ -286,25 +358,17 @@ export default function AddEmployee({ navigation, route }) {
     Keyboard.dismiss();
     setLoader(true);
     try {
-      const formData = new FormData();
-      formData.append('compony_code', code);
-      const editableDetails = JSON.stringify([
-        {
-          employee_code: input?.password,
-          action: 'E',
-          full_name: input?.username,
-          branch: input?.bracnh,
-          agency: input?.agancy,
-        },
-      ]);
-      formData.append('editable_details', editableDetails);
-
       const data = await fetchData({
         url: 'edit-user',
         method: 'POST',
-        data: formData,
-        headers: {
-          'Content-Type': 'multipart/form-data',
+        data: {
+          editable_details: {
+            employee_code: input?.password,
+            action: 'E',
+            full_name: input?.username,
+            branch: input?.bracnh,
+            agency: input?.agancy,
+          },
         },
       });
       // const response = await fetch(`${BASE_URL}edit-user`, {
@@ -322,11 +386,13 @@ export default function AddEmployee({ navigation, route }) {
       // const data = await response.json();
 
       if (data?.message === 'success') {
-        toast.show('Successfully saved', { type: 'success' });
+        toast.show(data?.message, { type: 'success' });
         navigation.goBack();
+      } else {
+        toast.show('Something went wrong', { type: 'danger' });
       }
     } catch (err) {
-      toast.show('Something went wrong', { type: 'danger' });
+      toast.show(data?.message || 'Something went wrong', { type: 'danger' });
       console.error('Authentication error:', err?.message);
     } finally {
       setLoader(false);
@@ -334,9 +400,15 @@ export default function AddEmployee({ navigation, route }) {
   };
 
   useEffect(() => {
-    getBranch();
-    getAgency();
-  }, []);
+    setOffset(1);
+    setHasMore(true);
+    setData([]);
+    const debounceTimer = setTimeout(() => {
+      getBranch(true);
+    }, 300); // 300ms delay
+
+    return () => clearTimeout(debounceTimer);
+  }, [searchQuery]);
 
   useEffect(() => {
     const backAction = () => {
@@ -362,9 +434,9 @@ export default function AddEmployee({ navigation, route }) {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         enableOnAndroid={true}
-        contentContainerStyle={{ flexGrow: 1 }}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: SIZE(70) }}
         bounces={false}
-        // extraScrollHeight={Platform.OS === 'ios' ? 100 : -50}
+        // extraScrollHeight={Platform.OS === 'ios' ? 100 : -70}
       >
         <TouchableWithoutFeedback
           onPress={() => {
@@ -427,7 +499,7 @@ export default function AddEmployee({ navigation, route }) {
                               settings: null,
                               latitude: '',
                               longitude: '',
-                                  initialRoute:'NewScan'
+                              initialRoute: 'NewScan',
                             },
                           });
                           storage.clearAll();
@@ -481,14 +553,17 @@ export default function AddEmployee({ navigation, route }) {
                         activeOpacity={0.8}
                         hitSlop={10}
                         onPress={() => {
-                          getBranch();
+                          // setOffset(1);
+                          // setData([]);
+                          // setHasMore(true);
+                          // getBranch(true);
                           setDropDown(!isDropDown);
-                          setSearchQuery('');
+                          // setSearchQuery('');
                           setError(prev => ({ ...prev, branchErr: false }));
                         }}
                         style={{
                           ...styles.inputContainer,
-                          marginBottom: SIZE(20),
+                          // marginBottom: SIZE(20),
                         }}
                       >
                         <ProfileIcon
@@ -539,7 +614,7 @@ export default function AddEmployee({ navigation, route }) {
                     >
                       <TouchableWithoutFeedback
                         onPress={() => {
-                          getAgency();
+                          // getAgency();
                           setDropDown(false);
                           setSearchQuery('');
                           setError(prev => ({ ...prev, agancyErr: false }));
@@ -561,36 +636,59 @@ export default function AddEmployee({ navigation, route }) {
                               onChangeText={setSearchQuery}
                               autoFocus={true}
                             />
-                            <ScrollView
-                              nestedScrollEnabled={true}
-                              style={styles.optionList}
-                              showsVerticalScrollIndicator={true}
-                              contentContainerStyle={styles.scrollContent}
-                            >
-                              {filteredData.length > 0 ? (
-                                filteredData.map((item, index) => (
-                                  <TouchableOpacity
-                                    key={index}
-                                    style={styles.optionItem}
-                                    onPress={() =>
-                                      handleBranchSelect(item?.branch_name)
-                                    }
-                                  >
-                                    <Text style={styles.optionText}>
-                                      {console.log(
-                                        item?.branch_name,
-                                        'item?.branch_nameitem?.branch_nameitem?.branch_name',
-                                      )}
-                                      {item?.branch_name}
-                                    </Text>
-                                  </TouchableOpacity>
-                                ))
-                              ) : (
-                                <Text style={styles.noResultsText}>
-                                  No branches found
-                                </Text>
+                            <FlatList
+                              data={data}
+                              keyExtractor={(item, index) =>
+                                item._id?.toString() || index.toString()
+                              }
+                              renderItem={({ item }) => (
+                                <TouchableOpacity
+                                  style={styles.optionItem}
+                                  onPress={() => {
+                                    handleBranchSelect(item.branch_name);
+                                    getAgency(item._id);
+                                    setBranchId(item._id);
+                                    setDropDown(false);
+                                  }}
+                                >
+                                  <Text style={styles.optionText}>
+                                    {item.branch_name || 'Unnamed'}
+                                  </Text>
+                                </TouchableOpacity>
                               )}
-                            </ScrollView>
+                              ListEmptyComponent={
+                                loading ? (
+                                  <ActivityIndicator
+                                    size="large"
+                                    color="#1C54D7"
+                                    style={{ marginVertical: 40 }}
+                                  />
+                                ) : (
+                                  <Text style={styles.noResultsText}>
+                                    No branches found
+                                  </Text>
+                                )
+                              }
+                              ListFooterComponent={
+                                loading && data.length > 0 ? (
+                                  <ActivityIndicator
+                                    size="large"
+                                    color="#1C54D7"
+                                    style={{ marginVertical: 20 }}
+                                  />
+                                ) : null
+                              }
+                              onEndReached={() => {
+                                if (hasMore && !loading) {
+                                  getBranch(false);
+                                }
+                              }}
+                              onEndReachedThreshold={0.5}
+                              showsVerticalScrollIndicator={true}
+                              nestedScrollEnabled={true}
+                              contentContainerStyle={styles.scrollContent}
+                            />
+                            {/* </ScrollView> */}
                           </KeyboardAvoidingView>
                         </View>
                       </TouchableWithoutFeedback>
@@ -612,7 +710,10 @@ export default function AddEmployee({ navigation, route }) {
                           setAgencySearch('');
                           setAgencyErr(false);
                         }}
-                        style={styles.inputContainer}
+                        style={{
+                          ...styles.inputContainer,
+                          marginTop: SIZE(16),
+                        }}
                       >
                         <ProfileIcon
                           width={SIZE(20)}
@@ -698,9 +799,10 @@ export default function AddEmployee({ navigation, route }) {
                                   <TouchableOpacity
                                     key={index}
                                     style={styles.optionItem}
-                                    onPress={() =>
-                                      handleAgencySelect(item?.agent_name)
-                                    }
+                                    onPress={() => {
+                                      handleAgencySelect(item?.agent_name);
+                                      setAgency(item?._id);
+                                    }}
                                   >
                                     <Text style={styles.optionText}>
                                       {item?.agent_name}
@@ -719,6 +821,106 @@ export default function AddEmployee({ navigation, route }) {
                     </Modal>
                   </>
                 )}
+
+                <KeyboardAvoidingView
+                  behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                  style={{ zIndex: 10 }}
+                >
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    hitSlop={10}
+                    onPress={() => {
+                      setGenderDropDown(!genderDropDown);
+                      setError(prev => ({ ...prev, genderErr: false }));
+                      // setShowGender('')
+                    }}
+                    style={{
+                      ...styles.inputContainer,
+                      marginTop: SIZE(16),
+                    }}
+                  >
+                    <ProfileIcon
+                      width={SIZE(20)}
+                      height={SIZE(20)}
+                      style={{ marginRight: SIZE(10) }}
+                    />
+
+                    <View style={{ width: '80%', justifyContent: 'center' }}>
+                      <Text style={styles.uerNameText}>Gender</Text>
+                      <Text
+                        style={{
+                          marginTop: SIZE(5),
+                          fontSize: SIZE(14),
+                          lineHeight: SIZE(16),
+                          color: input.gender ? '#000000' : '#2C436433',
+                        }}
+                      >
+                        {showGender || 'Select gender'}
+                      </Text>
+                    </View>
+
+                    <View
+                      style={{
+                        transform: [
+                          { rotate: genderDropDown ? '180deg' : '0deg' },
+                        ],
+                      }}
+                    >
+                      <DownArrowIcon width={SIZE(35)} height={SIZE(35)} />
+                    </View>
+                  </TouchableOpacity>
+
+                  {error.genderErr && (
+                    <Text style={styles.errorText}>*Please select gender</Text>
+                  )}
+                </KeyboardAvoidingView>
+
+                {/* Gender Modal */}
+                <Modal
+                  visible={genderDropDown}
+                  transparent={true}
+                  animationType="fade"
+                  onRequestClose={() => {
+                    setGenderDropDown(false);
+                  }}
+                >
+                  <TouchableWithoutFeedback
+                    onPress={() => {
+                      setGenderDropDown(false);
+                      Keyboard.dismiss();
+                    }}
+                  >
+                    <View style={styles.modalOverlay}>
+                      <KeyboardAvoidingView
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                        style={styles.dropdownContainer}
+                      >
+                        {/* No search needed for gender – just static list */}
+                        <ScrollView
+                          nestedScrollEnabled={true}
+                          style={styles.optionList}
+                          showsVerticalScrollIndicator={true}
+                          contentContainerStyle={styles.scrollContent}
+                        >
+                          {genderOptions.map((item, index) => (
+                            <TouchableOpacity
+                              key={index}
+                              style={styles.optionItem}
+                              onPress={() => {
+                                handleGenderSelect(item.value);
+                                setShowGender(item.label);
+                              }}
+                            >
+                              <Text style={styles.optionText}>
+                                {item.label}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </ScrollView>
+                      </KeyboardAvoidingView>
+                    </View>
+                  </TouchableWithoutFeedback>
+                </Modal>
 
                 <TouchableOpacity
                   activeOpacity={0.8}
@@ -748,7 +950,7 @@ export default function AddEmployee({ navigation, route }) {
                       inputMode="email"
                       placeholderTextColor={'#2C436433'}
                       value={input.username}
-                      placeholder="Enter Email or Name"
+                      placeholder="Enter Emaif or Name"
                       onChangeText={text => handleChange('username', text)}
                     />
                   </View>
@@ -756,7 +958,6 @@ export default function AddEmployee({ navigation, route }) {
                 {error.usernameErr && (
                   <Text style={styles.errorText}>*Please enter name</Text>
                 )}
-                {console.log(isEdit, 'isEditisEdit')}
 
                 <TouchableOpacity
                   activeOpacity={0.8}
@@ -767,6 +968,7 @@ export default function AddEmployee({ navigation, route }) {
                   }}
                   style={{ ...styles.inputContainer, marginTop: SIZE(16) }}
                 >
+                  {console.log(settings?.['Office Kit Integration'], 'dfff')}
                   <LockIcon
                     width={SIZE(20)}
                     height={SIZE(20)}
@@ -775,8 +977,8 @@ export default function AddEmployee({ navigation, route }) {
                   <View style={{ width: '80%', justifyContent: 'center' }}>
                     <Text style={styles.uerNameText}>Employee Code</Text>
                     <TextInput
-                      editable={!isEdit}
-                      ref={inputRef2}
+                      editable={false}
+                      // ref={inputRef2}
                       style={{
                         fontSize: SIZE(14),
                         lineHeight: SIZE(16),
@@ -788,6 +990,7 @@ export default function AddEmployee({ navigation, route }) {
                       onChangeText={text => handleChange('password', text)}
                     />
                   </View>
+
                   {!isEdit && (
                     <TouchableOpacity
                       style={{
@@ -802,6 +1005,7 @@ export default function AddEmployee({ navigation, route }) {
                       }}
                       onPress={() => {
                         generateCode();
+                        setError(prev => ({ ...prev, passwordErr: false }));
                       }}
                       activeOpacity={0.8}
                       hitSlop={10}
@@ -844,9 +1048,10 @@ export default function AddEmployee({ navigation, route }) {
                 navigation.navigate('AdminScan', {
                   fullname: input.username,
                   employeecode: input.password,
-                  branch: input.bracnh,
+                  branch: branchId,
                   isEdit,
                   selectedData: selectedData,
+                  agancy: agency,
                 });
               }}
               style={styles.buttonCont}
@@ -878,6 +1083,7 @@ export default function AddEmployee({ navigation, route }) {
           </View>
         ) : (
           <CommonButton
+            disabled={loading}
             loader={loader}
             backgroundColor={'#153CD8'}
             title={'Next'}
@@ -1020,7 +1226,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderColor: '#153CD8',
-    backgroundColor:'#ffffff',
+    backgroundColor: '#ffffff',
     borderWidth: 1,
     width: SIZE(170),
     height: SIZE(44),

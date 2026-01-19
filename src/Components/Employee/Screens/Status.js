@@ -30,7 +30,7 @@ console.log(direction,'directiondirectiondirection');
   useEffect(() => {
     setTimeout(() => {
       navigation.navigate('NewScan');
-    }, 3000);
+    }, 2000);
   }, []);
 
 

@@ -32,6 +32,8 @@ import { useAxios } from '../../utils/useAxios';
 import { useToast } from 'react-native-toast-notifications';
 import { storage } from '../../utils/Storage';
 import { useLogout } from '../../utils/useLogout';
+import * as Keychain from 'react-native-keychain';
+import FaceId from '../../../assets/svg/FaceID.svg';
 
 export default function Authentication() {
   const insets = useSafeAreaInsets();
@@ -68,10 +70,42 @@ export default function Authentication() {
       setError(prev => ({ ...prev, passwordErr: false }));
     }
   };
-  const handleNavigate = async () => {
+
+  const loadSavedCredentials = async () => {
+    try {
+      const credentials = await Keychain.getGenericPassword({
+        service: 'service_key',
+        authenticationPrompt: {
+          title: 'Login with Biometrics',
+        },
+      });
+
+      if (credentials) {
+        // handleNavigate()
+        // setInput({
+        //   username: credentials.username,
+        //   password: credentials.password,
+        // });
+        handleNavigate(credentials.username,credentials.password);
+
+        // toast.show('Logged in with Face ID!', { type: 'success' });
+      }
+    } catch (error) {
+      console.log('User cancelled or no saved login');
+      // Do nothing - user will type manually
+    }
+  };
+
+  useEffect(() => {
+    loadSavedCredentials();
+  }, []);
+
+  const handleNavigate = async (username=null, password=null) => {
+    const cleanUsername = username ?? input.username.trim();
+    const cleanPassword = password ?? input.password.trim();
     const newError = {
-      usernameErr: !input.username.trim(),
-      passwordErr: !input.password.trim(),
+      usernameErr: !cleanUsername,
+      passwordErr: !cleanPassword,
     };
     setError(newError);
     setErr(false);
@@ -106,13 +140,27 @@ export default function Authentication() {
         url: 'auth/verify-admin',
         method: 'POST',
         data: {
-          username: input.username,
-          password: input.password,
+          username: cleanUsername,
+          password: cleanPassword,
           //     compony_code: code,
         },
       });
       console.log(data);
       if (data?.message === 'success') {
+        try {
+          await Keychain.setGenericPassword(input.username, input.password, {
+            service: 'service_key',
+            // Optional: Add access control for better security
+            accessControl: Keychain.ACCESS_CONTROL.BIOMETRY_CURRENT_SET,
+            accessible: Keychain.ACCESSIBLE.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+            authenticationPrompt: {
+              title: 'Enable Face ID / Touch ID',
+            },
+          });
+          console.log('Credentials saved securely');
+        } catch (error) {
+          console.warn('Failed to save credentials:', error);
+        }
         navigation.navigate('EmpManagement', {
           isAuthentication: true,
         });
@@ -330,6 +378,14 @@ export default function Authentication() {
               {err && (
                 <Text style={styles.errorText}>something went wrong</Text>
               )}
+              <TouchableOpacity
+                onPress={loadSavedCredentials}
+                style={{ alignSelf: 'center', marginTop: SIZE(30) }}
+                activeOpacity={0.8}
+                hitSlop={10}
+              >
+                <FaceId width={SIZE(64)} height={SIZE(64)} />
+              </TouchableOpacity>
             </View>
           </LinearGradient>
         </TouchableWithoutFeedback>
@@ -339,6 +395,7 @@ export default function Authentication() {
         style={[styles.bottomButtonContainer, { paddingBottom: insets.bottom }]}
       >
         <CommonButton
+        disabled={loader}
           loader={loader}
           backgroundColor={'#153CD8'}
           title={'Sign in'}
@@ -431,7 +488,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     position: 'absolute',
     top: SIZE(50),
-    right: 0,
+    right: 10,
     borderRadius: SIZE(20),
     padding: SIZE(15),
     elevation: 8,

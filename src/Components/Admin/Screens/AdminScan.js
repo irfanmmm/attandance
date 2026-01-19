@@ -16,7 +16,13 @@ import {
   Linking,
   BackHandler,
 } from 'react-native';
-import { Camera, useCameraDevice } from 'react-native-vision-camera';
+import {
+  Camera,
+  runAsync,
+  useCameraDevice,
+  useFrameProcessor,
+  VisionCameraProxy,
+} from 'react-native-vision-camera';
 import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
 import { useFocusEffect } from '@react-navigation/native';
 import { Fonts, SIZE } from '../../utils/Styles';
@@ -27,25 +33,46 @@ import { BASE_URL } from '../../utils/urls';
 import { Context } from '../../Redux/Store';
 import { useAxios } from '../../utils/useAxios';
 import { useToast } from 'react-native-toast-notifications';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { crop } from 'vision-camera-cropper';
+import { useRunOnJS, useSharedValue } from 'react-native-worklets-core';
+import RNFS from 'react-native-fs';
 
+const xyzFrameProcessor = VisionCameraProxy.initFrameProcessorPlugin('xyz', {
+  model: 'fast',
+});
 export default function AdminScan({ navigation, route }) {
   const device = useCameraDevice('front');
-  // const abortControllerRef = useRef(null);
+  const abortControllerRef = useRef(null);
   const cameraRef = useRef(null);
 
   const [isActive, setIsActive] = useState(false);
+  const [updateImage, setUpdateImage] = useState(null);
+
   const [isProcessing, setIsProcessing] = useState(true);
   const [hasPermission, setHasPermission] = useState(false);
   const [status, setStatus] = useState('Capture');
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
   const { fetchData } = useAxios();
-    const toast = useToast();
+  const toast = useToast();
+  const isProcessingFrame = useSharedValue(false);
+  const frameBase64 = useSharedValue(null);
+
+  const insets = useSafeAreaInsets();
 
   const { state } = useContext(Context);
   const code = state?.userData?.company_code;
-  const { fullname, employeecode, isEdit, selectedData, branch, isNewScan,agancy } =
-    route.params || {};
+  const {
+    fullname,
+    employeecode,
+    isEdit,
+    selectedData,
+    branch,
+    isNewScan,
+    agancy,
+    gender,
+  } = route.params || {};
   // const { isEdit } = route?.params || {};
   // const { selectedData } = route?.params || {};
   // const { branch } = route?.params || {};
@@ -53,61 +80,29 @@ export default function AdminScan({ navigation, route }) {
 
   const isUploadingRef = useRef(false);
 
-  const isEdite = async pictureUri => {
+  const isEdite = async base64 => {
     try {
-      const formData = new FormData();
-
-      formData.append('compony_code', code);
-      formData.append('file_0', {
-        uri: `file://${pictureUri}`,
-        name: `image.jpg`,
-        type: 'image/jpeg',
-      });
-      const editableDetails = JSON.stringify([
-        {
-          employee_code: employeecode,
-          action: 'E',
-          full_name: fullname,
-          branch: branch,
-          agency:agancy
-        },
-      ]);
-      formData.append('editable_details', editableDetails);
-
-      // const response = await fetch(`${BASE_URL}edit-user`, {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'multipart/form-data',
-      //   },
-      //   body: formData,
-      // });
-
-      // if (!response.ok) {
-      //   throw new Error(
-      //     'Authentication failed. Please check your credentials.',
-      //   );
-      // }
-
-      // const data = await response.json();
-
       const data = await fetchData({
         url: 'edit-user',
         method: 'POST',
-        data: formData,
-        headers: {
-          'Content-Type': 'multipart/form-data',
+        data: {
+          base64: base64,
+          editable_details: {
+            employee_code: employeecode,
+            action: 'E',
+            full_name: fullname,
+            branch: branch,
+            agency: agancy,
+          },
         },
       });
 
       if (data?.message === 'success') {
+        //  toast.show(data?.message, { type: 'success' });
         navigation.navigate('AdminStatus', { isEdit });
-        // setData(data?.data);
-        // navigation.goBack()
       } else {
       }
     } catch (err) {
-      // setData([]);
-
       console.log('Authentication error:', err?.message);
     }
   };
@@ -122,7 +117,7 @@ export default function AdminScan({ navigation, route }) {
         });
       } else {
         navigation.navigate('AddEmployee', {
-          isNewScan,
+          isNewScan: isNewScan,
         });
       }
 
@@ -205,10 +200,10 @@ export default function AdminScan({ navigation, route }) {
       setIsActive(true);
       return () => {
         setIsActive(false);
-        // if (abortControllerRef.current) {
-        //   abortControllerRef.current.abort();
-        //   console.log('Aborted fetch due to screen unfocus');
-        // }
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+          console.log('Aborted fetch due to screen unfocus');
+        }
       };
     }, []),
   );
@@ -255,9 +250,9 @@ export default function AdminScan({ navigation, route }) {
       formData.append('branch', branch);
       formData.append('agency', agancy);
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
-      // abortControllerRef.current = new AbortController();
+      // const controller = new AbortController();
+      // const timeoutId = setTimeout(() => controller.abort(), 15000);
+      abortControllerRef.current = new AbortController();
 
       // const response = await fetch(url, {
       //   method: 'POST',
@@ -271,8 +266,9 @@ export default function AdminScan({ navigation, route }) {
         method: 'POST',
         data: formData,
         headers: { 'Content-Type': 'multipart/form-data' },
+        signal: abortControllerRef.current.signal,
       });
-      clearTimeout(timeoutId);
+      console.log(data, '==============');
 
       setLoading(false);
       if (data?.message === 'success') {
@@ -281,8 +277,8 @@ export default function AdminScan({ navigation, route }) {
         console.log(data);
 
         setFailed(true);
-        setStatus('Failed to verify, try again!');
-      toast.show(data?.message|| 'Something went wrong', { type: 'danger' });
+        setStatus(data?.message || 'Failed to verify, try again!');
+        toast.show(data?.message || 'Something went wrong', { type: 'danger' });
         setIsProcessing(false);
       }
     } catch (error) {
@@ -294,6 +290,51 @@ export default function AdminScan({ navigation, route }) {
       setIsProcessing(false);
     } finally {
       isUploadingRef.current = false;
+    }
+  };
+
+  const updateImage1 = async base64 => {
+    try {
+      if (base64) {
+        const response = await fetchData({
+          url: 'add-employee-face',
+          method: 'POST',
+          data: {
+            base64: base64,
+            boundry: null,
+            branch: branch,
+            agency: agancy,
+            gender: gender,
+            employeecode: employeecode,
+            fullname: fullname,
+          },
+        });
+        if (response.message === 'success') {
+          navigation.navigate('AdminStatus');
+        } else {
+          setFailed(true);
+          setStatus(response?.message || 'Failed to verify, try again!');
+          toast.show(response?.message || 'Something went wrong', {
+            type: 'danger',
+          });
+          setIsProcessing(false);
+        }
+      } else {
+        toast.show('Your face not proper', {
+          type: 'danger',
+        });
+      }
+    } catch (error) {
+      console.log(error);
+      toast.show('Something went wrong', { type: 'danger' });
+      setFailed(true);
+      setLoading(false);
+      console.log('Upload error:', error);
+      setStatus('Failed to verify, try again!');
+      setIsProcessing(false);
+    } finally {
+      setLoading(false);
+      isProcessingFrame.value = false;
     }
   };
 
@@ -309,10 +350,11 @@ export default function AdminScan({ navigation, route }) {
         qualityPrioritization: 'quality',
         enableShutterSound: false,
       });
-      console.log('Photo taken:', photo);
-      isEdit ? await isEdite(photo?.path) : await uploadImage(photo?.path);
+
+      const base64 = await RNFS.readFile(photo.path, 'base64');
+      console.log('Photo taken:', base64);
+      isEdit ? await isEdite(base64) : await updateImage1(base64);
     } catch (error) {
-      console.log('Picture taking error:', error);
       setStatus('Failed to verify, try again!');
       setLoading(false);
       setFailed(true);
@@ -323,6 +365,37 @@ export default function AdminScan({ navigation, route }) {
   const format = device.formats.find(
     f => f.videoWidth === 1280 && f.videoHeight === 720,
   );
+
+  // const updateBase64 = useRunOnJS(base64 => {
+  //   setUpdateImage({ base64 });
+  // });
+
+  const frameProcessor = useFrameProcessor(frame => {
+    'worklet';
+
+    console.log(isProcessingFrame.value);
+
+    if (!isProcessingFrame.value) return;
+
+    const faces = xyzFrameProcessor?.call(frame);
+
+    console.log(faces);
+    if (Array.isArray(faces) && faces.length !== 0) {
+      if (faces.length == 1) {
+        const face = faces[0];
+        if (face?.bounds) {
+          const result = crop(frame, {
+            includeImageBase64: true,
+            saveAsFile: false,
+          });
+
+          if (result.base64) {
+            frameBase64.value = result.base64;
+          }
+        }
+      }
+    }
+  }, []);
 
   if (!device) {
     return (
@@ -398,8 +471,11 @@ export default function AdminScan({ navigation, route }) {
           </Text>
         </View>
       </View>
-      <View style={styles.bottomButtonContainer}>
+      <View
+        style={[styles.bottomButtonContainer, { paddingBottom: insets.bottom }]}
+      >
         <CommonButton
+          disabled={loading}
           loader={loading}
           failed={failed}
           title={status}

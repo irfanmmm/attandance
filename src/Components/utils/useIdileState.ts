@@ -48,13 +48,14 @@ export function useIdileState() {
       state.userData.is_logged,
       'state.userData.is_loggedstate.userData.is_loggedstate.userData.is_logged',
     );
-    if (state.userData.is_logged) {
+    if (state?.userData?.is_logged) {
       intervel = setInterval(refreshSession, 60000);
     }
     return () => {
+      console.log("unmount the application")
       clearInterval(intervel);
     };
-  }, [state.userData.is_logged]);
+  }, [state?.userData?.is_logged]);
 
   return null;
 }

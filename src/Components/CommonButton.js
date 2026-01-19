@@ -20,10 +20,12 @@ export default function CommonButton({
   failed,
   arrow,
   scan,
+  disabled
 }) {
   return (
     <>
       <TouchableOpacity
+      disabled={disabled}
         onPress={onPress}
         activeOpacity={0.8}
         hitSlop={10}

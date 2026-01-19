@@ -82,8 +82,8 @@ android {
         applicationId "com.officekitlence"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 26
-        versionName "2.0.4"
+        versionCode 29
+        versionName "2.0.7"
     }
     signingConfigs {
         debug {

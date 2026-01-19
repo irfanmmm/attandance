@@ -37,7 +37,8 @@ export default function Login({ navigation }) {
   const handleLogin = async () => {
     setLoader(true);
     setError(false);
-    if (!code.trim()) {
+    const cleanCode = code.trim();
+    if (!cleanCode) {
       setError(true);
       setLoader(false);
       return;
@@ -72,7 +73,7 @@ export default function Login({ navigation }) {
         url: 'auth/verify-compony-code',
         method: 'POST',
         data: {
-          code: code,
+          code: cleanCode,
         },
       });
 
@@ -90,7 +91,7 @@ export default function Login({ navigation }) {
           va => va.setting_name === 'Individual Login',
         ).value;
 
-        console.log(loginenabled);
+        // console.log(loginenabled);
 
         dispatch({
           type: 'UPDATE_USER_DATA',

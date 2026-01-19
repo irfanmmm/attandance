@@ -113,8 +113,6 @@ class XyzFrameProcessorPlugin(
                             resultList.forEachIndexed { index, faceData ->
                                 val livenessResult =
                                         livenessDetector.analyzeLiveness(faceData.toMutableMap())
-
-                                // Create new map with liveness data
                                 val updatedFaceData =
                                         faceData.toMutableMap().apply {
                                             put(
@@ -137,6 +135,7 @@ class XyzFrameProcessorPlugin(
                             Log.d(TAG, "Result: $lastProcessedResult")
                         } catch (e: Exception) {
                             Log.e(TAG, "Error processing faces: ", e)
+                            mediaImage.close()
                             lastProcessedResult = mapOf("error" to e.message, "faceCount" to 0)
                         } finally {
                             processingJob.set(false)

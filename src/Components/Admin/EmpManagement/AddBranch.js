@@ -27,23 +27,17 @@ import LogoutIcon from '../../../assets/svg/logOut.svg';
 import Log from '../../../assets/svg/log.svg';
 import { Context } from '../../Redux/Store';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-import { API_URL, BASE_URL } from '../../utils/urls';
-import Geolocation from '@react-native-community/geolocation';
-import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
 import { useToast } from 'react-native-toast-notifications';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAxios } from '../../utils/useAxios';
 import { PermissionsService } from '../../utils/permissions';
-import { useLocationShared } from '../../utils/useLocation';
+import { useLocation } from '../../utils/useLocation';
 import { storage } from '../../utils/Storage';
 import { useSettings } from '../../utils/useSettings';
-import { useDerivedValue, runOnJS } from 'react-native-reanimated';
 
 export default function AddBranch({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const { state, dispatch } = useContext(Context);
-
-  const code = state?.userData?.company_code;
   const settings = useSettings();
   const inputRef1 = useRef(null);
   const [permission, setPermission] = useState(null);
@@ -51,7 +45,6 @@ export default function AddBranch({ navigation, route }) {
   const [currentLocation, setCurrentLocation] = useState(null);
   const [isHighAccuracy, setIsHighAccuracy] = useState(true);
   const isHighAccuracyRef = useRef(true);
-  const { locationShared, callLocation } = useLocationShared();
 
   const { fetchData } = useAxios();
   const toast = useToast();
@@ -76,35 +69,18 @@ export default function AddBranch({ navigation, route }) {
   const [hasAskedPermission, setHasAskedPermission] = useState(false);
   const [loader, setLoader] = useState(false);
 
-
-  useDerivedValue(() => {
-    'worklet';
-    const coords = locationShared.value;
-    runOnJS(setInput)({
-      latitude: coords.latitude,
-      longitude: coords.longitude,
+  const callLocation = useLocation((lat, lon) => {
+    setInput({
+      ...input,
+      latitude: lat,
+      longitude: lon,
     });
-  });
+    // console.log(lat, lon, '******');
+  }, setLocationLoad);
 
   const handleChange = (name, value) => {
     setInput(prev => ({ ...prev, [name]: value }));
   };
-
-  // const handleLocationFetch = async () => {
-
-  //   setLocationLoad(true)
-  //   const { location } = await PermissionsService.requestCameraAndLocation();
-  //   console.log('called', location);
-  //   if (location !== 'granted') return;
-  //   callLocation();
-
-  //   setInput(prev => ({
-  //     ...prev,
-  //     latitude: locationShared.value.latitude,
-  //     longitude: locationShared.value.longitude,
-  //   }));
-  //   setLocationLoad(false)
-  // };
 
   const handleLocationFetch = async () => {
     setLocationLoad(true);
@@ -117,11 +93,7 @@ export default function AddBranch({ navigation, route }) {
         setLocationLoad(false);
         return;
       }
-
-      // Wait for location to be fetched
       callLocation(isHighAccuracy);
-
-      // Update input with the received coordinates
       // setInput(prev => ({
       //   ...prev,
       //   latitude: String(coords.latitude),
@@ -134,25 +106,20 @@ export default function AddBranch({ navigation, route }) {
         type: 'danger',
         duration: 2000,
       });
-    } finally {
-      setLocationLoad(false);
     }
   };
   useFocusEffect(
     React.useCallback(() => {
       setIsHighAccuracy(true);
-      isHighAccuracyRef.current = true; // Keep ref in sync
+      isHighAccuracyRef.current = true;
       return () => {};
     }, []),
   );
 
   useEffect(() => {
     const backAction = () => {
-      // Navigate to the login page
-
-      navigation.navigate('EmpManagement'); // Replace 'Login' with your login screen name
-
-      return true; // Prevent default back action (e.g., exiting the app)
+      navigation.navigate('EmpManagement');
+      return true;
     };
     const backHandler = BackHandler.addEventListener(
       'hardwareBackPress',
@@ -164,23 +131,18 @@ export default function AddBranch({ navigation, route }) {
   }, [navigation]);
 
   const handleNavigate = async () => {
-    //  navigation.navigate("AdminScan");
     setLoader(true);
-
     try {
       const data = await fetchData({
         url: 'add-branch',
         method: 'POST',
         data: {
-          // compony_code: code,
           branch_name: input.branch,
           latitude: input.latitude,
           longitude: input.longitude,
           radius: Number(input.radius),
         },
       });
-      console.log(data, '===========');
-
       if (data?.message === 'success') {
         toast.show(data?.message, {
           type: 'Success',
@@ -193,11 +155,6 @@ export default function AddBranch({ navigation, route }) {
           duration: 2000,
         });
       }
-
-      //
-      // console.log(data);
-
-      //
     } catch (err) {
       toast.show('Something went wrong', {
         type: 'danger',
