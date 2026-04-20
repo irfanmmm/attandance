@@ -48,6 +48,7 @@ export default function EmpManagement({ navigation, route }) {
   const handleNavigate = item => {
     navigation.navigate(Navigations[item.title]);
   };
+
   useEffect(() => {
     const backAction = () => {
       if (isAdmin) {
@@ -63,7 +64,6 @@ export default function EmpManagement({ navigation, route }) {
             {
               text: 'Yes',
               onPress: () => {
-             
                 dispatch({
                   type: 'UPDATE_USER_DATA',
                   userData: {
@@ -71,7 +71,7 @@ export default function EmpManagement({ navigation, route }) {
                     initialRoute: 'NewScan',
                   },
                 });
-                   navigation.navigate('NewScan');
+                navigation.navigate('NewScan');
               },
             },
           ],
@@ -108,39 +108,39 @@ export default function EmpManagement({ navigation, route }) {
   // }, [navigation]);
 
   const data = [
-    {
-      title: 'Attendance',
-      subTxt: 'Mark attendance and leaves',
-      icon: <Profiles width={SIZE(20)} height={SIZE(20)} />,
-    },
-    {
-      title: 'Attendance Report',
-      subTxt: 'View or download reports',
-      icon: <Document width={SIZE(20)} height={SIZE(20)} />,
-    },
+    // {
+    //   title: 'Attendance',
+    //   subTxt: 'Mark attendance and leaves',
+    //   icon: <Profiles width={SIZE(20)} height={SIZE(20)} />,
+    // },
+    // {
+    //   title: 'Attendance Report',
+    //   subTxt: 'View or download reports',
+    //   icon: <Document width={SIZE(20)} height={SIZE(20)} />,
+    // },
     {
       title: 'Employee Management',
       subTxt: 'Manage employee details',
       icon: <Employee width={SIZE(20)} height={SIZE(20)} />,
     },
-    ...(isBranch === true || isBranch === 'true'
-      ? [
-          {
-            title: 'Add Branches',
-            subTxt: 'Create and manage company branches',
-            icon: <Employee width={SIZE(20)} height={SIZE(20)} />,
-          },
-        ]
-      : []),
-    ...(isAgency === true || isAgency === 'true'
-      ? [
-          {
-            title: 'Add Agency',
-            subTxt: 'Create Agency',
-            icon: <Employee width={SIZE(20)} height={SIZE(20)} />,
-          },
-        ]
-      : []),
+    // ...(isBranch === true || isBranch === 'true'
+    //   ? [
+    //       {
+    //         title: 'Add Branches',
+    //         subTxt: 'Create and manage company branches',
+    //         icon: <Employee width={SIZE(20)} height={SIZE(20)} />,
+    //       },
+    //     ]
+    //   : []),
+    // ...(isAgency === true || isAgency === 'true'
+    //   ? [
+    //       {
+    //         title: 'Add Agency',
+    //         subTxt: 'Create Agency',
+    //         icon: <Employee width={SIZE(20)} height={SIZE(20)} />,
+    //       },
+    //     ]
+    //   : []),
   ];
 
   return (
@@ -201,7 +201,7 @@ export default function EmpManagement({ navigation, route }) {
                           settings: null,
                           latitude: '',
                           longitude: '',
-                              initialRoute:'NewScan'
+                          initialRoute: 'NewScan',
                         },
                       });
                       storage.clearAll();

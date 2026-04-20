@@ -21,7 +21,9 @@ const CheckInScreen = ({navigation,route}) => {
     useEffect(()=>{
       setTimeout(() => {
         
-        navigation.navigate(isEdit?'EmployeeManagement':'AddEmployee')
+        navigation.navigate(isEdit?'EmployeeManagement':'AddEmployee',{
+          isNewScan:isNewScan
+        })
         
       }, 2000);
   

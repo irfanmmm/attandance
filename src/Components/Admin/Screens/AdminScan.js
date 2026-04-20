@@ -78,6 +78,8 @@ export default function AdminScan({ navigation, route }) {
   // const { branch } = route?.params || {};
   // console.log(co);
 
+  console.log(loading, 'loadingloadingloading');
+
   const isUploadingRef = useRef(false);
 
   const isEdite = async base64 => {
@@ -87,13 +89,13 @@ export default function AdminScan({ navigation, route }) {
         method: 'POST',
         data: {
           base64: base64,
-          editable_details: {
-            employee_code: employeecode,
-            action: 'E',
-            full_name: fullname,
-            branch: branch,
-            agency: agancy,
-          },
+          // editable_details: {
+          //   employee_code: employeecode,
+          //   action: 'E',
+          //   full_name: fullname,
+          //   branch: branch,
+          //   agency: agancy,
+          // },
         },
       });
 
@@ -224,74 +226,74 @@ export default function AdminScan({ navigation, route }) {
   // }, [navigation]);
 
   // Upload image to server
-  const uploadImage = async pictureUri => {
-    if (isUploadingRef.current || !fullname || !employeecode) {
-      setStatus('Missing employee data');
-      setIsProcessing(false);
-      setLoading(false);
-      setFailed(true);
-      return;
-    }
+  // const uploadImage = async pictureUri => {
+  //   if (isUploadingRef.current || !fullname || !employeecode) {
+  //     setStatus('Missing employee data');
+  //     setIsProcessing(false);
+  //     setLoading(false);
+  //     setFailed(true);
+  //     return;
+  //   }
 
-    setLoading(true);
-    try {
-      isUploadingRef.current = true;
-      setStatus('Verifying identity...');
+  //   setLoading(true);
+  //   try {
+  //     isUploadingRef.current = true;
+  //     setStatus('Verifying identity...');
 
-      const formData = new FormData();
-      formData.append('file', {
-        uri: `file://${pictureUri}`,
-        name: `image.jpg`,
-        type: 'image/jpeg',
-      });
-      formData.append('fullname', fullname);
-      formData.append('employeecode', employeecode);
-      // formData.append('compony_code', code);
-      formData.append('branch', branch);
-      formData.append('agency', agancy);
+  //     const formData = new FormData();
+  //     formData.append('file', {
+  //       uri: `file://${pictureUri}`,
+  //       name: `image.jpg`,
+  //       type: 'image/jpeg',
+  //     });
+  //     formData.append('fullname', fullname);
+  //     formData.append('employeecode', employeecode);
+  //     // formData.append('compony_code', code);
+  //     formData.append('branch', branch);
+  //     formData.append('agency', agancy);
 
-      // const controller = new AbortController();
-      // const timeoutId = setTimeout(() => controller.abort(), 15000);
-      abortControllerRef.current = new AbortController();
+  //     // const controller = new AbortController();
+  //     // const timeoutId = setTimeout(() => controller.abort(), 15000);
+  //     abortControllerRef.current = new AbortController();
 
-      // const response = await fetch(url, {
-      //   method: 'POST',
-      //   body: formData,
-      //   signal: controller.signal,
-      //   headers: { 'Content-Type': 'multipart/form-data' },
-      // });
+  //     // const response = await fetch(url, {
+  //     //   method: 'POST',
+  //     //   body: formData,
+  //     //   signal: controller.signal,
+  //     //   headers: { 'Content-Type': 'multipart/form-data' },
+  //     // });
 
-      const data = await fetchData({
-        url: 'add-employee-face',
-        method: 'POST',
-        data: formData,
-        headers: { 'Content-Type': 'multipart/form-data' },
-        signal: abortControllerRef.current.signal,
-      });
-      console.log(data, '==============');
+  //     const data = await fetchData({
+  //       url: 'add-employee-face',
+  //       method: 'POST',
+  //       data: formData,
+  //       headers: { 'Content-Type': 'multipart/form-data' },
+  //       signal: abortControllerRef.current.signal,
+  //     });
+  //     console.log(data, '==============');
 
-      setLoading(false);
-      if (data?.message === 'success') {
-        navigation.navigate('AdminStatus');
-      } else {
-        console.log(data);
+  //     setLoading(false);
+  //     if (data?.message === 'success') {
+  //       navigation.navigate('AdminStatus');
+  //     } else {
+  //       console.log(data);
 
-        setFailed(true);
-        setStatus(data?.message || 'Failed to verify, try again!');
-        toast.show(data?.message || 'Something went wrong', { type: 'danger' });
-        setIsProcessing(false);
-      }
-    } catch (error) {
-      toast.show('Something went wrong', { type: 'danger' });
-      setFailed(true);
-      setLoading(false);
-      console.log('Upload error:', error);
-      setStatus('Failed to verify, try again!');
-      setIsProcessing(false);
-    } finally {
-      isUploadingRef.current = false;
-    }
-  };
+  //       setFailed(true);
+  //       setStatus(data?.message || 'Failed to verify, try again!');
+  //       toast.show(data?.message || 'Something went wrong', { type: 'danger' });
+  //       setIsProcessing(false);
+  //     }
+  //   } catch (error) {
+  //     toast.show('Something went wrong', { type: 'danger' });
+  //     setFailed(true);
+  //     setLoading(false);
+  //     console.log('Upload error:', error);
+  //     setStatus('Failed to verify, try again!');
+  //     setIsProcessing(false);
+  //   } finally {
+  //     isUploadingRef.current = false;
+  //   }
+  // };
 
   const updateImage1 = async base64 => {
     try {
@@ -309,9 +311,13 @@ export default function AdminScan({ navigation, route }) {
             fullname: fullname,
           },
         });
-        if (response.message === 'success') {
-          navigation.navigate('AdminStatus');
+        if (response?.message === 'success') {
+          navigation.navigate('AdminStatus', {
+            isNewScan: isNewScan,
+          });
+          setLoading(false);
         } else {
+          setLoading(false);
           setFailed(true);
           setStatus(response?.message || 'Failed to verify, try again!');
           toast.show(response?.message || 'Something went wrong', {
@@ -320,6 +326,7 @@ export default function AdminScan({ navigation, route }) {
           setIsProcessing(false);
         }
       } else {
+        setLoading(false);
         toast.show('Your face not proper', {
           type: 'danger',
         });
@@ -329,11 +336,12 @@ export default function AdminScan({ navigation, route }) {
       toast.show('Something went wrong', { type: 'danger' });
       setFailed(true);
       setLoading(false);
+
       console.log('Upload error:', error);
       setStatus('Failed to verify, try again!');
       setIsProcessing(false);
     } finally {
-      setLoading(false);
+      // setLoading(false);
       isProcessingFrame.value = false;
     }
   };

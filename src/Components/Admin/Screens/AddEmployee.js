@@ -42,6 +42,7 @@ export default function AddEmployee({ navigation, route }) {
   const { fetchData } = useAxios();
   const code = state?.userData?.company_code;
 
+
   const [agency, setAgency] = useState('');
   const [agencySearch, setAgencySearch] = useState('');
   const [agencyDropDown, setAgencyDropDown] = useState(false);
@@ -96,6 +97,7 @@ export default function AddEmployee({ navigation, route }) {
     agancy: '',
     gender: '',
   };
+
 
   const [input, setInput] = useState(
     isEdit
@@ -182,7 +184,7 @@ export default function AddEmployee({ navigation, route }) {
       userData: { ...state.userData, username: input.username },
     });
   };
-  console.log(input.gender, 'inputgendetrhjhh----------');
+
   const validateForm = () => {
     const cleanUsername = input.username.trim();
     const cleanPassword = input.password.trim();
@@ -361,6 +363,13 @@ export default function AddEmployee({ navigation, route }) {
       const data = await fetchData({
         url: 'edit-user',
         method: 'POST',
+
+          //   email: input?.username,
+          // // password: input.password,
+          // branch: branchId,
+          // employeecode: input?.password,
+          // agency: agency,
+          // gender: input.gender,
         data: {
           editable_details: {
             employee_code: input?.password,
@@ -583,7 +592,7 @@ export default function AddEmployee({ navigation, route }) {
                               color: input.bracnh ? '#000000' : '#2C436433',
                             }}
                           >
-                            {input.bracnh || 'Select branch'}
+                            {input?.bracnh || 'Select branch'}
                           </Text>
                         </View>
                         <View

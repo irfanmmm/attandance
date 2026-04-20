@@ -12,13 +12,17 @@ export const useAxios = (defaultAxiosConfig?: AxiosRequestConfig) => {
   const handleLogout = useLogout();
 
   // Set up axios interceptor for adding authorization token
+
   useEffect(() => {
+
     const requestInterceptor = axios.interceptors.request.use(
       async request => {
         // let userDataStored = await AsyncStorage.getItem('userData');
         const userData = Storage.getItem('user_data');
         if (userData) {
           let userDataParsed = JSON.parse(userData);
+        
+
           if (userDataParsed?.token) {
             request.headers = request.headers || {};
             request.headers[

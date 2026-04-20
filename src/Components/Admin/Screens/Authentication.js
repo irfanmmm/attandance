@@ -35,7 +35,8 @@ import { useLogout } from '../../utils/useLogout';
 import * as Keychain from 'react-native-keychain';
 import FaceId from '../../../assets/svg/FaceID.svg';
 
-export default function Authentication() {
+export default function Authentication({ route }) {
+  const { isNewScan } = route.params || {};
   const insets = useSafeAreaInsets();
   const toast = useToast();
   const { fetchData } = useAxios();
@@ -86,7 +87,7 @@ export default function Authentication() {
         //   username: credentials.username,
         //   password: credentials.password,
         // });
-        handleNavigate(credentials.username,credentials.password);
+        handleNavigate(credentials.username, credentials.password);
 
         // toast.show('Logged in with Face ID!', { type: 'success' });
       }
@@ -100,7 +101,7 @@ export default function Authentication() {
     loadSavedCredentials();
   }, []);
 
-  const handleNavigate = async (username=null, password=null) => {
+  const handleNavigate = async (username = null, password = null) => {
     const cleanUsername = username ?? input.username.trim();
     const cleanPassword = password ?? input.password.trim();
     const newError = {
@@ -161,9 +162,16 @@ export default function Authentication() {
         } catch (error) {
           console.warn('Failed to save credentials:', error);
         }
-        navigation.navigate('EmpManagement', {
-          isAuthentication: true,
-        });
+        if (isNewScan) {
+          navigation.navigate('AddEmployee', {
+            isNewScan: isNewScan,
+          });
+        } else {
+          navigation.navigate('EmpManagement', {
+            isAuthentication: true,
+          });
+        }
+
         dispatch({
           type: 'UPDATE_USER_DATA',
           userData: {
@@ -395,7 +403,7 @@ export default function Authentication() {
         style={[styles.bottomButtonContainer, { paddingBottom: insets.bottom }]}
       >
         <CommonButton
-        disabled={loader}
+          disabled={loader}
           loader={loader}
           backgroundColor={'#153CD8'}
           title={'Sign in'}

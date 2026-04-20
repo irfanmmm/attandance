@@ -415,7 +415,8 @@ const NewScan = ({ navigation }) => {
   }, []);
 
   const navigateToAdmin = () => {
-    navigation.navigate('AddEmployee', {
+    //  navigation.navigate('Authentication');
+    navigation.navigate('Authentication', {
       isNewScan: true,
     });
   };
@@ -493,34 +494,29 @@ const NewScan = ({ navigation }) => {
           hitSlop={10}
           onPress={() => {
             clearrequest();
-            if (!settings?.['Individual Login']) {
               navigation.navigate('Authentication');
-            } else if (isAdmin) {
-              navigation.navigate('EmpManagement');
-            } else {
-              navigation.navigate('SingleEmployeeReport', {
-                isNewScan: true,
-              });
-            }
-            // settings?.['Individual Login']? navigation.navigate('Authentication'):
-            // isAdmin
-            //   ? navigation.navigate('EmpManagement')
-            //   : navigation.navigate('SingleEmployeeReport', {
-            //       isNewScan: true,
-            //     });
-            // isAdmin
-            //   ? navigation.navigate('EmpManagement')
-            //   : navigation.navigate('Authentication');
+
+            // if (!settings?.['Individual Login']) {
+            //   navigation.navigate('Authentication');
+            // } else if (isAdmin) {
+            //   navigation.navigate('EmpManagement');
+            // } else {
+            //   navigation.navigate('SingleEmployeeReport', {
+            //     isNewScan: true,
+            //   });
+            // }
+   
           }}
           style={styles.adminButton}
           activeOpacity={0.7}
         >
           <Text allowFontScaling={false} style={styles.adminText}>
-            {!settings?.['Individual Login']
+            Admin
+            {/* {!settings?.['Individual Login']
               ? 'Admin'
               : isAdmin
               ? 'Admin'
-              : 'Attndance Report'}
+              : 'Attndance Report'} */}
           </Text>
         </TouchableOpacity>
       </View>
