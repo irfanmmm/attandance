@@ -7,13 +7,14 @@ import {
   TouchableOpacity,
   TextInput,
   Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import React, { useRef, useState } from 'react';
 import { Fonts, SIZE } from './utils/Styles';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CommonButton from './CommonButton';
-import { BASE_URL } from './utils/urls';
 import { useToast } from 'react-native-toast-notifications';
 import TickIcon from '../assets/svg/blueTick.svg';
 import { useAxios } from './utils/useAxios';
@@ -172,15 +173,6 @@ export default function Register({ navigation }) {
         headers: { 'Content-Type': 'application/json' },
         data: payload,
       });
-      // const response = await fetch(`${BASE_URL}signup`, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(payload),
-      // });
-
-      // if (!response.ok) throw new Error('Authentication failed.');
-
-      // const data = await response.json();
 
       if (response?.message === 'success') {
         toast.show('Success', { type: 'success', duration: 2000 });
@@ -217,8 +209,9 @@ export default function Register({ navigation }) {
         style={[styles.inputContainer, errors[field.key] && styles.inputError]}
       >
         <View>
-          <Text style={styles.labelText}>{field.label}</Text>
+          <Text allowFontScaling={false} style={styles.labelText}>{field.label}</Text>
           <TextInput
+            allowFontScaling={false}
             ref={ref => (inputRefs.current[field.key] = ref)}
             style={styles.input}
             placeholderTextColor={'#2C436433'}
@@ -243,7 +236,7 @@ export default function Register({ navigation }) {
         </View>
       </TouchableOpacity>
       {errors[field.key] && (
-        <Text style={styles.errorText}>{errors[field.key]}</Text>
+        <Text allowFontScaling={false} style={styles.errorText}>{errors[field.key]}</Text>
       )}
     </View>
   );
@@ -263,8 +256,9 @@ export default function Register({ navigation }) {
           ]}
         >
           <View>
-            <Text style={styles.labelText}>Company Code</Text>
+            <Text allowFontScaling={false} style={styles.labelText}>Company Code</Text>
             <TextInput
+              allowFontScaling={false}
               ref={ref => (inputRefs.current.officeKitCode = ref)}
               style={styles.input}
               placeholderTextColor={'#2C436433'}
@@ -277,106 +271,106 @@ export default function Register({ navigation }) {
           </View>
         </TouchableOpacity>
         {errors.officeKitCode && (
-          <Text style={styles.errorText}>{errors.officeKitCode}</Text>
+          <Text allowFontScaling={false} style={styles.errorText}>{errors.officeKitCode}</Text>
         )}
       </View>
     );
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar
-        translucent
-        backgroundColor="transparent"
-        barStyle="dark-content"
-      />
-      <KeyboardAwareScrollView
-        contentContainerStyle={{ paddingBottom: SIZE(120) }}
-        bounces={false}
-        extraScrollHeight={Platform.OS === 'android' ? SIZE(-100) : SIZE(100)}
-        enableOnAndroid
-        showsVerticalScrollIndicator={false}
-        enableAutomaticScroll
-        style={{ paddingTop: insets.top }}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.brandIconContainer}>
-          <Image
-            source={require('../assets/brand.png')}
-            style={styles.brandIcon}
-            resizeMode="cover"
-          />
-        </View>
-
-        <View>
-          <Text style={styles.createText}>Create your workplace</Text>
-          <Text style={styles.subText}>Join and manage your team easily</Text>
-        </View>
-
-        <View style={styles.inputContainers}>
-          {inputFields.map(renderInput)}
-        </View>
-
-        {/* ========== CUSTOM CHECKBOX ========== */}
-        <View style={styles.checkboxRow}>
-          <TouchableOpacity
-            // onPress={() => setIsOfficeKitUser(prev => !prev)}
-            onPress={() => {
-              setIsOfficeKitUser(prev => {
-                const newValue = !prev;
-
-                // If user is UNCHECKING the box → clear the company code
-                if (!newValue) {
-                  setFormData(prev => ({ ...prev, officeKitCode: '' }));
-                  setErrors(prev => {
-                    const { officeKitCode, ...rest } = prev;
-                    return rest; 
-                  });
-                }
-
-                return newValue;
-              });
-            }}
-            style={styles.customCheckbox}
-            activeOpacity={0.7}
-          >
-            {isOfficeKitUser && <TickIcon width={SIZE(20)} height={SIZE(20)} />}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            hitSlop={10}
-            activeOpacity={0.8}
-            onPress={() => setIsOfficeKitUser(prev => !prev)}
-            style={styles.checkboxLabel}
-          >
-            <Text style={styles.checkboxText}>Are you an OfficeKit user?</Text>
-          </TouchableOpacity>
-        </View>
-
-        {renderOfficeKitInput()}
-
-        <View style={{ height: SIZE(100) }} />
-      </KeyboardAwareScrollView>
-
-      <View style={[styles.bottomButtonContainer,{ paddingBottom: insets.bottom }]}>
-        <CommonButton
-          backgroundColor={'#153CD8'}
-          title={'Register'}
-          onPress={handleRegister}
-          color={'#FFFFFF'}
-          loader={loader}
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <View style={styles.container}>
+        <StatusBar
+          translucent
+          backgroundColor="transparent"
+          barStyle="dark-content"
         />
-        <TouchableOpacity
-          onPress={handleNavigateToCompanyCode}
-          style={styles.companyCodeLink}
+        <KeyboardAwareScrollView
+          contentContainerStyle={{ paddingBottom: SIZE(120) }}
+          bounces={false}
+          extraScrollHeight={0}
+          enableOnAndroid
+          showsVerticalScrollIndicator={false}
+          enableAutomaticScroll
+          style={{ paddingTop: insets.top }}
+          keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.existingUserText}>
-            Existing User?{' '}
-            <Text style={styles.companyCodeText}>Company Code</Text>
-          </Text>
-        </TouchableOpacity>
+          <View style={styles.brandIconContainer}>
+            <Image
+              source={require('../assets/brand.png')}
+              style={styles.brandIcon}
+              resizeMode="cover"
+            />
+          </View>
+
+          <View>
+            <Text allowFontScaling={false} style={styles.createText}>Create your workplace</Text>
+            <Text allowFontScaling={false} style={styles.subText}>Join and manage your team easily</Text>
+          </View>
+
+          <View style={styles.inputContainers}>
+            {inputFields.map(renderInput)}
+          </View>
+
+          {/* ========== CUSTOM CHECKBOX ========== */}
+          <View style={styles.checkboxRow}>
+            <TouchableOpacity
+              // onPress={() => setIsOfficeKitUser(prev => !prev)}
+              onPress={() => {
+                setIsOfficeKitUser(prev => {
+                  const newValue = !prev;
+
+                  // If user is UNCHECKING the box → clear the company code
+                  if (!newValue) {
+                    setFormData(prev => ({ ...prev, officeKitCode: '' }));
+                    setErrors(prev => {
+                      const { officeKitCode, ...rest } = prev;
+                      return rest;
+                    });
+                  }
+
+                  return newValue;
+                });
+              }}
+              style={styles.customCheckbox}
+              activeOpacity={0.7}
+            >
+              {isOfficeKitUser && <TickIcon width={SIZE(20)} height={SIZE(20)} />}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              hitSlop={10}
+              activeOpacity={0.8}
+              onPress={() => setIsOfficeKitUser(prev => !prev)}
+              style={styles.checkboxLabel}
+            >
+              <Text allowFontScaling={false} style={styles.checkboxText}>Are you an OfficeKit user?</Text>
+            </TouchableOpacity>
+          </View>
+
+          {renderOfficeKitInput()}
+        </KeyboardAwareScrollView>
+
+        <View style={[styles.bottomButtonContainer, { paddingBottom: insets.bottom }]}>
+          <CommonButton
+            backgroundColor={'#153CD8'}
+            title={'Register'}
+            onPress={handleRegister}
+            color={'#FFFFFF'}
+            loader={loader}
+          />
+          <TouchableOpacity
+            onPress={handleNavigateToCompanyCode}
+            style={styles.companyCodeLink}
+          >
+            <Text allowFontScaling={false} style={styles.existingUserText}>
+              Existing User?{' '}
+              <Text allowFontScaling={false} style={styles.companyCodeText}>Company Code</Text>
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
+    </TouchableWithoutFeedback>
   );
 }
 

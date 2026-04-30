@@ -61,8 +61,8 @@ export default function EmployeeManagement({ navigation }) {
 
   // Fetch Employees with Search + Pagination
   const getEmpDetails = useCallback(
-    debounce(async (search = '', newOffset = offset) => {
-      if (!hasMore && newOffset !== 0) return;
+    debounce(async (search = '', newOffset = 0) => {
+      // Logic handled inside fetch for better consistency
 
       try {
         const res = await fetchData({
@@ -71,10 +71,16 @@ export default function EmployeeManagement({ navigation }) {
           data: { limit: 10, offset: newOffset, search },
         });
 
+        console.log('API Response (EmployeeManagement):', res);
         if (res?.message === 'success') {
-          const newData = res?.data?.data || [];
-          const total = res?.data?.total || 0;
-          setHasMore(newOffset + newData.length < total);
+          const newData = res?.data?.data || res?.data || [];
+          const total = res?.data?.total || res?.total;
+
+          if (total !== undefined) {
+            setHasMore(newOffset + newData.length < total);
+          } else {
+            setHasMore(newData.length === 10);
+          }
 
           if (newOffset === 0) {
             setEmpData(newData);
@@ -92,7 +98,7 @@ export default function EmployeeManagement({ navigation }) {
         toast.show('Failed to load employees', { type: 'danger' });
       }
     }, 400),
-    [hasMore, fetchData],
+    [fetchData],
   );
 
   // Delete Employee
@@ -103,20 +109,18 @@ export default function EmployeeManagement({ navigation }) {
         method: 'POST',
         data: {
           editable_details: {
-            employee_code: selectedData?.employee_code,
+            employee_code: selectedData?.Emp_Code?.trim(),
             action: 'D',
-            // full_name: selectedData?.fullname,
-            // branch: selectedData?.branch,
           },
         },
       });
 
       if (data?.message === 'success') {
-      toast.show(data?.message, { type: 'success' });
-      // Refresh current page
-      setOffset(0);
-      setHasMore(true);
-      getEmpDetails(input, 0);
+        toast.show(data?.message, { type: 'success' });
+        // Refresh current page
+        setOffset(0);
+        setHasMore(true);
+        getEmpDetails(input, 0);
       } else {
         toast.show(data?.message || 'Delete failed', { type: 'danger' });
       }
@@ -191,45 +195,54 @@ export default function EmployeeManagement({ navigation }) {
   );
 
   // Render Item
-  const renderItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.tabContainer}
-      activeOpacity={1}
-      onPress={() => Keyboard.dismiss()}
-    >
-      <View style={styles.tabLeft}>
-        <EmpIcon width={SIZE(44)} height={SIZE(44)} />
-        <View style={styles.content}>
-          <Text style={styles.empName} numberOfLines={1}>
-            {item?.fullname}
-          </Text>
-          <Text style={styles.empId}>{item?.employee_code}</Text>
+  const renderItem = ({ item }) => {
+    const fullName = `${item?.First_Name || ''} ${item?.Last_Name || ''}`.trim();
+    const empCode = item?.Emp_Code?.trim() || '';
+
+    return (
+      <TouchableOpacity
+        style={styles.tabContainer}
+        activeOpacity={1}
+        onPress={() => Keyboard.dismiss()}
+      >
+        <View style={styles.tabLeft}>
+          <EmpIcon width={SIZE(44)} height={SIZE(44)} />
+          <View style={styles.content}>
+            <Text style={styles.empName} numberOfLines={1}>
+              {fullName}
+            </Text>
+            <Text style={styles.empId}>{empCode}</Text>
+          </View>
         </View>
-      </View>
-      <View style={styles.tabRight}>
-        <TouchableOpacity
-          onPress={() =>
-            navigation.navigate('AddEmployee', {
-              isEdit: true,
-              selectedData: item,
-            })
-          }
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <EditIcon width={SIZE(22)} height={SIZE(22)} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => {
-            setSelectedData(item);
-            setModal(true);
-          }}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <DeleteIcon width={SIZE(22)} height={SIZE(22)} />
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  );
+        <View style={styles.tabRight}>
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate('AddEmployee', {
+                isEdit: true,
+                selectedData: {
+                  ...item,
+                  fullname: fullName,
+                  employee_code: empCode,
+                },
+              })
+            }
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <EditIcon width={SIZE(22)} height={SIZE(22)} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => {
+              setSelectedData(item);
+              setModal(true);
+            }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <DeleteIcon width={SIZE(22)} height={SIZE(22)} />
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <TouchableWithoutFeedback
@@ -380,7 +393,7 @@ export default function EmployeeManagement({ navigation }) {
                 Are you sure you want to delete
                 <Text style={{ fontFamily: Fonts.Semibold }}>
                   {' '}
-                  {selectedData?.fullname} ({selectedData?.employee_code})
+                  {`${selectedData?.First_Name || ''} ${selectedData?.Last_Name || ''}`.trim()} ({selectedData?.Emp_Code?.trim()})
                 </Text>
                 ?
               </Text>
@@ -431,8 +444,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginTop: SIZE(4),
   },
-  logoutButtonWrapper: {     position: 'relative',
-    zIndex: 50, },
+  logoutButtonWrapper: { position: 'relative', zIndex: 50 },
   logOutContainer: {
     width: SIZE(200),
     backgroundColor: '#ffffff',

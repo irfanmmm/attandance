@@ -21,6 +21,17 @@ export class PermissionsService {
     }
   }
 
+  static async requestCameraOnly(): Promise<{
+    camera: PermissionStatus;
+    location: PermissionStatus;
+  }> {
+    if (Platform.OS === 'android') {
+      return this.requestAndroidCameraOnly() as any;
+    } else {
+      return this.requestIosCameraOnly();
+    }
+  }
+
   private static async requestAndroidPermissions() {
     try {
       const permissions = [
@@ -43,6 +54,25 @@ export class PermissionsService {
     }
   }
 
+  private static async requestAndroidCameraOnly() {
+    try {
+      const permissions = [
+        PERMISSIONS.ANDROID.CAMERA,
+      ];
+
+      const results = await PermissionsAndroid.requestMultiple(permissions);
+
+      const camera = results[PERMISSIONS.ANDROID.CAMERA];
+
+      return {
+        camera: this.mapAndroidResult(camera),
+        location: 'granted', // Pretend granted so calling code doesn't fail
+      };
+    } catch (error) {
+      return { camera: 'blocked', location: 'granted' };
+    }
+  }
+
   private static async requestIosPermissions() {
     const cameraStatus = await this.checkAndRequest(PERMISSIONS.IOS.CAMERA);
     const locationStatus = await this.checkAndRequest(
@@ -50,6 +80,11 @@ export class PermissionsService {
     );
 
     return { camera: cameraStatus, location: locationStatus };
+  }
+
+  private static async requestIosCameraOnly() {
+    const cameraStatus = await this.checkAndRequest(PERMISSIONS.IOS.CAMERA);
+    return { camera: cameraStatus, location: 'granted' as PermissionStatus };
   }
 
   private static async checkAndRequest(

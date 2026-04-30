@@ -136,10 +136,10 @@ export default function Login({ navigation }) {
         backgroundColor={'transparent'}
         barStyle={'dark-content'}
       />
-      {/* <TouchableWithoutFeedback onPress={Keyboard.dismiss}> */}
       <KeyboardAwareScrollView
-        extraScrollHeight={Platform.OS == 'android' ? SIZE(-100) : SIZE(100)}
         enableOnAndroid
+        extraScrollHeight={0}
+        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         style={{ paddingTop: insets.top }}
       >
@@ -151,8 +151,8 @@ export default function Login({ navigation }) {
           />
         </View>
         <View style={styles.contentContainer}>
-          <Text style={styles.employyText}>Welcome</Text>
-          <Text style={styles.subText}>
+          <Text allowFontScaling={false} style={styles.employyText}>Welcome</Text>
+          <Text allowFontScaling={false} style={styles.subText}>
             Fill in your details below. This helps us {'\n'}register your
             profile securely.
           </Text>
@@ -167,8 +167,9 @@ export default function Login({ navigation }) {
             style={styles.inputContainer}
           >
             <View>
-              <Text style={styles.uerNameText}>Company Code</Text>
+              <Text allowFontScaling={false} style={styles.uerNameText}>Company Code</Text>
               <TextInput
+                allowFontScaling={false}
                 ref={inputRef2}
                 style={styles.input}
                 placeholderTextColor={'#2C436433'}
@@ -176,6 +177,7 @@ export default function Login({ navigation }) {
                 placeholder="Enter code"
                 onChangeText={text => {
                   setCode(text);
+                  setError(false);
                 }}
               />
             </View>
@@ -194,9 +196,10 @@ export default function Login({ navigation }) {
               color={'#FFFFFF'}
             />
           </View>
-          <Text style={styles.registerText}>
+          <Text allowFontScaling={false} style={styles.registerText}>
             New User?{' '}
             <Text
+              allowFontScaling={false}
               style={{ color: '#153CD8' }}
               onPress={() => {
                 navigation.navigate('Register');

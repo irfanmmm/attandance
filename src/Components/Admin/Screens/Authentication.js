@@ -36,11 +36,13 @@ import * as Keychain from 'react-native-keychain';
 import FaceId from '../../../assets/svg/FaceID.svg';
 
 export default function Authentication({ route }) {
-  const { isNewScan } = route.params || {};
+  const { isNewScan, settings } = route.params || {};
   const insets = useSafeAreaInsets();
   const toast = useToast();
   const { fetchData } = useAxios();
   const handleLogout = useLogout();
+
+
 
   const { state, dispatch } = useContext(Context); // Add camera ready state
   const code = state.userData.company_code;
@@ -162,15 +164,27 @@ export default function Authentication({ route }) {
         } catch (error) {
           console.warn('Failed to save credentials:', error);
         }
-        if (isNewScan) {
-          navigation.navigate('AddEmployee', {
-            isNewScan: isNewScan,
-          });
-        } else {
-          navigation.navigate('EmpManagement', {
-            isAuthentication: true,
-          });
-        }
+        // if (isNewScan) {
+        //   navigation.navigate('AddEmployee', {
+        //     isNewScan: isNewScan,
+        //   });
+        // } else {
+        //   navigation.navigate('EmpManagement', {
+        //     isAuthentication: true,
+        //   });
+        // }
+
+        // if (settings) {
+        navigation.navigate('EmpaireEmpManagement');
+        // } else if (isNewScan) {
+        //   navigation.navigate('AddEmployee', {
+        //     isNewScan: isNewScan,
+        //   });
+        // } else {
+        //   navigation.navigate('EmpManagement', {
+        //     isAuthentication: true,
+        //   });
+        // }
 
         dispatch({
           type: 'UPDATE_USER_DATA',

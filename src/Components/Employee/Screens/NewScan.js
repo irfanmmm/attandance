@@ -79,6 +79,9 @@ const NewScan = ({ navigation }) => {
 
   const [loading, setLoading] = useState(false);
   const lastRunRef = useRef(0);
+  const lastActiveTimeRef = useRef(Date.now());
+  const [showModal, setShowModal] = useState(false);
+  const isModalVisible = useSharedValue(false);
   const insets = useSafeAreaInsets();
 
   const [error, setError] = useState(false);
@@ -125,6 +128,7 @@ const NewScan = ({ navigation }) => {
     useCallback(() => {
       getversion();
       setIsActive(true);
+      lastActiveTimeRef.current = Date.now();
       initLocation();
       console.log('📱 NewScan screen unfocused - cleaning up');
       return () => {
@@ -135,15 +139,44 @@ const NewScan = ({ navigation }) => {
     }, [settings]),
   );
 
-  const initLocation = async () => {
-    if (!settings?.['Location Tracking']) {
-      setCurrentLocation({ latitude: 0, longitude: 0, isValid: true });
-      return;
+  useEffect(() => {
+    isModalVisible.value = showModal;
+
+    let interval;
+    if (!showModal) {
+      interval = setInterval(() => {
+        if (isActive && Date.now() - lastActiveTimeRef.current > 10000) {
+          setShowModal(true);
+          clearInterval(interval);
+        }
+      }, 1000);
     }
 
+    return () => clearInterval(interval);
+  }, [showModal, isActive]);
+
+  const initLocation = async () => {
+    console.log(settings, 'settings');
+    if (settings === undefined) return; // Wait until settings are loaded
+
+    if (!settings?.['Location Tracking']) {
+      const res = await PermissionsService.requestCameraOnly();
+      setPermission(res);
+
+      if (res.camera !== 'granted') return;
+      setCurrentLocation({ latitude: 0, longitude: 0, isValid: true });
+      location.value = { latitude: 0, longitude: 0 };
+      isLocationReady.value = true;
+      return;
+    }
     const res = await PermissionsService.requestCameraAndLocation();
     setPermission(res);
-    if (res.location !== 'granted') return;
+
+    if (res.location !== 'granted') {
+      location.value = { latitude: 0, longitude: 0 };
+      isLocationReady.value = true;
+      return;
+    }
 
     updateState({
       status: 'Finding your location...',
@@ -152,19 +185,12 @@ const NewScan = ({ navigation }) => {
     });
 
     try {
-      const res = await callLocation();
+      const locationRes = await callLocation();
 
-      if (res?.latitude && res?.longitude) {
-        // Use setState instead of shared value
-        // setCurrentLocation({
-        //   latitude: res.latitude,
-        //   longitude: res.longitude,
-        //   isValid: true,
-        // });
-
+      if (locationRes?.latitude && locationRes?.longitude) {
         location.value = {
-          latitude: res.latitude,
-          longitude: res.longitude,
+          latitude: locationRes.latitude,
+          longitude: locationRes.longitude,
         };
         isLocationReady.value = true;
         isProcessingFrame.value = false;
@@ -178,11 +204,13 @@ const NewScan = ({ navigation }) => {
       }
     } catch (err) {
       setCurrentLocation({ latitude: 0, longitude: 0, isValid: false });
+      location.value = { latitude: 0, longitude: 0 };
+      isLocationReady.value = true;
+      isProcessingFrame.value = false;
       updateState({
-        status:
-          'Unable to get location. Move outdoors and enable High Accuracy GPS.',
+        status: 'Unable to get location. Proceeding without location.',
         loading: false,
-        error: true,
+        error: false,
       });
     }
   };
@@ -252,45 +280,30 @@ const NewScan = ({ navigation }) => {
       isNaN(lat) ||
       isNaN(lng)
     ) {
-      console.warn('⚠️ Invalid location:', {
-        lat,
-        lng,
-      });
-
-      updateState({
-        error: true,
-        status: 'Getting location... Please wait.',
-        loading: true,
-      });
-
-      try {
-        const response = await callLocation();
-        if (response.latitude && response.longitude) {
-          lat = response.latitude;
-          lng = response.longitude;
-          updateState({
-            error: false,
-            status: 'Location acquired. Processing...',
-            loading: true,
-          });
-        } else {
-          updateState({
-            error: true,
-            status: 'Location unavailable. Please enable GPS and try again.',
-            loading: false,
-          });
-          isProcessingFrame.value = false;
-          return;
-        }
-      } catch (error) {
+      if (
+        settings?.['Location Tracking'] &&
+        permission?.location === 'granted'
+      ) {
         updateState({
-          error: true,
-          status: 'Location error. Please check GPS settings.',
-          loading: false,
+          error: false,
+          status: 'Getting location... Please wait.',
+          loading: true,
         });
-        isProcessingFrame.value = false;
-        return;
+
+        try {
+          const response = await callLocation();
+          if (response.latitude && response.longitude) {
+            lat = response.latitude;
+            lng = response.longitude;
+          }
+        } catch (error) {
+          console.warn('⚠️ Failed to get location in captureFrame:', error);
+        }
       }
+
+      // Default to 0 if still invalid, and proceed
+      if (!lat || isNaN(lat)) lat = 0;
+      if (!lng || isNaN(lng)) lng = 0;
     }
 
     updateState({
@@ -356,6 +369,10 @@ const NewScan = ({ navigation }) => {
     updateState({ status, loading, error });
   });
 
+  const markActive = useRunOnJS(() => {
+    lastActiveTimeRef.current = Date.now();
+  });
+
   const processFace = useRunOnJS((base64, lat, long) => {
     captureFrame(base64, lat, long);
   });
@@ -369,9 +386,12 @@ const NewScan = ({ navigation }) => {
 
     if (!isLocationReady.value) return;
     if (isProcessingFrame.value) return;
+    if (isModalVisible.value) return;
+
     // if (frame.timestamp % 30 !== 0) return;
     const faces = xyzFrameProcessor?.call(frame);
     if (Array.isArray(faces) && faces.length !== 0) {
+      markActive();
       if (faces.length > 1) {
         handleUpdateState('Multiple Face Detected', false, false);
         clearrequest();
@@ -418,6 +438,7 @@ const NewScan = ({ navigation }) => {
     //  navigation.navigate('Authentication');
     navigation.navigate('Authentication', {
       isNewScan: true,
+      settings: settings?.['List Employees'],
     });
   };
 
@@ -440,7 +461,7 @@ const NewScan = ({ navigation }) => {
     );
   }
 
-  if (!permission || permission === 'denied' || permission === 'blocked') {
+  if (!permission || permission.camera !== 'granted') {
     return (
       <View style={styles.cameraLoadingContainer}>
         <StatusBar
@@ -450,9 +471,9 @@ const NewScan = ({ navigation }) => {
         />
 
         <Text style={{ ...styles.cameraLoadingText, marginBottom: SIZE(10) }}>
-          {permission === 'blocked'
-            ? 'Camera or Location access is blocked. Please enable both in Settings.'
-            : 'Waiting for camera and location permission...'}
+          {permission?.camera === 'blocked'
+            ? 'Camera access is blocked. Please enable it in Settings.'
+            : 'Waiting for camera permission...'}
         </Text>
         <CommonButton
           backgroundColor="#153CD8"
@@ -464,12 +485,16 @@ const NewScan = ({ navigation }) => {
     );
   }
 
-  if (permission === 'error') {
+  if (showModal) {
     return (
-      <View style={styles.cameraLoadingContainer}>
-        <Text style={styles.cameraLoadingText}>
-          Error checking camera and location permissions. Please try again.
-        </Text>
+      <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+        <OnBoarding
+          resumeCamera={() => {
+            lastActiveTimeRef.current = Date.now();
+            setShowModal(false);
+          }}
+          navigateToAdmin={navigateToAdmin}
+        />
       </View>
     );
   }
@@ -488,7 +513,7 @@ const NewScan = ({ navigation }) => {
       />
       {/* {console.log(!settings?.['Individual Login'])}
       {console.log(isAdmin,'isAdminisAdminisAdmin')} */}
-
+      {/* 
       <View style={styles.header}>
         <TouchableOpacity
           hitSlop={10}
@@ -496,15 +521,15 @@ const NewScan = ({ navigation }) => {
             clearrequest();
               navigation.navigate('Authentication');
 
-            // if (!settings?.['Individual Login']) {
-            //   navigation.navigate('Authentication');
-            // } else if (isAdmin) {
-            //   navigation.navigate('EmpManagement');
-            // } else {
-            //   navigation.navigate('SingleEmployeeReport', {
-            //     isNewScan: true,
-            //   });
-            // }
+            if (!settings?.['Individual Login']) {
+              navigation.navigate('Authentication');
+            } else if (isAdmin) {
+              navigation.navigate('EmpManagement');
+            } else {
+              navigation.navigate('SingleEmployeeReport', {
+                isNewScan: true,
+              });
+            }
    
           }}
           style={styles.adminButton}
@@ -512,15 +537,15 @@ const NewScan = ({ navigation }) => {
         >
           <Text allowFontScaling={false} style={styles.adminText}>
             Admin
-            {/* {!settings?.['Individual Login']
+            {!settings?.['Individual Login']
               ? 'Admin'
               : isAdmin
               ? 'Admin'
-              : 'Attndance Report'} */}
+              : 'Attndance Report'}
           </Text>
         </TouchableOpacity>
-      </View>
-
+      </View> */}
+      {/* Header logic moved to OnBoarding modal */}{' '}
       <View style={{ ...styles.header, left: 20, right: undefined }}>
         <TouchableOpacity
           hitSlop={10}
@@ -529,11 +554,10 @@ const NewScan = ({ navigation }) => {
           activeOpacity={0.7}
         >
           <Text allowFontScaling={false} style={styles.adminText}>
-            Add Face
+            Admin
           </Text>
         </TouchableOpacity>
       </View>
-
       <View style={styles.frameContainer}>
         <View style={styles.titileContainer}>
           <Text allowFontScaling={false} style={styles.scanText}>
@@ -562,7 +586,6 @@ const NewScan = ({ navigation }) => {
           </Text>
         </View>
       </View>
-
       <View style={[styles.statusContainer, { bottom: insets.bottom + 30 }]}>
         <View
           style={{
@@ -578,15 +601,6 @@ const NewScan = ({ navigation }) => {
           </Text>
         </View>
       </View>
-
-      {/* <Modal
-        visible={showModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowModal(false)}
-      >
-        <OnBoarding resumeCamera={resumeCamera} />
-      </Modal> */}
     </View>
   );
 };

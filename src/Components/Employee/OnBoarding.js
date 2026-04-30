@@ -1,13 +1,25 @@
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import React from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Fonts, SIZE } from '../utils/Styles';
 import CommonButton from '../CommonButton';
 
-export default function OnBoarding({resumeCamera}) {
+export default function OnBoarding({ resumeCamera, navigateToAdmin }) {
   const insets = useSafeAreaInsets();
   return (
     <View style={styles.container}>
+      <View style={{ position: 'absolute', top: insets.top + 20, right: 20, zIndex: 10 }}>
+        <TouchableOpacity
+          hitSlop={10}
+          onPress={navigateToAdmin}
+          style={styles.adminButton}
+          activeOpacity={0.7}
+        >
+          <Text allowFontScaling={false} style={styles.adminText}>
+            Admin
+          </Text>
+        </TouchableOpacity>
+      </View>
       <View style={{ paddingTop: insets.top }}>
         <View style={styles.headerTitleContent}>
           <Text style={styles.employyText}>
@@ -46,8 +58,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: SIZE(25),
     // alignItems: "center",
   },
+  adminButton: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: SIZE(30),
+    paddingHorizontal: SIZE(20),
+    paddingVertical: SIZE(8),
+    borderWidth: 1,
+    borderColor: '#153CD8',
+    justifyContent: 'center',
+    alignContent: 'center',
+  },
+  adminText: {
+    fontSize: SIZE(14),
+    color: '#153CD8',
+    lineHeight: SIZE(16),
+    fontFamily: Fonts?.Medium,
+  },
   headerTitleContent: {
-    paddingTop: SIZE(70),
+    paddingTop: SIZE(100),
     alignItems: 'center',
   },
   employyText: {
@@ -58,26 +86,20 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   subText: {
-    width: SIZE(250),
+    width: SIZE(300),
     textAlign: 'center',
     marginTop: SIZE(16),
     marginBottom: SIZE(40),
-    fontSize: SIZE(14),
+    fontSize: SIZE(16),
     lineHeight: SIZE(22),
     fontFamily: Fonts.Regular,
     color: '#000000',
   },
   imageBackround: {
-    width: 10,
-    height: 10,
-
-    // position:'absolute',
-    // left:0,
-
-    // width: SIZE(120),
-    // height: SIZE(352),
-    // alignItems:'center',
-    // overflow:'hidden'
+    width: '100%',
+    height: SIZE(350),
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   bottomButtonContainer: {
     paddingHorizontal: SIZE(30),

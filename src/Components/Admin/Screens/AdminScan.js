@@ -72,6 +72,7 @@ export default function AdminScan({ navigation, route }) {
     isNewScan,
     agancy,
     gender,
+    fromEmpaire,
   } = route.params || {};
   // const { isEdit } = route?.params || {};
   // const { selectedData } = route?.params || {};
@@ -112,16 +113,18 @@ export default function AdminScan({ navigation, route }) {
   useEffect(() => {
     const backAction = () => {
       // Navigate to the login page
-      if (isEdit) {
-        navigation.navigate('AddEmployee', {
-          isEdit,
-          selectedData: selectedData,
-        });
-      } else {
-        navigation.navigate('AddEmployee', {
-          isNewScan: isNewScan,
-        });
-      }
+      // if (fromEmpaire) {
+      navigation.goBack();
+      // } else if (isEdit) {
+      //   navigation.navigate('AddEmployee', {
+      //     isEdit,
+      //     selectedData: selectedData,
+      //   });
+      // } else {
+      //   navigation.navigate('AddEmployee', {
+      //     isNewScan: isNewScan,
+      //   });
+      // }
 
       return true; // Prevent default back action (e.g., exiting the app)
     };
@@ -313,7 +316,8 @@ export default function AdminScan({ navigation, route }) {
         });
         if (response?.message === 'success') {
           navigation.navigate('AdminStatus', {
-            isNewScan: isNewScan,
+            // isNewScan: isNewScan,
+            // isEdit: isEdit,
           });
           setLoading(false);
         } else {
@@ -361,7 +365,7 @@ export default function AdminScan({ navigation, route }) {
 
       const base64 = await RNFS.readFile(photo.path, 'base64');
       console.log('Photo taken:', base64);
-      isEdit ? await isEdite(base64) : await updateImage1(base64);
+      await updateImage1(base64);
     } catch (error) {
       setStatus('Failed to verify, try again!');
       setLoading(false);

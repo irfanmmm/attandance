@@ -9,40 +9,41 @@ import { Image } from "react-native";
 import { Context } from "../../Redux/Store";
 
 
-const CheckInScreen = ({navigation,route}) => {
-    const { state } = useContext(Context);
-  const { isEdit,isNewScan } = route?.params || {};
-
-  
+const CheckInScreen = ({ navigation, route }) => {
+  const { state } = useContext(Context);
+  const { isEdit, isNewScan } = route?.params || {};
 
 
-   const empName = state.userData.username
 
-    useEffect(()=>{
-      setTimeout(() => {
-        
-        navigation.navigate(isEdit?'EmployeeManagement':'AddEmployee',{
-          isNewScan:isNewScan
-        })
-        
-      }, 2000);
-  
-    },[])
 
-        // useEffect(() => {
-        //   const backAction = () => {
-        //     // Navigate to the login page
-        //     navigation.navigate('AddEmployee'); // Replace 'Login' with your login screen name
-        //     return true; // Prevent default back action (e.g., exiting the app)
-        //   };
-        //   const backHandler = BackHandler.addEventListener(
-        //     'hardwareBackPress',
-        //     backAction
-        //   );
-        //   return () => {
-        //     backHandler.remove(); // Cleanup when the component unmounts
-        //   };
-        // }, [navigation]);
+  const empName = state.userData.username
+
+  useEffect(() => {
+    setTimeout(() => {
+
+      navigation.navigate('EmpaireEmpManagement')
+      // navigation.navigate(isEdit?'EmployeeManagement':'AddEmployee',{
+      //   isNewScan:isNewScan
+      // })
+
+    }, 2000);
+
+  }, [])
+
+  // useEffect(() => {
+  //   const backAction = () => {
+  //     // Navigate to the login page
+  //     navigation.navigate('AddEmployee'); // Replace 'Login' with your login screen name
+  //     return true; // Prevent default back action (e.g., exiting the app)
+  //   };
+  //   const backHandler = BackHandler.addEventListener(
+  //     'hardwareBackPress',
+  //     backAction
+  //   );
+  //   return () => {
+  //     backHandler.remove(); // Cleanup when the component unmounts
+  //   };
+  // }, [navigation]);
 
   // const navigation = useNavigation();
   // React.useEffect(() => {
@@ -58,11 +59,11 @@ const CheckInScreen = ({navigation,route}) => {
         </View>
         <View style={styles.content}>
           <Text style={styles.greeting}>Employee Added Successfully!</Text>
-          <Text style={styles.status}><Text style={{fontFamily:Fonts.Bold}}>{empName}</Text> has been added to your organization. </Text>
-          
+          <Text style={styles.status}><Text style={{ fontFamily: Fonts.Bold }}>{empName}</Text> has been added to your organization. </Text>
+
         </View>
       </View>
-      </View>
+    </View>
     // </ImageBackground>
   );
 };
@@ -70,11 +71,11 @@ const CheckInScreen = ({navigation,route}) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  //  backgroundColor: '#1a1a1a',
+    //  backgroundColor: '#1a1a1a',
     justifyContent: "center",
     alignItems: "center",
     // opacity:0.8
-    backgroundColor:'#000000',
+    backgroundColor: '#000000',
     // opacity:0.6,
   },
   blurContainer: {
@@ -95,17 +96,17 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.Semibold,
     lineHeight: SIZE(32),
     marginBottom: SIZE(8),
-    width:SIZE(200),
-    textAlign:'center'
+    width: SIZE(200),
+    textAlign: 'center'
   },
   status: {
-    width:SIZE(250),
+    width: SIZE(250),
     fontSize: SIZE(16),
     lineHeight: SIZE(18),
     fontFamily: Fonts.Medium,
     color: "#ffffff",
     marginBottom: SIZE(16),
-    textAlign:'center'
+    textAlign: 'center'
   },
 
   absolute: {

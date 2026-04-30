@@ -19,6 +19,7 @@ import AddBranch from './EmpManagement/AddBranch';
 import AddEgency from './EmpManagement/AddAgency';
 import ResetPassword from '../Employee/Screens/ResetPassword';
 import SingleEmployeeReport from './EmpManagement/SingleEmployeeReport';
+import EmpaireEmpManagement from './EmpManagement/EmpaireEmpManagement';
 import { Context } from '../Redux/Store';
 import { useContext } from 'react';
 
@@ -42,8 +43,8 @@ function LogoTitle() {
 
 const AdminStackNavigator = () => {
   const Stack = createNativeStackNavigator();
-    const { state } = useContext(Context);
-    const initialRoute = state.userData.initialRoute || "NewScan";
+  const { state } = useContext(Context);
+  const initialRoute = state.userData.initialRoute || 'NewScan';
   return (
     <Stack.Navigator
       initialRouteName={initialRoute}
@@ -130,6 +131,11 @@ const AdminStackNavigator = () => {
           options={{ headerShown: false }}
           name="AddAgency"
           component={AddEgency}
+        />
+        <Stack.Screen
+          options={{ headerShown: false }}
+          name="EmpaireEmpManagement"
+          component={EmpaireEmpManagement}
         />
       </Stack.Group>
     </Stack.Navigator>

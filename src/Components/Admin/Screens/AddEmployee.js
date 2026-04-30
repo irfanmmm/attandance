@@ -102,12 +102,12 @@ export default function AddEmployee({ navigation, route }) {
   const [input, setInput] = useState(
     isEdit
       ? {
-          bracnh: selectedData?.branch || '',
-          username: selectedData?.fullname || '',
-          password: selectedData?.employee_code || '',
-          agancy: selectedData?.agency || '',
-          gender: selectedData?.gender || '',
-        }
+        bracnh: selectedData?.branch || '',
+        username: selectedData?.fullname || '',
+        password: selectedData?.employee_code || '',
+        agancy: selectedData?.agency || '',
+        gender: selectedData?.gender || '',
+      }
       : initialForm,
   );
 
@@ -187,13 +187,13 @@ export default function AddEmployee({ navigation, route }) {
 
   const validateForm = () => {
     const cleanUsername = input.username.trim();
-    const cleanPassword = input.password.trim();
+    // const cleanPassword = input.password.trim();
     const cleanBranch = input.bracnh?.trim(); // use optional chaining in case it's undefined
     const cleanAgency = input.agancy?.trim();
     const cleanGender = input.gender?.trim();
     let newError = {
       usernameErr: !cleanUsername,
-      passwordErr: !cleanPassword,
+      // passwordErr: !cleanPassword,
       branchErr: false,
       agancyErr: false,
       genderErr: false,
@@ -334,28 +334,28 @@ export default function AddEmployee({ navigation, route }) {
       console.log('Fetch branch error:', err);
     }
   };
-  const generateCode = async () => {
-    setGenerateLoader(true);
-    try {
-      const response = await fetchData({
-        url: 'auth/generate-employee-code',
-        // method: 'POST',
-      });
+  // const generateCode = async () => {
+  //   setGenerateLoader(true);
+  //   try {
+  //     const response = await fetchData({
+  //       url: 'auth/generate-employee-code',
+  //       // method: 'POST',
+  //     });
 
-      if (response?.message === 'success') {
-        // console.log(response, 'dddfththt');
+  //     if (response?.message === 'success') {
+  //       // console.log(response, 'dddfththt');
 
-        setInput(prev => ({
-          ...prev,
-          password: response?.employee_code || '',
-        }));
-      }
-    } catch (error) {
-      toast.show('Failed to generate code', { type: 'danger' });
-    } finally {
-      setGenerateLoader(false);
-    }
-  };
+  //       setInput(prev => ({
+  //         ...prev,
+  //         password: response?.employee_code || '',
+  //       }));
+  //     }
+  //   } catch (error) {
+  //     toast.show('Failed to generate code', { type: 'danger' });
+  //   } finally {
+  //     setGenerateLoader(false);
+  //   }
+  // };
   const saveChanges = async () => {
     Keyboard.dismiss();
     setLoader(true);
@@ -364,12 +364,12 @@ export default function AddEmployee({ navigation, route }) {
         url: 'edit-user',
         method: 'POST',
 
-          //   email: input?.username,
-          // // password: input.password,
-          // branch: branchId,
-          // employeecode: input?.password,
-          // agency: agency,
-          // gender: input.gender,
+        //   email: input?.username,
+        // // password: input.password,
+        // branch: branchId,
+        // employeecode: input?.password,
+        // agency: agency,
+        // gender: input.gender,
         data: {
           editable_details: {
             employee_code: input?.password,
@@ -421,13 +421,14 @@ export default function AddEmployee({ navigation, route }) {
 
   useEffect(() => {
     const backAction = () => {
-      if (isEdit) {
-        navigation.navigate('EmployeeManagement');
-      } else if (isNewScan) {
-        navigation.navigate('NewScan');
-      } else {
-        navigation.navigate('EmpManagement');
-      }
+      navigation.goBack()
+      // if (isEdit) {
+      //   navigation.navigate('EmployeeManagement');
+      // } else if (isNewScan) {
+      //   navigation.navigate('NewScan');
+      // } else {
+      //   navigation.navigate('EmpManagement');
+      // }
       return true;
     };
     const backHandler = BackHandler.addEventListener(
@@ -445,7 +446,7 @@ export default function AddEmployee({ navigation, route }) {
         enableOnAndroid={true}
         contentContainerStyle={{ flexGrow: 1, paddingBottom: SIZE(70) }}
         bounces={false}
-        // extraScrollHeight={Platform.OS === 'ios' ? 100 : -70}
+      // extraScrollHeight={Platform.OS === 'ios' ? 100 : -70}
       >
         <TouchableWithoutFeedback
           onPress={() => {
@@ -467,11 +468,12 @@ export default function AddEmployee({ navigation, route }) {
                     activeOpacity={0.8}
                     hitSlop={5}
                     onPress={() => {
-                      isEdit
-                        ? navigation.navigate('EmployeeManagement')
-                        : isNewScan
-                        ? navigation.navigate('NewScan')
-                        : navigation.navigate('EmpManagement');
+                      navigation.navigate()
+                      // isEdit
+                      //   ? navigation.navigate('EmployeeManagement')
+                      //   : isNewScan
+                      //     ? navigation.navigate('NewScan')
+                      //     : navigation.navigate('EmpManagement');
                       setLogOut(false);
                     }}
                   >
@@ -968,7 +970,7 @@ export default function AddEmployee({ navigation, route }) {
                   <Text style={styles.errorText}>*Please enter name</Text>
                 )}
 
-                <TouchableOpacity
+                {/* <TouchableOpacity
                   activeOpacity={0.8}
                   hitSlop={10}
                   onPress={() => {
@@ -977,7 +979,7 @@ export default function AddEmployee({ navigation, route }) {
                   }}
                   style={{ ...styles.inputContainer, marginTop: SIZE(16) }}
                 >
-                  {console.log(settings?.['Office Kit Integration'], 'dfff')}
+
                   <LockIcon
                     width={SIZE(20)}
                     height={SIZE(20)}
@@ -998,9 +1000,9 @@ export default function AddEmployee({ navigation, route }) {
                       placeholder="Enter Code"
                       onChangeText={text => handleChange('password', text)}
                     />
-                  </View>
+                  </View> */}
 
-                  {!isEdit && (
+                {/* {!isEdit && (
                     <TouchableOpacity
                       style={{
                         borderWidth: 1,
@@ -1038,7 +1040,8 @@ export default function AddEmployee({ navigation, route }) {
                 </TouchableOpacity>
                 {error.passwordErr && (
                   <Text style={styles.errorText}>*Please enter code</Text>
-                )}
+                )} */}
+                {/* </TouchableOpacity> */}
               </View>
             </TouchableWithoutFeedback>
           </ImageBackground>

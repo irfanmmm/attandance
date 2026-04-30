@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useState, useMemo } from 'react';
 import { Context } from '../Redux/Store';
 
 type SettingObj = {
@@ -11,19 +11,19 @@ type SettingObj = {
 
 export const useSettings = () => {
   const { state } = useContext(Context);
-  const [outbut, setOutput] = useState<SettingObj>();
   const settings = state?.userData?.settings as {
     setting_name: string;
     value: boolean;
   }[];
 
-  useEffect(() => {
+  const output = useMemo(() => {
+    if (!settings) return undefined;
     let data: any = {}
     settings.forEach(val => {
       data[val.setting_name] = val.value;
     });
-    setOutput(data);
+    return data;
   }, [settings]);
 
-  return outbut
+  return output;
 };
