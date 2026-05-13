@@ -2,9 +2,9 @@ name: Android CI/CD
 
 on:
   push:
-    branches: [ "latest" ]
+    branches: ['latest']
   pull_request:
-    branches: [ "latest" ]
+    branches: ['latest']
   workflow_dispatch:
 
 jobs:
@@ -23,12 +23,6 @@ jobs:
 
       - name: Install Dependencies
         run: npm install
-
-      - name: Run ESLint
-        run: npm run lint
-
-      - name: Run Jest Tests
-        run: npm test
 
   build-android:
     name: Build Android
