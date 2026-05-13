@@ -70,7 +70,7 @@ export default function AdminScan({ navigation, route }) {
     selectedData,
     branch,
     isNewScan,
-    agancy,
+    agency,
     gender,
     fromEmpaire,
   } = route.params || {};
@@ -83,27 +83,24 @@ export default function AdminScan({ navigation, route }) {
 
   const isUploadingRef = useRef(false);
 
-  const isEdite = async base64 => {
+  const retakeEmployeeFace = async base64 => {
     try {
       const data = await fetchData({
-        url: 'edit-user',
+        url: 'edit-employee-face',
         method: 'POST',
         data: {
+          employeecode: employeecode,
           base64: base64,
-          // editable_details: {
-          //   employee_code: employeecode,
-          //   action: 'E',
-          //   full_name: fullname,
-          //   branch: branch,
-          //   agency: agancy,
-          // },
         },
       });
 
-      if (data?.message === 'success') {
-        //  toast.show(data?.message, { type: 'success' });
-        navigation.navigate('AdminStatus', { isEdit });
+      if (data?.status) {
+        // toast.show(data?.message, { type: 'success' });
+        navigation.goBack();
       } else {
+        setStatus(data?.message);
+        setLoading(false);
+        setFailed(true);
       }
     } catch (err) {
       console.log('Authentication error:', err?.message);
@@ -308,7 +305,7 @@ export default function AdminScan({ navigation, route }) {
             base64: base64,
             boundry: null,
             branch: branch,
-            agency: agancy,
+            agency: agency,
             gender: gender,
             employeecode: employeecode,
             fullname: fullname,
@@ -365,7 +362,11 @@ export default function AdminScan({ navigation, route }) {
 
       const base64 = await RNFS.readFile(photo.path, 'base64');
       console.log('Photo taken:', base64);
-      await updateImage1(base64);
+      if (isEdit) {
+        await retakeEmployeeFace(base64);
+      } else {
+        await updateImage1(base64);
+      }
     } catch (error) {
       setStatus('Failed to verify, try again!');
       setLoading(false);

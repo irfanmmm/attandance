@@ -277,14 +277,14 @@ export default function EmpaireEmpManagement({ navigation }) {
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               onPress={() =>
                 navigation.navigate('AdminScan', {
-                  // isEdit: true,
                   fullname: fullName,
                   employeecode: empCode,
                   branch: item?.branch,
-                  agancy: item?.agancy || item?.agency,
+                  agency: item?.agency,
                   gender: item?.Gender,
                   selectedData: item,
                   fromEmpaire: true,
+                  isEdit: true,
                 })
               }
             >
@@ -298,9 +298,8 @@ export default function EmpaireEmpManagement({ navigation }) {
                   fullname: fullName,
                   employeecode: empCode,
                   branch: item?.branch,
-                  agancy: item?.agancy || item?.agency,
+                  agency: item?.agency,
                   gender: item?.Gender,
-                  // isEdit: true,
                   selectedData: item,
                   fromEmpaire: true,
                 });
@@ -326,14 +325,7 @@ export default function EmpaireEmpManagement({ navigation }) {
   };
 
   return (
-    <View
-      style={styles.container}
-
-      // onPress={() => {
-      //   setLogOut(false);
-      //   Keyboard.dismiss();
-      // }}
-    >
+    <View style={styles.container}>
       <>
         {settings['Enable Create User'] && (
           <TouchableOpacity
@@ -348,6 +340,8 @@ export default function EmpaireEmpManagement({ navigation }) {
             <AddIcon width={SIZE(24)} height={SIZE(24)} />
           </TouchableOpacity>
         )}
+
+        {/*  Retake button */}
 
         {/* Header */}
         <LinearGradient
@@ -388,7 +382,6 @@ export default function EmpaireEmpManagement({ navigation }) {
                     ],
                     { cancelable: true },
                   );
-                  // navigation.goBack();
                 }}
               >
                 <BackIcon width={SIZE(24)} height={SIZE(24)} />
@@ -460,16 +453,6 @@ export default function EmpaireEmpManagement({ navigation }) {
 
           {/* Employee List */}
 
-          {/* <FlatList
-          data={Array(200).fill("")}
-          renderItem={({ item }) => {
-            return (
-              <View style={{ height: 100, backgroundColor: 'red' }}>
-                <Text>{JSON.stringify(item)}</Text>
-              </View>
-            )
-          }}
-        /> */}
           <FlatList
             data={empData}
             renderItem={renderItem}
@@ -713,17 +696,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SIZE(20),
     paddingTop: SIZE(20),
   },
-  // searchContainer: {
-  //   flexDirection: 'row',
-  //   alignItems: 'center',
-  //   backgroundColor: '#fff',
-  //   borderWidth: 1,
-  //   borderColor: '#DDD',
-  //   borderRadius: SIZE(30),
-  //   paddingHorizontal: SIZE(16),
-  //   height: SIZE(50),
-  //   marginBottom: SIZE(20),
-  // },
   input: { flex: 1, marginLeft: SIZE(10), fontSize: SIZE(15), color: '#000' },
   tabContainer: {
     flexDirection: 'row',

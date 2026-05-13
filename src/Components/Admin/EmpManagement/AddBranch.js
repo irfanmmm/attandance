@@ -58,7 +58,7 @@ export default function AddBranch({ navigation, route }) {
   const [error, setError] = useState({
     // usernameErr: false,
     // passwordErr: false,
-    bracnhErr: false,
+    branchErr: false,
     latitudeErr: false,
     longitudeErr: false,
     locationErr: false,
@@ -323,7 +323,7 @@ export default function AddBranch({ navigation, route }) {
                     />
                   </View>
                 </TouchableOpacity>
-                {error.bracnhErr && (
+                {error.branchErr && (
                   <Text style={styles.errorText}>*Please enter branch</Text>
                 )}
                 {settings?.['Location Tracking'] && (
@@ -333,7 +333,7 @@ export default function AddBranch({ navigation, route }) {
                       hitSlop={10}
                       onPress={() => {
                         inputRef1.current?.focus();
-                        setError(prev => ({ ...prev, bracnhErr: false }));
+                        setError(prev => ({ ...prev, branchErr: false }));
                       }}
                       style={{ ...styles.inputContainer, marginTop: SIZE(16) }}
                     >
@@ -359,7 +359,7 @@ export default function AddBranch({ navigation, route }) {
                           placeholder="Enter radius"
                           onChangeText={text => {
                             handleChange('radius', text);
-                            setError(prev => ({ ...prev, bracnhErr: false }));
+                            setError(prev => ({ ...prev, branchErr: false }));
                           }}
                         />
                       </View>
@@ -526,7 +526,7 @@ export default function AddBranch({ navigation, route }) {
 
             if (hasError) {
               setError({
-                bracnhErr: branchEmpty,
+                branchErr: branchEmpty,
                 locationErr: latitudeEmpty || longitudeEmpty,
                 radiusErr: radiusEmpty,
               });

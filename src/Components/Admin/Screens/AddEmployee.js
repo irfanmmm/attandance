@@ -42,7 +42,6 @@ export default function AddEmployee({ navigation, route }) {
   const { fetchData } = useAxios();
   const code = state?.userData?.company_code;
 
-
   const [agency, setAgency] = useState('');
   const [agencySearch, setAgencySearch] = useState('');
   const [agencyDropDown, setAgencyDropDown] = useState(false);
@@ -52,10 +51,10 @@ export default function AddEmployee({ navigation, route }) {
   const [offset, setOffset] = useState(1);
   const [showGender, setShowGender] = useState('');
 
-  const handleAgencySelect = agancy => {
+  const handleAgencySelect = agency => {
     // setAgency(ag);
-    setInput(prev => ({ ...prev, agancy }));
-    setError(prev => ({ ...prev, agancyErr: false }));
+    setInput(prev => ({ ...prev, agency }));
+    setError(prev => ({ ...prev, agencyErr: false }));
     setAgencyErr(false);
     setAgencyDropDown(false);
     setAgencySearch('');
@@ -91,33 +90,32 @@ export default function AddEmployee({ navigation, route }) {
 
   // Initial empty form
   const initialForm = {
-    bracnh: '',
+    branch: '',
     username: '',
     password: '',
-    agancy: '',
+    agency: '',
     gender: '',
   };
-
 
   const [input, setInput] = useState(
     isEdit
       ? {
-        bracnh: selectedData?.branch || '',
-        username: selectedData?.fullname || '',
-        password: selectedData?.employee_code || '',
-        agancy: selectedData?.agency || '',
-        gender: selectedData?.gender || '',
-      }
+          branch: selectedData?.branch || '',
+          username: selectedData?.fullname || '',
+          password: selectedData?.employee_code || '',
+          agency: selectedData?.agency || '',
+          gender: selectedData?.gender || '',
+        }
       : initialForm,
   );
 
   const [data, setData] = useState([]);
-  const [agancyData, setAganct] = useState([]);
+  const [agencyData, setAgencyData] = useState([]);
   const [error, setError] = useState({
     usernameErr: false,
     passwordErr: false,
     branchErr: false,
-    agancyErr: false,
+    agencyErr: false,
     genderErr: false,
   });
   const [searchQuery, setSearchQuery] = useState('');
@@ -130,7 +128,7 @@ export default function AddEmployee({ navigation, route }) {
 
   // const [genderErr, setGenderErr] = useState(false);
 
-  const agencyFlter = agancyData?.filter(item =>
+  const agencyFlter = agencyData?.filter(item =>
     item?.agent_name?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
@@ -139,8 +137,8 @@ export default function AddEmployee({ navigation, route }) {
     setError(prev => ({ ...prev, [`${name}Err`]: false }));
   };
 
-  const handleBranchSelect = bracnh => {
-    setInput(prev => ({ ...prev, bracnh }));
+  const handleBranchSelect = branch => {
+    setInput(prev => ({ ...prev, branch }));
     setError(prev => ({ ...prev, branchErr: false }));
     setDropDown(false);
     setSearchQuery('');
@@ -175,7 +173,7 @@ export default function AddEmployee({ navigation, route }) {
       employeecode: input.password,
       branch: branchId,
       isNewScan: isNewScan,
-      agancy: agency,
+      agency: agency,
       gender: input.gender,
     });
 
@@ -188,14 +186,14 @@ export default function AddEmployee({ navigation, route }) {
   const validateForm = () => {
     const cleanUsername = input.username.trim();
     // const cleanPassword = input.password.trim();
-    const cleanBranch = input.bracnh?.trim(); // use optional chaining in case it's undefined
-    const cleanAgency = input.agancy?.trim();
+    const cleanBranch = input.branch?.trim(); // use optional chaining in case it's undefined
+    const cleanAgency = input.agency?.trim();
     const cleanGender = input.gender?.trim();
     let newError = {
       usernameErr: !cleanUsername,
       // passwordErr: !cleanPassword,
       branchErr: false,
-      agancyErr: false,
+      agencyErr: false,
       genderErr: false,
     };
 
@@ -206,7 +204,7 @@ export default function AddEmployee({ navigation, route }) {
 
     // Only validate Agency if Agency Management is ON
     if (settings?.['Agency Management'] && !cleanAgency) {
-      newError.agancyErr = true;
+      newError.agencyErr = true;
     }
     if (!cleanGender) {
       newError.genderErr = true;
@@ -218,7 +216,7 @@ export default function AddEmployee({ navigation, route }) {
       newError.usernameErr ||
       newError.passwordErr ||
       newError.branchErr ||
-      newError.agancyErr ||
+      newError.agencyErr ||
       newError.genderErr;
     if (hasError) {
       toast.show('Please fill all required fields', { type: 'danger' });
@@ -267,7 +265,7 @@ export default function AddEmployee({ navigation, route }) {
           usernameErr: false,
           passwordErr: false,
           branchErr: false,
-          agancyErr: false,
+          agencyErr: false,
         });
 
         // Auto focus name field
@@ -327,7 +325,7 @@ export default function AddEmployee({ navigation, route }) {
       });
       if (res?.message === 'success') {
         console.log(res?.details, 'res?.detailsres?.detailsres?.details');
-        setAganct(res?.details || []);
+        setAgencyData(res?.details || []);
         // setData(res?.details || []);
       }
     } catch (err) {
@@ -375,8 +373,8 @@ export default function AddEmployee({ navigation, route }) {
             employee_code: input?.password,
             action: 'E',
             full_name: input?.username,
-            branch: input?.bracnh,
-            agency: input?.agancy,
+            branch: input?.branch,
+            agency: input?.agency,
           },
         },
       });
@@ -421,7 +419,7 @@ export default function AddEmployee({ navigation, route }) {
 
   useEffect(() => {
     const backAction = () => {
-      navigation.goBack()
+      navigation.goBack();
       // if (isEdit) {
       //   navigation.navigate('EmployeeManagement');
       // } else if (isNewScan) {
@@ -446,7 +444,7 @@ export default function AddEmployee({ navigation, route }) {
         enableOnAndroid={true}
         contentContainerStyle={{ flexGrow: 1, paddingBottom: SIZE(70) }}
         bounces={false}
-      // extraScrollHeight={Platform.OS === 'ios' ? 100 : -70}
+        // extraScrollHeight={Platform.OS === 'ios' ? 100 : -70}
       >
         <TouchableWithoutFeedback
           onPress={() => {
@@ -468,7 +466,7 @@ export default function AddEmployee({ navigation, route }) {
                     activeOpacity={0.8}
                     hitSlop={5}
                     onPress={() => {
-                      navigation.navigate()
+                      navigation.goBack();
                       // isEdit
                       //   ? navigation.navigate('EmployeeManagement')
                       //   : isNewScan
@@ -591,10 +589,10 @@ export default function AddEmployee({ navigation, route }) {
                               marginTop: SIZE(5),
                               fontSize: SIZE(14),
                               lineHeight: SIZE(16),
-                              color: input.bracnh ? '#000000' : '#2C436433',
+                              color: input.branch ? '#000000' : '#2C436433',
                             }}
                           >
-                            {input?.bracnh || 'Select branch'}
+                            {input?.branch || 'Select branch'}
                           </Text>
                         </View>
                         <View
@@ -628,7 +626,7 @@ export default function AddEmployee({ navigation, route }) {
                           // getAgency();
                           setDropDown(false);
                           setSearchQuery('');
-                          setError(prev => ({ ...prev, agancyErr: false }));
+                          setError(prev => ({ ...prev, agencyErr: false }));
                           Keyboard.dismiss();
                         }}
                       >
@@ -741,10 +739,10 @@ export default function AddEmployee({ navigation, route }) {
                               marginTop: SIZE(5),
                               fontSize: SIZE(14),
                               lineHeight: SIZE(16),
-                              color: input.agancy ? '#000000' : '#2C436433',
+                              color: input.agency ? '#000000' : '#2C436433',
                             }}
                           >
-                            {input.agancy || 'Select agency'}
+                            {input.agency || 'Select agency'}
                           </Text>
                         </View>
 
@@ -759,7 +757,7 @@ export default function AddEmployee({ navigation, route }) {
                         </View>
                       </TouchableOpacity>
 
-                      {error.agancyErr && (
+                      {error.agencyErr && (
                         <Text style={styles.errorText}>
                           *Please select an agency
                         </Text>
@@ -961,7 +959,7 @@ export default function AddEmployee({ navigation, route }) {
                       inputMode="email"
                       placeholderTextColor={'#2C436433'}
                       value={input.username}
-                      placeholder="Enter Emaif or Name"
+                      placeholder="Enter Email or Name"
                       onChangeText={text => handleChange('username', text)}
                     />
                   </View>
@@ -1063,7 +1061,7 @@ export default function AddEmployee({ navigation, route }) {
                   branch: branchId,
                   isEdit,
                   selectedData: selectedData,
-                  agancy: agency,
+                  agency: agency,
                 });
               }}
               style={styles.buttonCont}

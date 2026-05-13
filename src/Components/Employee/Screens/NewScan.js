@@ -1,11 +1,7 @@
 import {
   ActivityIndicator,
   Alert,
-  BackHandler,
-  Dimensions,
   Linking,
-  Modal,
-  PermissionsAndroid,
   Platform,
   StatusBar,
   StyleSheet,
@@ -23,59 +19,32 @@ import React, {
 } from 'react';
 import {
   Camera,
-  runAsync,
   useCameraDevice,
   useFrameProcessor,
   VisionCameraProxy,
 } from 'react-native-vision-camera';
-import {
-  useRunOnJS,
-  useSharedValue,
-  useWorklet,
-  worklet,
-  Worklets,
-} from 'react-native-worklets-core';
-// import {} from 'react-native-reanimated'
-import { BASE_URL } from '../../utils/urls';
-import { Fonts, SIZE } from '../../utils/Styles';
-import CommonButton from '../../CommonButton';
-import ErrorIcon from '../../../assets/svg/error.svg';
+import { useRunOnJS, useSharedValue } from 'react-native-worklets-core';
 import ScanIcon from '../../../assets/svg/scan.svg';
 import { Context } from '../../Redux/Store';
 import { useFocusEffect } from '@react-navigation/native';
-import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
-import { SystemBars } from 'react-native-edge-to-edge';
 import OnBoarding from '../OnBoarding';
-// import {} from 'react-native-geolocation-service';
-import { useSettings } from '../../utils/useSettings';
-import { PermissionsService } from '../../utils/permissions';
-import { useAxios } from '../../utils/useAxios';
-import { useLocationShared } from '../../utils/useLocation';
 import DeviceInfo from 'react-native-device-info';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { crop } from 'vision-camera-cropper';
-import Geolocation from 'react-native-geolocation-service';
 
-const xyzFrameProcessor = VisionCameraProxy.initFrameProcessorPlugin('xyz', {
-  model: 'fast',
-});
+import { useScanFrameProcessor } from '../../utils/useScanFrameProcessor';
+import { useScanPermissions } from '../../utils/useScanPermissions';
+import { useSettings } from '../../utils/useSettings';
+import { useLocationShared } from '../../utils/useLocation';
+import { useAxios } from '../../utils/useAxios';
+import { Fonts, SIZE } from '../../utils/Styles';
+import CommonButton from '../../CommonButton';
+
 const NewScan = ({ navigation }) => {
   const device = useCameraDevice('front');
   const { fetchData } = useAxios();
   const [isActive, setIsActive] = useState(false);
-  const [permission, setPermission] = useState(null);
   const axiosSignal = useRef(null);
   const camera = useRef(null);
-  // const { callLocation } = useLocationShared();
-
-  const locationShared = useSharedValue({
-    latitude: null,
-    longitude: null,
-    timestamp: null,
-  });
-
-  // console.log(locationShared.value, 'new scan section----')
-  const settings = useSettings();
 
   const [loading, setLoading] = useState(false);
   const lastRunRef = useRef(0);
@@ -85,159 +54,16 @@ const NewScan = ({ navigation }) => {
   const insets = useSafeAreaInsets();
 
   const [error, setError] = useState(false);
-  const [isFrameProcessorEnabled, setIsFrameProcessorEnabled] = useState(true);
-  const [currentLocation, setCurrentLocation] = useState({
-    latitude: 0,
-    longitude: 0,
-    isValid: false,
-  });
 
   const isCapturingRef = useRef(false);
   const [status, setStatus] = useState(
     'Please align your face within the frame',
   );
-  const { state } = useContext(Context);
-
-  const isAdmin = state.userData.is_admin;
-
   const isProcessingFrame = useSharedValue(false);
-  const { callLocation } = useLocationShared();
-
   const location = useSharedValue({ latitude: 0, longitude: 0 });
   const isLocationReady = useSharedValue(false);
-
-  const getversion = async () => {
-    try {
-      const res = await fetchData({
-        url: 'app-version',
-        // method: 'POST',
-        // data: { compony_code: code },
-      });
-      if (res?.message === 'success') {
-        const platform = Platform.OS;
-        if (res?.[platform]?.force) {
-          checkForUpdate(res?.[platform]?.version);
-        }
-      }
-    } catch (err) {
-      console.log('Fetch branch error:', err);
-    }
-  };
-
-  useFocusEffect(
-    useCallback(() => {
-      getversion();
-      setIsActive(true);
-      lastActiveTimeRef.current = Date.now();
-      initLocation();
-      console.log('📱 NewScan screen unfocused - cleaning up');
-      return () => {
-        axiosSignal?.current?.abort();
-        setIsActive(false);
-        console.log('unmount this screen');
-      };
-    }, [settings]),
-  );
-
-  useEffect(() => {
-    isModalVisible.value = showModal;
-
-    let interval;
-    if (!showModal) {
-      interval = setInterval(() => {
-        if (isActive && Date.now() - lastActiveTimeRef.current > 10000) {
-          setShowModal(true);
-          clearInterval(interval);
-        }
-      }, 1000);
-    }
-
-    return () => clearInterval(interval);
-  }, [showModal, isActive]);
-
-  const initLocation = async () => {
-    console.log(settings, 'settings');
-    if (settings === undefined) return; // Wait until settings are loaded
-
-    if (!settings?.['Location Tracking']) {
-      const res = await PermissionsService.requestCameraOnly();
-      setPermission(res);
-
-      if (res.camera !== 'granted') return;
-      setCurrentLocation({ latitude: 0, longitude: 0, isValid: true });
-      location.value = { latitude: 0, longitude: 0 };
-      isLocationReady.value = true;
-      return;
-    }
-    const res = await PermissionsService.requestCameraAndLocation();
-    setPermission(res);
-
-    if (res.location !== 'granted') {
-      location.value = { latitude: 0, longitude: 0 };
-      isLocationReady.value = true;
-      return;
-    }
-
-    updateState({
-      status: 'Finding your location...',
-      loading: true,
-      error: false,
-    });
-
-    try {
-      const locationRes = await callLocation();
-
-      if (locationRes?.latitude && locationRes?.longitude) {
-        location.value = {
-          latitude: locationRes.latitude,
-          longitude: locationRes.longitude,
-        };
-        isLocationReady.value = true;
-        isProcessingFrame.value = false;
-        updateState({
-          status: 'Please align your face within the frame',
-          loading: false,
-          error: false,
-        });
-      } else {
-        throw new Error('Invalid location');
-      }
-    } catch (err) {
-      setCurrentLocation({ latitude: 0, longitude: 0, isValid: false });
-      location.value = { latitude: 0, longitude: 0 };
-      isLocationReady.value = true;
-      isProcessingFrame.value = false;
-      updateState({
-        status: 'Unable to get location. Proceeding without location.',
-        loading: false,
-        error: false,
-      });
-    }
-  };
-
-  const checkForUpdate = latestVersion => {
-    const currentVersion = DeviceInfo.getVersion();
-    if (currentVersion < latestVersion) {
-      Alert.alert(
-        'Update Required',
-        'Please update the app to continue.',
-        [
-          {
-            text: 'Update Now',
-            onPress: () => {
-              const link =
-                Platform.OS === 'android'
-                  ? 'https://play.google.com/store/apps/details?id=com.officekitlence'
-                  : 'https://apps.apple.com/us/app/facekit/id6753619593';
-
-              Linking.openURL(link);
-            },
-          },
-        ],
-        { cancelable: false }, // User cannot skip
-      );
-    }
-  };
+  const settings = useSettings();
+  const { callLocation } = useLocationShared();
 
   const updateState = async updates => {
     if (lastRunRef.current > Date.now() - 700) return;
@@ -262,6 +88,14 @@ const NewScan = ({ navigation }) => {
       }
     });
   };
+
+  const handleUpdateState = useRunOnJS((status, loading, error) => {
+    updateState({ status, loading, error });
+  });
+
+  const markActive = useRunOnJS(() => {
+    lastActiveTimeRef.current = Date.now();
+  });
 
   const captureFrame = async (base64, boundry = null) => {
     if (!camera.current || isCapturingRef.current) {
@@ -301,7 +135,6 @@ const NewScan = ({ navigation }) => {
         }
       }
 
-      // Default to 0 if still invalid, and proceed
       if (!lat || isNaN(lat)) lat = 0;
       if (!lng || isNaN(lng)) lng = 0;
     }
@@ -335,6 +168,7 @@ const NewScan = ({ navigation }) => {
         navigation.navigate('Status', {
           username: data?.details?.fullname,
           direction: data?.details?.direction,
+          workingHours: data?.details?.working_time,
         });
       } else {
         updateState({
@@ -345,97 +179,130 @@ const NewScan = ({ navigation }) => {
         });
       }
     } catch (err) {
-      console.log('❌ Upload error:', err.response.data.message);
-      const errorMessage =
-        err.name === 'AbortError'
-          ? 'Request timed out. Please try again.'
-          : 'Connection failed. Please try again.';
+      if (
+        err.name === 'AbortError' ||
+        err.name === 'CanceledError' ||
+        err.code === 'ERR_CANCELED'
+      ) {
+        console.log('⏹️ Request aborted');
+        return;
+      }
+
+      console.log(
+        '❌ Upload error:',
+        err?.response?.data?.message || err.message,
+      );
+      const errorMessage = 'Connection failed. Please try again.';
+
       updateState({
         loading: false,
         error: true,
-        status: errorMessage,
+        status: err?.response?.data?.message || errorMessage,
         processing: false,
         duration: Date.now(),
       });
     } finally {
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      if (isActive) {
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      }
       isCapturingRef.current = false;
       isProcessingFrame.value = false;
-      setIsFrameProcessorEnabled(true);
     }
   };
-
-  const handleUpdateState = useRunOnJS((status, loading, error) => {
-    updateState({ status, loading, error });
-  });
-
-  const markActive = useRunOnJS(() => {
-    lastActiveTimeRef.current = Date.now();
-  });
 
   const processFace = useRunOnJS((base64, lat, long) => {
     captureFrame(base64, lat, long);
   });
 
-  const clearrequest = useRunOnJS(() => {
-    axiosSignal?.current?.abort();
+  const { permission, initLocation } = useScanPermissions({
+    settings,
+    updateState,
+    callLocation,
+    location,
+    isLocationReady,
+    isProcessingFrame,
   });
 
-  const frameProcessor = useFrameProcessor(frame => {
-    'worklet';
+  const { frameProcessor } = useScanFrameProcessor({
+    isLocationReady,
+    isModalVisible,
+    isProcessingFrame,
+    markActive,
+    handleUpdateState,
+    processFace,
+  });
 
-    if (!isLocationReady.value) return;
-    if (isProcessingFrame.value) return;
-    if (isModalVisible.value) return;
-
-    // if (frame.timestamp % 30 !== 0) return;
-    const faces = xyzFrameProcessor?.call(frame);
-    if (Array.isArray(faces) && faces.length !== 0) {
-      markActive();
-      if (faces.length > 1) {
-        handleUpdateState('Multiple Face Detected', false, false);
-        clearrequest();
-        isProcessingFrame.value = false;
-      } else {
-        const face = faces[0];
-        handleUpdateState('Processing your face', true, false);
-        if (!face?.bounds) {
-          clearrequest();
-          isProcessingFrame.value = false;
-          return;
-        }
-        try {
-          isProcessingFrame.value = true;
-          handleUpdateState('Encoding your face...', true, false);
-          const result = crop(frame, {
-            includeImageBase64: true,
-            saveAsFile: false,
-          });
-
-          handleUpdateState('Uploading your face...', true, false);
-          processFace(
-            result.base64,
-            // locationData.latitude,
-            // locationData.longitude,
-          );
-        } catch (err) {
-          isProcessingFrame.value = false;
-          clearrequest();
+  const getversion = async () => {
+    try {
+      const res = await fetchData({
+        url: 'app-version',
+      });
+      if (res?.message === 'success') {
+        const platform = Platform.OS;
+        if (res?.[platform]?.force) {
+          checkForUpdate(res?.[platform]?.version);
         }
       }
-    } else {
-      isProcessingFrame.value = false;
-      clearrequest();
-      handleUpdateState(
-        'Please align your face within the frame',
-        false,
-        false,
+    } catch (err) {
+      console.log('Fetch branch error:', err);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      axiosSignal.current = new AbortController();
+      getversion();
+      setIsActive(true);
+      lastActiveTimeRef.current = Date.now();
+      initLocation();
+      return () => {
+        axiosSignal.current?.abort();
+        setIsActive(false);
+      };
+    }, [settings]),
+  );
+
+  useEffect(() => {
+    isModalVisible.value = showModal;
+
+    let interval;
+    if (!showModal) {
+      interval = setInterval(() => {
+        if (isActive && Date.now() - lastActiveTimeRef.current > 10000) {
+          setShowModal(true);
+          clearInterval(interval);
+        }
+      }, 1000);
+    }
+
+    return () => clearInterval(interval);
+  }, [showModal, isActive]);
+
+  const checkForUpdate = latestVersion => {
+    const currentVersion = DeviceInfo.getVersion();
+    if (currentVersion < latestVersion) {
+      Alert.alert(
+        'Update Required',
+        'Please update the app to continue.',
+        [
+          {
+            text: 'Update Now',
+            onPress: () => {
+              const link =
+                Platform.OS === 'android'
+                  ? 'https://play.google.com/store/apps/details?id=com.officekitlence'
+                  : 'https://apps.apple.com/us/app/facekit/id6753619593';
+
+              Linking.openURL(link);
+            },
+          },
+        ],
+        { cancelable: false },
       );
     }
-  }, []);
+  };
 
   const navigateToAdmin = () => {
-    //  navigation.navigate('Authentication');
     navigation.navigate('Authentication', {
       isNewScan: true,
       settings: settings?.['List Employees'],
@@ -511,41 +378,6 @@ const NewScan = ({ navigation }) => {
         style={StyleSheet.absoluteFill}
         frameProcessor={frameProcessor}
       />
-      {/* {console.log(!settings?.['Individual Login'])}
-      {console.log(isAdmin,'isAdminisAdminisAdmin')} */}
-      {/* 
-      <View style={styles.header}>
-        <TouchableOpacity
-          hitSlop={10}
-          onPress={() => {
-            clearrequest();
-              navigation.navigate('Authentication');
-
-            if (!settings?.['Individual Login']) {
-              navigation.navigate('Authentication');
-            } else if (isAdmin) {
-              navigation.navigate('EmpManagement');
-            } else {
-              navigation.navigate('SingleEmployeeReport', {
-                isNewScan: true,
-              });
-            }
-   
-          }}
-          style={styles.adminButton}
-          activeOpacity={0.7}
-        >
-          <Text allowFontScaling={false} style={styles.adminText}>
-            Admin
-            {!settings?.['Individual Login']
-              ? 'Admin'
-              : isAdmin
-              ? 'Admin'
-              : 'Attndance Report'}
-          </Text>
-        </TouchableOpacity>
-      </View> */}
-      {/* Header logic moved to OnBoarding modal */}{' '}
       <View style={{ ...styles.header, left: 20, right: undefined }}>
         <TouchableOpacity
           hitSlop={10}
@@ -590,12 +422,10 @@ const NewScan = ({ navigation }) => {
         <View
           style={{
             ...styles.statusMessage,
-            // marginBottom: error ? SIZE(7) : null,
             backgroundColor: !error ? '#00000099' : '#FF0000',
           }}
         >
           {loading && <ActivityIndicator color={'#ffffff'} size={'small'} />}
-          {/* {error && <ErrorIcon width={24} height={24} />} */}
           <Text allowFontScaling={false} style={styles.statusText}>
             {status}
           </Text>

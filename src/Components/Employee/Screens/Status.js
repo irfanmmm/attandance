@@ -12,67 +12,73 @@ import { Fonts, SIZE } from '../../utils/Styles';
 import InIcon from '../../../assets/svg/in.svg';
 import OutIcon from '../../../assets/svg/out.svg';
 
-
 import { useNavigation } from '@react-navigation/native';
 // import { BlurView } from "expo-blur";
 import { Image } from 'react-native';
 
 const CheckInScreen = ({ navigation, route }) => {
-const username = route?.params?.username ?? '';
-const direction = route?.params?.direction ?? '';
+  const username = route?.params?.username ?? '';
+  const direction = route?.params?.direction ?? '';
+  const workingHours = route.params.workingHours;
 
-console.log(direction,'directiondirectiondirection');
-
-
-
-  
+  console.log(workingHours, 'directiondirectiondirection');
 
   useEffect(() => {
     setTimeout(() => {
       navigation.navigate('NewScan');
-    }, 2000);
+    }, 3500);
   }, []);
 
-
-    // useEffect(() => {
-    //   const backAction = () => {
-    //     // Navigate to the login page
-    //     navigation.navigate('NewScan'); // Replace 'Login' with your login screen name
-    //     return true; // Prevent default back action (e.g., exiting the app)
-    //   };
-    //   const backHandler = BackHandler.addEventListener(
-    //     'hardwareBackPress',
-    //     backAction
-    //   );
-    //   return () => {
-    //     backHandler.remove(); // Cleanup when the component unmounts
-    //   };
-    // }, [navigation]);
+  // useEffect(() => {
+  //   const backAction = () => {
+  //     // Navigate to the login page
+  //     navigation.navigate('NewScan'); // Replace 'Login' with your login screen name
+  //     return true; // Prevent default back action (e.g., exiting the app)
+  //   };
+  //   const backHandler = BackHandler.addEventListener(
+  //     'hardwareBackPress',
+  //     backAction
+  //   );
+  //   return () => {
+  //     backHandler.remove(); // Cleanup when the component unmounts
+  //   };
+  // }, [navigation]);
 
   //  React.useEffect(() => {
   //   navigation.addListener("beforeRemove", (e) => e.preventDefault);
   // });
 
   return (
-    <View
-       style={styles.container}
-    >
-    {/* <ImageBackground
+    <View style={styles.container}>
+      {/* <ImageBackground
       source={require('../../../assets/backround.jpg')}
       style={styles.container}
     > */}
       {/* <View  style={styles.blurContainer}> */}
       <View style={styles.checkButton}>
-        {direction==='out'?(<OutIcon width={SIZE(84)} height={SIZE(84)} />):(<InIcon width={SIZE(84)} height={SIZE(84)} />)}
-        
+        {direction === 'out' ? (
+          <OutIcon width={SIZE(84)} height={SIZE(84)} />
+        ) : (
+          <InIcon width={SIZE(84)} height={SIZE(84)} />
+        )}
       </View>
       <View style={styles.content}>
         <Text style={styles.greeting}>Hello, {username}</Text>
-        <Text style={styles.status}>{direction==='out'?"Check-Out successful":"Check-In successful"}</Text>
+        <Text style={styles.status}>
+          {direction === 'out' ? 'Check-Out successful' : 'Check-In successful'}
+        </Text>
         <Text style={styles.wish}>Have a nice day!</Text>
+        {workingHours && (
+          <View style={styles.workingHoursContainer}>
+            <Text style={styles.workingHoursText}>
+              Working Hours:{' '}
+              <Text style={styles.workingHoursValue}>{workingHours}</Text>
+            </Text>
+          </View>
+        )}
       </View>
       {/* </View> */}
-    {/* </ImageBackground> */}
+      {/* </ImageBackground> */}
     </View>
   );
 };
@@ -84,7 +90,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     // opacity:0.8
-      backgroundColor:'#000000',
+    backgroundColor: '#000000',
     // opacity:0.8,
   },
   blurContainer: {
@@ -116,8 +122,29 @@ const styles = StyleSheet.create({
   wish: {
     fontSize: SIZE(14),
     lineHeight: SIZE(16),
-
     color: '#ffffff',
+    marginBottom: SIZE(16),
+  },
+  workingHoursContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    paddingHorizontal: SIZE(20),
+    paddingVertical: SIZE(10),
+    borderRadius: SIZE(30),
+    marginTop: SIZE(20),
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  workingHoursText: {
+    fontSize: SIZE(14),
+    fontFamily: Fonts.Regular,
+    color: '#E0E0E0',
+  },
+  workingHoursValue: {
+    fontSize: SIZE(18),
+    fontFamily: Fonts.Bold,
+    color: '#4CAF50',
   },
   absolute: {
     position: 'absolute',
