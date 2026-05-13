@@ -8,8 +8,7 @@
     "lint": "eslint .",
     "start": "react-native start",
     "build": "cd android && ./gradlew bundleRelease && cd ..",
-    "test": "jest",
-    "build-publish": "git push origin latest"
+    "test": "jest"
   },
   "dependencies": {
     "@react-native/new-app-screen": "0.81.1",
