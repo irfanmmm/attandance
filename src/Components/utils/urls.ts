@@ -1,5 +1,5 @@
-export const BASE_URL = 'http://52.66.55.51/facekit/';
-export const API_URL = 'http://52.66.55.51/facekit/';
+export const BASE_URL = 'http://facekit.officekithr.net/facekit/';
+export const API_URL = 'http://facekit.officekithr.net/facekit/';
 
 // export const BASE_URL = 'http://52.66.55.51/uatfacekit/';
 // export const API_URL = 'http://52.66.55.51/uatfacekit/';
