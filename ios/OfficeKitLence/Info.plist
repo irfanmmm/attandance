@@ -37,7 +37,7 @@
 		<true/>
     <key>NSExceptionDomains</key>
     <dict>
-        <key>52.66.55.51</key>
+        <key>facekit.officekithr.net</key>
         <dict>
             <key>NSIncludesSubdomains</key>
             <true/>
