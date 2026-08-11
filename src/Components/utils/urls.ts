@@ -1,8 +1,12 @@
-export const BASE_URL = 'http://facekit.officekithr.net/facekit/';
-export const API_URL = 'http://facekit.officekithr.net/facekit/';
 
-// export const BASE_URL = 'http://52.66.55.51/uatfacekit/';
-// export const API_URL = 'http://52.66.55.51/uatfacekit/';
+// For local testing against the backend running on port 5001:
+const LOCAL_API_URL = 'http://10.25.25.177:5001/';
 
-// export const BASE_URL = 'http://10.25.25.104:5001/';
-// export const API_URL = 'http://10.25.25.104:5001/';
+// Production API URL:
+const PROD_API_URL = 'http://facekit.officekithr.net/facekit/';
+
+// Set to true when testing against local backend server
+const USE_LOCAL_SERVER = false;
+
+export const BASE_URL = USE_LOCAL_SERVER ? LOCAL_API_URL : PROD_API_URL;
+export const API_URL = USE_LOCAL_SERVER ? LOCAL_API_URL : PROD_API_URL;

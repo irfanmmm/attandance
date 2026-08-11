@@ -153,7 +153,11 @@ export default function EmpaireEmpManagement({ navigation }) {
       });
 
       if (res?.message === 'success') {
-        const newBranches = res?.details?.data || [];
+        const newBranches = Array.isArray(res?.details?.data)
+          ? res.details.data
+          : Array.isArray(res?.details)
+            ? res.details
+            : [];
         const currentPage = res?.details?.pagination?.currentPage || 1;
         const totalPages = res?.details?.pagination?.totalPages || 1;
 

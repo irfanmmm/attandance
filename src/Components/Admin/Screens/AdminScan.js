@@ -38,11 +38,22 @@ import { crop } from 'vision-camera-cropper';
 import { useRunOnJS, useSharedValue } from 'react-native-worklets-core';
 import RNFS from 'react-native-fs';
 
+
+
 const xyzFrameProcessor = VisionCameraProxy.initFrameProcessorPlugin('xyz', {
   model: 'fast',
 });
+
+const POSE_SEQUENCE = [
+  { id: 'CENTER', label: 'Look straight at the camera', yawRange: [-12, 12] },
+  { id: 'LEFT', label: 'Turn your head slightly LEFT', yawRange: [15, 45] },
+  { id: 'RIGHT', label: 'Turn your head slightly RIGHT', yawRange: [-45, -15] },
+];
+
 export default function AdminScan({ navigation, route }) {
+
   const device = useCameraDevice('front');
+
   const abortControllerRef = useRef(null);
   const cameraRef = useRef(null);
 
@@ -56,8 +67,16 @@ export default function AdminScan({ navigation, route }) {
   const [failed, setFailed] = useState(false);
   const { fetchData } = useAxios();
   const toast = useToast();
+
+
   const isProcessingFrame = useSharedValue(false);
   const frameBase64 = useSharedValue(null);
+  const frameRollAngle = useSharedValue(0);
+  const hasFaceInFrame = useSharedValue(false);
+
+  const [poseIndex, setPoseIndex] = useState(0);
+  const capturedPosesRef = useRef([]); // [base64, base64, base64]
+
 
   const insets = useSafeAreaInsets();
 
@@ -85,17 +104,18 @@ export default function AdminScan({ navigation, route }) {
 
   const retakeEmployeeFace = async base64 => {
     try {
+      const postPayload = {
+        employeecode: employeecode,
+        base64: base64,
+      };
+
       const data = await fetchData({
         url: 'edit-employee-face',
         method: 'POST',
-        data: {
-          employeecode: employeecode,
-          base64: base64,
-        },
+        data: postPayload,
       });
 
       if (data?.status) {
-        // toast.show(data?.message, { type: 'success' });
         navigation.goBack();
       } else {
         setStatus(data?.message);
@@ -103,9 +123,11 @@ export default function AdminScan({ navigation, route }) {
         setFailed(true);
       }
     } catch (err) {
-      console.log('Authentication error:', err?.message);
+      console.log('Edit face error:', err?.message);
     }
   };
+
+
 
   useEffect(() => {
     const backAction = () => {
@@ -295,78 +317,73 @@ export default function AdminScan({ navigation, route }) {
   //   }
   // };
 
-  const updateImage1 = async base64 => {
+  const submitSingleFace = async base64ToUse => {
     try {
-      if (base64) {
-        const response = await fetchData({
-          url: 'add-employee-face',
-          method: 'POST',
-          data: {
-            base64: base64,
-            boundry: null,
-            branch: branch,
-            agency: agency,
-            gender: gender,
-            employeecode: employeecode,
-            fullname: fullname,
-          },
-        });
-        if (response?.message === 'success') {
-          navigation.navigate('AdminStatus', {
-            // isNewScan: isNewScan,
-            // isEdit: isEdit,
-          });
-          setLoading(false);
-        } else {
-          setLoading(false);
-          setFailed(true);
-          setStatus(response?.message || 'Failed to verify, try again!');
-          toast.show(response?.message || 'Something went wrong', {
-            type: 'danger',
-          });
-          setIsProcessing(false);
-        }
+      setStatus('Saving face profile...');
+
+      const postPayload = {
+        images: [base64ToUse],
+        boundry: null,
+        branch: branch,
+        agency: agency,
+        gender: gender,
+        employeecode: employeecode,
+        fullname: fullname,
+      };
+
+      const response = await fetchData({
+        url: 'add-employee-face',
+        method: 'POST',
+        data: postPayload,
+      });
+
+      if (response?.message === 'success') {
+        navigation.navigate('AdminStatus', {});
+        setLoading(false);
       } else {
         setLoading(false);
-        toast.show('Your face not proper', {
+        setFailed(true);
+        setStatus(response?.message || 'Failed to verify, try again!');
+        toast.show(response?.message || 'Something went wrong', {
           type: 'danger',
         });
       }
     } catch (error) {
-      console.log(error);
+      console.log('Upload error:', error);
       toast.show('Something went wrong', { type: 'danger' });
       setFailed(true);
       setLoading(false);
-
-      console.log('Upload error:', error);
       setStatus('Failed to verify, try again!');
-      setIsProcessing(false);
     } finally {
-      // setLoading(false);
       isProcessingFrame.value = false;
     }
   };
 
-  // Take picture
   const takePicture = async () => {
     if (!cameraRef.current || isUploadingRef.current) return;
+
+    if (!hasFaceInFrame.value || !frameBase64.value) {
+      toast.show('No face detected. Please align your face in the frame.', {
+        type: 'danger',
+      });
+      setStatus('No face detected — align your face and try again');
+      setFailed(true);
+      return;
+    }
+
     setFailed(false);
     setLoading(true);
-    setStatus('Verifying identity...');
     try {
-      const photo = await cameraRef.current.takePhoto({
-        flash: 'off',
-        qualityPrioritization: 'quality',
-        enableShutterSound: false,
-      });
+      const base64ToUse = frameBase64.value;
 
-      const base64 = await RNFS.readFile(photo.path, 'base64');
-      console.log('Photo taken:', base64);
       if (isEdit) {
-        await retakeEmployeeFace(base64);
-      } else {
-        await updateImage1(base64);
+        setStatus('Verifying identity...');
+        await retakeEmployeeFace(base64ToUse);
+        return;
       }
+
+      setStatus('Saving face profile...');
+      await submitSingleFace(base64ToUse);
     } catch (error) {
       setStatus('Failed to verify, try again!');
       setLoading(false);
@@ -375,40 +392,44 @@ export default function AdminScan({ navigation, route }) {
     }
   };
 
-  const format = device.formats.find(
-    f => f.videoWidth === 1280 && f.videoHeight === 720,
+
+
+  const format = device?.formats?.find(
+    f => (f.videoWidth === 1280 && f.videoHeight === 720) || (f.videoWidth === 720 && f.videoHeight === 1280),
   );
 
-  // const updateBase64 = useRunOnJS(base64 => {
-  //   setUpdateImage({ base64 });
-  // });
 
   const frameProcessor = useFrameProcessor(frame => {
     'worklet';
 
-    console.log(isProcessingFrame.value);
+    const facesResult = xyzFrameProcessor?.call(frame, { shouldCrop: 'true' });
 
-    if (!isProcessingFrame.value) return;
+    const faces = Array.isArray(facesResult)
+      ? facesResult
+      : typeof facesResult === 'object' && Array.isArray(facesResult?.facesData)
+        ? facesResult.facesData
+        : typeof facesResult === 'object' && facesResult !== null && facesResult.bounds
+          ? [facesResult]
+          : [];
 
-    const faces = xyzFrameProcessor?.call(frame);
+    const face = faces[0];
+    const numFaces = faces.length;
 
-    console.log(faces);
-    if (Array.isArray(faces) && faces.length !== 0) {
-      if (faces.length == 1) {
-        const face = faces[0];
-        if (face?.bounds) {
-          const result = crop(frame, {
-            includeImageBase64: true,
-            saveAsFile: false,
-          });
+    if (numFaces >= 1 && face) {
+      hasFaceInFrame.value = true;
 
-          if (result.base64) {
-            frameBase64.value = result.base64;
-          }
-        }
+      const croppedBase64 = face?.croppedBase64;
+      if (croppedBase64) {
+        frameBase64.value = croppedBase64;
+        frameRollAngle.value = face?.rollAngle ?? face?.headEulerAngleZ ?? 0;
+      }
+    } else {
+      if (!frameBase64.value) {
+        hasFaceInFrame.value = false;
       }
     }
   }, []);
+
 
   if (!device) {
     return (
@@ -458,11 +479,12 @@ export default function AdminScan({ navigation, route }) {
         style={styles.camera}
         ref={cameraRef}
         photo
-        format={format}
         video={false}
+        frameProcessor={frameProcessor}
         isActive={isActive && hasPermission}
         device={device}
       />
+
       <View style={styles.frameContainer}>
         <View style={styles.titileContainer}>
           <Text allowFontScaling={false} style={styles.scanFaceText}>
@@ -491,11 +513,12 @@ export default function AdminScan({ navigation, route }) {
           disabled={loading}
           loader={loading}
           failed={failed}
-          title={status}
+          title={failed ? status : 'Capture'}
           backgroundColor={failed ? '#ffffff' : '#153CD8'}
           color={failed ? '#E40D0D' : '#ffffff'}
           onPress={takePicture}
         />
+
       </View>
     </View>
   );

@@ -61,9 +61,11 @@ export const useAxios = (defaultAxiosConfig?: AxiosRequestConfig) => {
     try {
       // Merge default and provided configs, ensuring no undefined values
       const mergedConfig = {
+        timeout: 15000,
         ...defaultAxiosConfig,
         ...config,
         headers: {
+          'Content-Type': 'application/json',
           ...defaultAxiosConfig?.headers,
           ...config?.headers,
         },

@@ -46,7 +46,8 @@ if linkage != nil
 end
 
 target 'OfficeKitLence' do
- pod 'GoogleMLKit/FaceDetection'
+  pod 'GoogleMLKit/FaceDetection'
+  pod 'TensorFlowLiteSwift'
   config = use_native_modules!
   use_react_native!(
     :path => config[:reactNativePath],

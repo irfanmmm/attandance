@@ -47,17 +47,7 @@ class XyzFrameProcessorPlugin(
     }
 
     private fun getImageOrientation(): Int {
-        return when (orientationManager.orientation) {
-            // device is portrait
-            Surface.ROTATION_0 -> if (cameraFacing == Position.FRONT) 270 else 90
-            // device is landscape right
-            Surface.ROTATION_270 -> if (cameraFacing == Position.FRONT) 180 else 180
-            // device is upside down
-            Surface.ROTATION_180 -> if (cameraFacing == Position.FRONT) 90 else 270
-            // device is landscape left
-            Surface.ROTATION_90 -> if (cameraFacing == Position.FRONT) 0 else 0
-            else -> 0
-        }
+        return if (cameraFacing == Position.FRONT) 270 else 90
     }
 
     // private val detector: FaceDetector by lazy {
@@ -84,75 +74,249 @@ class XyzFrameProcessorPlugin(
 
     override fun callback(frame: Frame, params: Map<String, Any>?): Any {
         val mediaImage = frame.image
-        val image = InputImage.fromMediaImage(mediaImage, getImageOrientation())
-        val width = image.height.toDouble()
-        val height = image.width.toDouble()
+        try {
+            val rotation = getImageOrientation()
+            val image = InputImage.fromMediaImage(mediaImage, rotation)
+            val isPortrait = rotation == 270 || rotation == 90
+            val width = if (isPortrait) image.height.toDouble() else image.width.toDouble()
+            val height = if (isPortrait) image.width.toDouble() else image.height.toDouble()
 
-        if (!processingJob.getAndSet(true)) {
-            faceDetector
-                    ?.process(image)
-                    ?.addOnSuccessListener { faces ->
-                        try {
+            val detector = faceDetector ?: return emptyList<Any>()
+            val faces = com.google.android.gms.tasks.Tasks.await(detector.process(image))
+            if (faces.isNullOrEmpty()) {
+                livenessDetector.reset()
+                return emptyList<Any>()
+            }
 
-                            val resultList =
-                                    common.processFaces(
-                                            faces,
-                                            runLandmarks,
-                                            runClassifications,
-                                            runContours,
-                                            trackingEnabled,
-                                            width,
-                                            height,
-                                            if (autoMode) windowWidth / width else 1.0,
-                                            if (autoMode) windowHeight / height else 1.0,
-                                            autoMode,
-                                            cameraFacing,
-                                            orientationManager.orientation
+            val resultList =
+                    common.processFaces(
+                            faces,
+                            runLandmarks,
+                            runClassifications,
+                            runContours,
+                            trackingEnabled,
+                            width,
+                            height,
+                            if (autoMode) windowWidth / width else 1.0,
+                            if (autoMode) windowHeight / height else 1.0,
+                            autoMode,
+                            cameraFacing,
+                            orientationManager.orientation
+                    )
+
+            val shouldCrop = params?.get("shouldCrop")?.toString() == "true" || params?.get("shouldCrop") == true
+
+            resultList.forEachIndexed { index, faceData ->
+                val livenessResult =
+                        livenessDetector.analyzeLiveness(faceData.toMutableMap())
+                
+                val rawFace = faces.getOrNull(index)
+                val blurScore = if (rawFace != null) calculateYBufferBlurScore(mediaImage, rawFace.boundingBox) else 0.0
+
+                val updatedFaceData =
+                        faceData.toMutableMap().apply {
+                            put(
+                                    "liveness",
+                                    mapOf(
+                                            "isLive" to livenessResult.isLive,
+                                            "confidence" to
+                                                    livenessResult.confidence,
+                                            "status" to livenessDetector.getStatus()
                                     )
+                            )
+                            put("blurScore", blurScore)
+                            put("isBlurry", blurScore < 25.0)
 
-                            resultList.forEachIndexed { index, faceData ->
-                                val livenessResult =
-                                        livenessDetector.analyzeLiveness(faceData.toMutableMap())
-                                val updatedFaceData =
-                                        faceData.toMutableMap().apply {
-                                            put(
-                                                    "liveness",
-                                                    mapOf(
-                                                            "isLive" to livenessResult.isLive,
-                                                            "confidence" to
-                                                                    livenessResult.confidence,
-                                                            "status" to livenessDetector.getStatus()
-                                                    )
-                                            )
-                                        }
-
-                                resultList[0] = updatedFaceData
+                            if (shouldCrop && rawFace != null) {
+                                val croppedBase64 = cropFaceBase64(mediaImage, rawFace.boundingBox, getImageOrientation())
+                                if (croppedBase64 != null) {
+                                    put("croppedBase64", croppedBase64)
+                                }
                             }
-                            if (resultList.size == 0) {
-                                livenessDetector.reset()
-                            }
-                            lastProcessedResult = resultList
-                            Log.d(TAG, "Result: $lastProcessedResult")
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Error processing faces: ", e)
-                            mediaImage.close()
-                            lastProcessedResult = mapOf("error" to e.message, "faceCount" to 0)
-                        } finally {
-                            processingJob.set(false)
-                            mediaImage.close()
                         }
-                    }
-                    ?.addOnFailureListener { e ->
-                        Log.e(TAG, "Face detection failed: ", e)
-                        lastProcessedResult = mapOf("error" to e.message, "faceCount" to 0)
-                        processingJob.set(false)
-                        mediaImage.close()
-                    }
-        } else {
+
+                resultList[index] = updatedFaceData
+            }
+
+            return resultList
+        } catch (e: Exception) {
+            Log.e(TAG, "Error processing frame: ", e)
+            return emptyList<Any>()
+        } finally {
             mediaImage.close()
         }
+    }
 
-        Log.d(TAG, "Returning cached result: $lastProcessedResult")
-        return lastProcessedResult ?: mapOf("faceCount" to 0)
+    private fun yuv420ThreePlanesToNV21(planes: Array<android.media.Image.Plane>, width: Int, height: Int): ByteArray {
+        val imageSize = width * height
+        val out = ByteArray(imageSize + 2 * (imageSize / 4))
+
+        val yBuffer = planes[0].buffer
+        val uBuffer = planes[1].buffer
+        val vBuffer = planes[2].buffer
+
+        val rowStrideY = planes[0].rowStride
+        val pixelStrideY = planes[0].pixelStride
+        val rowStrideU = planes[1].rowStride
+        val pixelStrideU = planes[1].pixelStride
+        val rowStrideV = planes[2].rowStride
+        val pixelStrideV = planes[2].pixelStride
+
+        var outputOffset = 0
+        if (rowStrideY == width && pixelStrideY == 1) {
+            yBuffer.get(out, 0, imageSize)
+            outputOffset = imageSize
+        } else {
+            for (row in 0 until height) {
+                yBuffer.position(row * rowStrideY)
+                yBuffer.get(out, outputOffset, width)
+                outputOffset += width
+            }
+        }
+
+        val uvHeight = height / 2
+        val uvWidth = width / 2
+        for (row in 0 until uvHeight) {
+            for (col in 0 until uvWidth) {
+                val vIndex = row * rowStrideV + col * pixelStrideV
+                val uIndex = row * rowStrideU + col * pixelStrideU
+                out[outputOffset++] = vBuffer.get(vIndex)
+                out[outputOffset++] = uBuffer.get(uIndex)
+            }
+        }
+        return out
+    }
+
+    private fun mediaImageToUprightBitmap(mediaImage: android.media.Image, rotationDegrees: Int): android.graphics.Bitmap? {
+        return try {
+            val width = mediaImage.width
+            val height = mediaImage.height
+            val planes = mediaImage.planes
+            val nv21Buffer = yuv420ThreePlanesToNV21(planes, width, height)
+
+            val yuvImage = android.graphics.YuvImage(nv21Buffer, android.graphics.ImageFormat.NV21, width, height, null)
+            val out = java.io.ByteArrayOutputStream()
+            yuvImage.compressToJpeg(android.graphics.Rect(0, 0, width, height), 100, out)
+            val imageBytes = out.toByteArray()
+            val rawBitmap = android.graphics.BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size) ?: return null
+
+            val matrix = android.graphics.Matrix()
+            if (rotationDegrees != 0) {
+                matrix.postRotate(rotationDegrees.toFloat())
+            }
+
+            val uprightBitmap = android.graphics.Bitmap.createBitmap(rawBitmap, 0, 0, rawBitmap.width, rawBitmap.height, matrix, true)
+            if (uprightBitmap != rawBitmap) {
+                rawBitmap.recycle()
+            }
+            uprightBitmap
+        } catch (e: Exception) {
+            Log.e(TAG, "Error converting mediaImage to upright bitmap", e)
+            null
+        }
+    }
+
+    private fun cropFaceBase64(mediaImage: android.media.Image, boundingBox: android.graphics.Rect, rotationDegrees: Int): String? {
+        try {
+            val uprightBitmap = mediaImageToUprightBitmap(mediaImage, rotationDegrees) ?: return null
+
+            // BoundingBox returned by MLKit is already in upright portrait space (uprightBitmap width x height)
+            val padW = (boundingBox.width() * 0.05).toInt()
+            val padH = (boundingBox.height() * 0.05).toInt()
+
+            val left = (boundingBox.left - padW).coerceIn(0, uprightBitmap.width - 1)
+            val top = (boundingBox.top - padH).coerceIn(0, uprightBitmap.height - 1)
+            val right = (boundingBox.right + padW).coerceIn(left + 2, uprightBitmap.width)
+            val bottom = (boundingBox.bottom + padH).coerceIn(top + 2, uprightBitmap.height)
+
+            val cropW = right - left
+            val cropH = bottom - top
+            if (cropW <= 10 || cropH <= 10) return null
+
+            val croppedBitmap = android.graphics.Bitmap.createBitmap(uprightBitmap, left, top, cropW, cropH)
+            val targetSize = 160
+            val resizedBitmap = android.graphics.Bitmap.createScaledBitmap(croppedBitmap, targetSize, targetSize, true)
+
+            val outputStream = java.io.ByteArrayOutputStream()
+            resizedBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 75, outputStream)
+            val byteArray = outputStream.toByteArray()
+            return android.util.Base64.encodeToString(byteArray, android.util.Base64.NO_WRAP)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error cropping face bitmap", e)
+            return null
+        }
+    }
+
+    private fun calculateYBufferBlurScore(mediaImage: android.media.Image, boundingBox: android.graphics.Rect): Double {
+        try {
+            val planes = mediaImage.planes
+            if (planes.isEmpty()) return 0.0
+            val yBuffer = planes[0].buffer
+            val rowStride = planes[0].rowStride
+            val pixelStride = planes[0].pixelStride
+            val imgWidth = mediaImage.width
+            val imgHeight = mediaImage.height
+            val rotation = getImageOrientation()
+            val (mappedLeft, mappedTop, mappedRight, mappedBottom) = when (rotation) {
+                270 -> listOf(
+                    boundingBox.top,
+                    imgHeight - boundingBox.right,
+                    boundingBox.bottom,
+                    imgHeight - boundingBox.left
+                )
+                90 -> listOf(
+                    imgWidth - boundingBox.bottom,
+                    boundingBox.left,
+                    imgWidth - boundingBox.top,
+                    boundingBox.right
+                )
+                180 -> listOf(
+                    imgWidth - boundingBox.right,
+                    imgHeight - boundingBox.bottom,
+                    imgWidth - boundingBox.left,
+                    imgHeight - boundingBox.top
+                )
+                else -> listOf(boundingBox.left, boundingBox.top, boundingBox.right, boundingBox.bottom)
+            }
+
+            val cropLeft = mappedLeft.coerceIn(1, imgWidth - 2)
+            val cropTop = mappedTop.coerceIn(1, imgHeight - 2)
+            val cropRight = mappedRight.coerceIn(cropLeft + 2, imgWidth - 1)
+            val cropBottom = mappedBottom.coerceIn(cropTop + 2, imgHeight - 1)
+
+            val cropWidth = cropRight - cropLeft
+            val cropHeight = cropBottom - cropTop
+            if (cropWidth <= 4 || cropHeight <= 4) return 0.0
+
+            var sumGrad = 0.0
+            var count = 0.0
+
+            for (y in cropTop until cropBottom - 1 step 3) {
+                val r0 = (y - 1) * rowStride
+                val r1 = y * rowStride
+                val r2 = (y + 1) * rowStride
+                for (x in cropLeft until cropRight - 1 step 3) {
+                    val p00 = (yBuffer.get(r0 + (x - 1) * pixelStride).toInt() and 0xFF)
+                    val p02 = (yBuffer.get(r0 + (x + 1) * pixelStride).toInt() and 0xFF)
+                    val p10 = (yBuffer.get(r1 + (x - 1) * pixelStride).toInt() and 0xFF)
+                    val p12 = (yBuffer.get(r1 + (x + 1) * pixelStride).toInt() and 0xFF)
+                    val p20 = (yBuffer.get(r2 + (x - 1) * pixelStride).toInt() and 0xFF)
+                    val p22 = (yBuffer.get(r2 + (x + 1) * pixelStride).toInt() and 0xFF)
+                    val p01 = (yBuffer.get(r0 + x * pixelStride).toInt() and 0xFF)
+                    val p21 = (yBuffer.get(r2 + x * pixelStride).toInt() and 0xFF)
+
+                    val gx = (p02 + 2 * p12 + p22) - (p00 + 2 * p10 + p20)
+                    val gy = (p20 + 2 * p21 + p22) - (p00 + 2 * p01 + p02)
+
+                    sumGrad += (gx * gx + gy * gy).toDouble()
+                    count += 1.0
+                }
+            }
+
+            if (count <= 0) return 0.0
+            return sumGrad / count
+        } catch (e: Exception) {
+            return 0.0
+        }
     }
 }

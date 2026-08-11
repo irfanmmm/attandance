@@ -298,12 +298,16 @@ export default function AddEmployee({ navigation, route }) {
         },
       });
       if (res?.message === 'success') {
-        const newBranches = res?.details?.data || [];
+        const newBranches = Array.isArray(res?.details?.data)
+          ? res.details.data
+          : Array.isArray(res?.details)
+            ? res.details
+            : [];
         setData(prev =>
           isNewSearch ? newBranches : [...prev, ...newBranches],
         );
-        const currentPage = res?.details?.pagination?.currentPage;
-        const totalPages = res?.details?.pagination?.totalPages;
+        const currentPage = res?.details?.pagination?.currentPage || 1;
+        const totalPages = res?.details?.pagination?.totalPages || 1;
         setHasMore(currentPage < totalPages);
         if (newBranches.length > 0 && currentPage < totalPages) {
           setOffset(prev => prev + 10);

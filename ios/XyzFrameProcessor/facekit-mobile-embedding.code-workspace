@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"name": "facekit-mobile-embedding",
+			"path": "../../../.."
+		},
+		{
+			"name": "facekit-native-fix",
+			"path": "../../../../../facekit-native-fix"
+		},
+		{
+			"path": "../../../../../facekit-multipose-fix"
+		}
+	],
+	"settings": {}
+}

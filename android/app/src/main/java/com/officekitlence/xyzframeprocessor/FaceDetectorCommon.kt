@@ -52,6 +52,13 @@ class FaceDetectorCommon() {
     bounds["right"] = right
     bounds["bottom"] = bottom
 
+    if (sourceWidth > 0 && sourceHeight > 0) {
+      bounds["normX"] = left / sourceWidth
+      bounds["normY"] = top / sourceHeight
+      bounds["normWidth"] = width / sourceWidth
+      bounds["normHeight"] = height / sourceHeight
+    }
+
 
 
     if (!autoMode) return bounds
@@ -111,7 +118,9 @@ class FaceDetectorCommon() {
   private fun processLandmarks(
           face: Face,
           scaleX: Double = 1.0,
-          scaleY: Double = 1.0
+          scaleY: Double = 1.0,
+          sourceWidth: Double = 0.0,
+          sourceHeight: Double = 0.0
   ): Map<String, Any> {
     val faceLandmarksTypes =
             intArrayOf(
@@ -148,8 +157,14 @@ class FaceDetectorCommon() {
 
       val point = landmark.position
       val currentPointsMap: MutableMap<String, Double> = HashMap()
-      currentPointsMap["x"] = point.x.toDouble() * scaleX
-      currentPointsMap["y"] = point.y.toDouble() * scaleY
+      val px = point.x.toDouble() * scaleX
+      val py = point.y.toDouble() * scaleY
+      currentPointsMap["x"] = px
+      currentPointsMap["y"] = py
+      if (sourceWidth > 0 && sourceHeight > 0) {
+        currentPointsMap["normX"] = px / sourceWidth
+        currentPointsMap["normY"] = py / sourceHeight
+      }
       faceLandmarksTypesMap[landmarkName] = currentPointsMap
     }
 
@@ -220,13 +235,14 @@ class FaceDetectorCommon() {
 
   fun getFaceDetector(options: Map<String, Any>?): FaceDetectorResult {
     var performanceModeValue = FaceDetectorOptions.PERFORMANCE_MODE_FAST
-    var landmarkModeValue = FaceDetectorOptions.LANDMARK_MODE_NONE
-    var classificationModeValue = FaceDetectorOptions.CLASSIFICATION_MODE_NONE
+    var landmarkModeValue = FaceDetectorOptions.LANDMARK_MODE_ALL
+    var classificationModeValue = FaceDetectorOptions.CLASSIFICATION_MODE_ALL
     var contourModeValue = FaceDetectorOptions.CONTOUR_MODE_NONE
-    var runLandmarks = false
+    var runLandmarks = true
     var runClassifications = true
     var runContours = false
-    var trackingEnabled = false
+    var trackingEnabled = true
+
 
     // Check options (or use defaults)
     if (options?.get("performanceMode").toString() == "accurate") {
@@ -299,7 +315,7 @@ class FaceDetectorCommon() {
       val map: MutableMap<String, Any> = HashMap()
 
       if (runLandmarks) {
-        map["landmarks"] = processLandmarks(face, scaleX, scaleY)
+        map["landmarks"] = processLandmarks(face, scaleX, scaleY, sourceWidth, sourceHeight)
       }
 
       if (runClassifications) {
@@ -316,9 +332,9 @@ class FaceDetectorCommon() {
         map["trackingId"] = face.trackingId ?: -1
       }
 
-      map["rollAngle"] = face.headEulerAngleZ.toDouble()
+      map["rollAngle"] = if (cameraFacing == Position.FRONT) -face.headEulerAngleZ.toDouble() else face.headEulerAngleZ.toDouble()
       map["pitchAngle"] = face.headEulerAngleX.toDouble()
-      map["yawAngle"] = face.headEulerAngleY.toDouble()
+      map["yawAngle"] = if (cameraFacing == Position.FRONT) -face.headEulerAngleY.toDouble() else face.headEulerAngleY.toDouble()
       map["bounds"] = processBoundingBox(
                         face.boundingBox,
                         sourceWidth,

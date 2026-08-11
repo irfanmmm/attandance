@@ -2,10 +2,7 @@ import { Alert, Linking, Platform } from 'react-native';
 import DeviceInfo from 'react-native-device-info';
 
 export const checkForUpdate = (latestVersion: string) => {
-  // Change this to your latest version
-  // const latestVersion = "2.0.0";                    // ← UPDATE THIS
   const currentVersion = DeviceInfo.getVersion(); // e.g., 1.5.3
-
   if (currentVersion < latestVersion) {
     Alert.alert(
       'Update Required',
