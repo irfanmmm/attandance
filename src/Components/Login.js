@@ -196,7 +196,7 @@ export default function Login({ navigation }) {
               color={'#FFFFFF'}
             />
           </View>
-          {/* <Text allowFontScaling={false} style={styles.registerText}>
+          <Text allowFontScaling={false} style={styles.registerText}>
             New User?{' '}
             <Text
               allowFontScaling={false}
@@ -207,7 +207,7 @@ export default function Login({ navigation }) {
             >
               Create an account
             </Text>
-          </Text> */}
+          </Text>
         </View>
       </KeyboardAwareScrollView>
       {/* </TouchableWithoutFeedback> */}

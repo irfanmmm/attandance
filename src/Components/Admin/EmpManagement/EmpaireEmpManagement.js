@@ -20,7 +20,6 @@ import React, {
   useCallback,
   useContext,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -45,7 +44,6 @@ import ShimmerPlaceHolder from 'react-native-shimmer-placeholder';
 import { debounce } from '../../utils/debounse';
 import { Context } from '../../Redux/Store';
 import { useSettings } from '../../utils/useSettings';
-import { decription } from '../../utils/decription';
 
 export default function EmpaireEmpManagement({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -180,72 +178,40 @@ export default function EmpaireEmpManagement({ navigation }) {
     }
   };
 
-
-  const isAvailableFilter = useMemo(() => {
-    if (state.userData?.token) {
-      const decodeToken = decription(state.userData?.token);
-      return !!decodeToken?.is_admin;
-    }
-    return false
-  }, [state.userData])
-
-  useFocusEffect(
-    useCallback(() => {
-      // Set initialRoute to EmpaireEmpManagement when entering the page
-      if (state.userData?.initialRoute !== 'EmpaireEmpManagement') {
-        dispatch({
-          type: 'UPDATE_USER_DATA',
-          userData: {
-            ...state.userData,
-            initialRoute: 'EmpaireEmpManagement',
-          },
-        });
-      }
-
-      // if (state.userData?.token) {
-      //   const decodeToken = decription(state.userData?.token);
-      //   console.log(decodeToken?.is_admin, 'decodeToken');
-
-      // }
-
-      // 
-
-      // Disable iOS swipe gesture to go back, forcing the user to use the UI back button
-      navigation.setOptions({ gestureEnabled: false });
-
-      const backAction = () => {
-        Alert.alert(
-          'Confirm',
-          'Are you sure you want to go back?',
-          [
-            { text: 'Cancel', style: 'cancel', onPress: () => { } },
-            {
-              text: 'Yes',
-              onPress: () => {
-                dispatch({
-                  type: 'UPDATE_USER_DATA',
-                  userData: {
-                    ...state.userData,
-                    initialRoute: 'NewScan',
-                  },
-                });
-                navigation.navigate('NewScan');
-              },
+  useEffect(() => {
+    const backAction = () => {
+      Alert.alert(
+        'Confirm',
+        'Are you sure you want to go back?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Yes',
+            onPress: () => {
+              dispatch({
+                type: 'UPDATE_USER_DATA',
+                userData: {
+                  ...state.userData,
+                  initialRoute: 'NewScan',
+                },
+              });
+              navigation.navigate('NewScan');
             },
-          ],
-          { cancelable: true },
-        );
-        return true; // Prevent default hardware back action
-      };
-
-      const backHandler = BackHandler.addEventListener(
-        'hardwareBackPress',
-        backAction,
+          },
+        ],
+        { cancelable: true },
       );
 
-      return () => backHandler.remove();
-    }, [navigation, state.userData, dispatch])
-  );
+      return true; // Prevent default back action
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      backAction,
+    );
+
+    return () => backHandler.remove();
+  }, [navigation]);
   const [debouncedSearch, setDebouncedSearch] = useState('');
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(input), 400);
@@ -290,8 +256,9 @@ export default function EmpaireEmpManagement({ navigation }) {
 
   // Render Item
   const renderItem = ({ item }) => {
-    const fullName = `${item?.First_Name || ''} ${item?.Last_Name || ''
-      }`.trim();
+    const fullName = `${item?.First_Name || ''} ${
+      item?.Last_Name || ''
+    }`.trim();
     const empCode = item?.Emp_Code?.trim() || '';
 
     return (
@@ -385,7 +352,7 @@ export default function EmpaireEmpManagement({ navigation }) {
           start={{ x: 0, y: 0 }}
           end={{ x: 2, y: 0 }}
           colors={['#022E95', '#4B87EE']}
-          style={[styles.topContainer, { zIndex: 50 }]}
+          style={styles.topContainer}
         >
           <View
             style={{
@@ -402,7 +369,7 @@ export default function EmpaireEmpManagement({ navigation }) {
                     'Confirm',
                     'Are you sure you want to go back?',
                     [
-                      { text: 'Cancel', style: 'cancel', onPress: () => { } },
+                      { text: 'Cancel', style: 'cancel' },
                       {
                         text: 'Yes',
                         onPress: () => {
@@ -430,51 +397,29 @@ export default function EmpaireEmpManagement({ navigation }) {
             </View>
 
             <View style={styles.logoutButtonWrapper}>
-              <TouchableOpacity onPress={() => setLogOut(true)}>
+              <TouchableOpacity onPress={() => setLogOut(!isLogOut)}>
                 <LogoutIcon width={SIZE(40)} height={SIZE(40)} />
               </TouchableOpacity>
 
-              <Modal
-                visible={isLogOut}
-                transparent={true}
-                animationType="fade"
-                onRequestClose={() => setLogOut(false)}
-              >
-                <TouchableOpacity
-                  style={{ flex: 1 }}
-                  activeOpacity={1}
-                  onPress={() => setLogOut(false)}
-                >
-                  <View
-                    style={[
-                      styles.logOutContainer,
-                      {
-                        top: insets.top + SIZE(60),
-                        right: SIZE(20),
-                      },
-                    ]}
+              {isLogOut && (
+                <View style={styles.logOutContainer}>
+                  <TouchableOpacity
+                    onPress={handleLogout}
+                    style={styles.logContaienr}
                   >
-                    <TouchableOpacity
-                      onPress={() => {
-                        setLogOut(false);
-                        handleLogout();
+                    <Log width={SIZE(16)} height={SIZE(16)} />
+                    <Text
+                      style={{
+                        color: '#1C54D7',
+                        fontSize: SIZE(14),
+                        marginLeft: SIZE(5),
                       }}
-                      style={styles.logContaienr}
                     >
-                      <Log width={SIZE(16)} height={SIZE(16)} />
-                      <Text
-                        style={{
-                          color: '#1C54D7',
-                          fontSize: SIZE(14),
-                          marginLeft: SIZE(5),
-                        }}
-                      >
-                        Logout
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </TouchableOpacity>
-              </Modal>
+                      Logout
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           </View>
         </LinearGradient>
@@ -496,7 +441,7 @@ export default function EmpaireEmpManagement({ navigation }) {
                 }}
               />
             </View>
-            {isAvailableFilter && <TouchableOpacity
+            <TouchableOpacity
               style={styles.filterButton}
               onPress={() => {
                 setIsBranchModalVisible(true);
@@ -507,7 +452,7 @@ export default function EmpaireEmpManagement({ navigation }) {
                 {branchName}
               </Text>
               <DownArrowIcon width={SIZE(20)} height={SIZE(20)} />
-            </TouchableOpacity>}
+            </TouchableOpacity>
           </View>
 
           {/* Employee List */}
@@ -573,20 +518,18 @@ export default function EmpaireEmpManagement({ navigation }) {
               setBranchSearch('');
             }}
           >
-            <KeyboardAvoidingView
-              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-              style={{ flex: 1 }}
+            <TouchableWithoutFeedback
+              onPress={() => {
+                setIsBranchModalVisible(false);
+                setBranchSearch('');
+              }}
             >
-              <TouchableOpacity
-                activeOpacity={1}
-                style={styles.modalOverlay}
-                onPress={() => {
-                  setIsBranchModalVisible(false);
-                  setBranchSearch('');
-                }}
-              >
+              <View style={styles.modalOverlay}>
                 <TouchableWithoutFeedback>
-                  <View style={styles.dropdownContainer}>
+                  <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    style={styles.dropdownContainer}
+                  >
                     <TextInput
                       style={styles.searchInput}
                       placeholder="Search Branch..."
@@ -683,13 +626,12 @@ export default function EmpaireEmpManagement({ navigation }) {
                       onEndReachedThreshold={0.1}
                       showsVerticalScrollIndicator={true}
                       nestedScrollEnabled={true}
-                      keyboardShouldPersistTaps="handled"
                       contentContainerStyle={styles.scrollContent}
                     />
-                  </View>
+                  </KeyboardAvoidingView>
                 </TouchableWithoutFeedback>
-              </TouchableOpacity>
-            </KeyboardAvoidingView>
+              </View>
+            </TouchableWithoutFeedback>
           </Modal>
         </View>
       </>
@@ -716,7 +658,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: SIZE(20),
-    paddingBottom: SIZE(20)
   },
   topLeftContainer: { flexDirection: 'row', alignItems: 'center' },
   titleText: { fontFamily: Fonts.Medium, fontSize: SIZE(22), color: '#fff' },

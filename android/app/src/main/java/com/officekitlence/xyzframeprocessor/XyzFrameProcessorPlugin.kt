@@ -44,6 +44,15 @@ class XyzFrameProcessorPlugin(
         runContours = faceDetectorResult.runContours
         trackingEnabled = faceDetectorResult.trackingEnabled
         faceDetector = faceDetectorResult.faceDetector
+
+        // Pre-warm Google MLKit native C++ delegates on plugin initialization
+        try {
+            val dummyBitmap = android.graphics.Bitmap.createBitmap(32, 32, android.graphics.Bitmap.Config.ARGB_8888)
+            val dummyImage = com.google.mlkit.vision.common.InputImage.fromBitmap(dummyBitmap, 0)
+            faceDetector?.process(dummyImage)
+        } catch (e: Exception) {
+            Log.d(TAG, "MLKit warmup: ${e.message}")
+        }
     }
 
     private fun getImageOrientation(): Int {
@@ -104,7 +113,7 @@ class XyzFrameProcessorPlugin(
                             orientationManager.orientation
                     )
 
-            val shouldCrop = params?.get("shouldCrop")?.toString() == "true" || params?.get("shouldCrop") == true
+            val shouldCrop = params?.get("shouldCrop")?.toString() != "false"
 
             resultList.forEachIndexed { index, faceData ->
                 val livenessResult =
@@ -218,28 +227,49 @@ class XyzFrameProcessorPlugin(
 
     private fun cropFaceBase64(mediaImage: android.media.Image, boundingBox: android.graphics.Rect, rotationDegrees: Int): String? {
         try {
-            val uprightBitmap = mediaImageToUprightBitmap(mediaImage, rotationDegrees) ?: return null
+            val imgW = mediaImage.width
+            val imgH = mediaImage.height
 
-            // BoundingBox returned by MLKit is already in upright portrait space (uprightBitmap width x height)
             val padW = (boundingBox.width() * 0.05).toInt()
             val padH = (boundingBox.height() * 0.05).toInt()
 
-            val left = (boundingBox.left - padW).coerceIn(0, uprightBitmap.width - 1)
-            val top = (boundingBox.top - padH).coerceIn(0, uprightBitmap.height - 1)
-            val right = (boundingBox.right + padW).coerceIn(left + 2, uprightBitmap.width)
-            val bottom = (boundingBox.bottom + padH).coerceIn(top + 2, uprightBitmap.height)
+            // Map 270-rotated boundingBox back to raw landscape YUV space
+            val rawLeft = (imgW - (boundingBox.bottom + padH)).coerceIn(0, imgW - 1)
+            val rawTop = (boundingBox.left - padW).coerceIn(0, imgH - 1)
+            val rawRight = (imgW - (boundingBox.top - padH)).coerceIn(rawLeft + 2, imgW)
+            val rawBottom = (boundingBox.right + padW).coerceIn(rawTop + 2, imgH)
 
-            val cropW = right - left
-            val cropH = bottom - top
-            if (cropW <= 10 || cropH <= 10) return null
+            val rawCropRect = android.graphics.Rect(rawLeft, rawTop, rawRight, rawBottom)
+            if (rawCropRect.width() <= 10 || rawCropRect.height() <= 10) return null
 
-            val croppedBitmap = android.graphics.Bitmap.createBitmap(uprightBitmap, left, top, cropW, cropH)
+            val planes = mediaImage.planes
+            val nv21Buffer = yuv420ThreePlanesToNV21(planes, imgW, imgH)
+            val yuvImage = android.graphics.YuvImage(nv21Buffer, android.graphics.ImageFormat.NV21, imgW, imgH, null)
+
+            val cropOutputStream = java.io.ByteArrayOutputStream()
+            yuvImage.compressToJpeg(rawCropRect, 90, cropOutputStream)
+            val cropBytes = cropOutputStream.toByteArray()
+            val rawCropBitmap = android.graphics.BitmapFactory.decodeByteArray(cropBytes, 0, cropBytes.size) ?: return null
+
+            val matrix = android.graphics.Matrix()
+            if (rotationDegrees != 0) {
+                matrix.postRotate(rotationDegrees.toFloat())
+            }
+
+            val uprightCropBitmap = android.graphics.Bitmap.createBitmap(rawCropBitmap, 0, 0, rawCropBitmap.width, rawCropBitmap.height, matrix, true)
+            if (uprightCropBitmap != rawCropBitmap) {
+                rawCropBitmap.recycle()
+            }
+
             val targetSize = 160
-            val resizedBitmap = android.graphics.Bitmap.createScaledBitmap(croppedBitmap, targetSize, targetSize, true)
+            val resizedBitmap = android.graphics.Bitmap.createScaledBitmap(uprightCropBitmap, targetSize, targetSize, true)
+            if (resizedBitmap != uprightCropBitmap) {
+                uprightCropBitmap.recycle()
+            }
 
-            val outputStream = java.io.ByteArrayOutputStream()
-            resizedBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 75, outputStream)
-            val byteArray = outputStream.toByteArray()
+            val finalOutputStream = java.io.ByteArrayOutputStream()
+            resizedBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 75, finalOutputStream)
+            val byteArray = finalOutputStream.toByteArray()
             return android.util.Base64.encodeToString(byteArray, android.util.Base64.NO_WRAP)
         } catch (e: Exception) {
             Log.e(TAG, "Error cropping face bitmap", e)
@@ -259,22 +289,16 @@ class XyzFrameProcessorPlugin(
             val rotation = getImageOrientation()
             val (mappedLeft, mappedTop, mappedRight, mappedBottom) = when (rotation) {
                 270 -> listOf(
-                    boundingBox.top,
-                    imgHeight - boundingBox.right,
-                    boundingBox.bottom,
-                    imgHeight - boundingBox.left
-                )
-                90 -> listOf(
                     imgWidth - boundingBox.bottom,
                     boundingBox.left,
                     imgWidth - boundingBox.top,
                     boundingBox.right
                 )
-                180 -> listOf(
-                    imgWidth - boundingBox.right,
-                    imgHeight - boundingBox.bottom,
-                    imgWidth - boundingBox.left,
-                    imgHeight - boundingBox.top
+                90 -> listOf(
+                    boundingBox.top,
+                    imgHeight - boundingBox.right,
+                    boundingBox.bottom,
+                    imgHeight - boundingBox.left
                 )
                 else -> listOf(boundingBox.left, boundingBox.top, boundingBox.right, boundingBox.bottom)
             }

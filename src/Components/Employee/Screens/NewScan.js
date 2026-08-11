@@ -8,7 +8,6 @@ import {
   Text,
   TouchableOpacity,
   View,
-  BackHandler,
 } from 'react-native';
 import React, {
   useCallback,
@@ -102,41 +101,26 @@ const NewScan = ({ navigation }) => {
       return;
     }
 
-    let lat = location.value.latitude;
-    let lng = location.value.longitude;
+    let lat = location.value?.latitude || 0;
+    let lng = location.value?.longitude || 0;
 
-    if (
-      lat === null ||
-      lng === null ||
-      lat === 0 ||
-      lng === 0 ||
-      isNaN(lat) ||
-      isNaN(lng)
-    ) {
-      if (
-        settings?.['Location Tracking'] &&
-        permission?.location === 'granted'
-      ) {
-        updateState({
-          error: false,
-          status: 'Getting location... Please wait.',
-          loading: true,
-        });
-
-        try {
-          const response = await callLocation();
-          if (response.latitude && response.longitude) {
-            lat = response.latitude;
-            lng = response.longitude;
-          }
-        } catch (error) {
-          console.warn('⚠️ Failed to get location in captureFrame:', error);
+    if ((!lat || !lng) && settings?.['Location Tracking']) {
+      try {
+        const response = await Promise.race([
+          callLocation(),
+          new Promise(resolve => setTimeout(() => resolve({ latitude: 0, longitude: 0 }), 1200)),
+        ]);
+        if (response?.latitude && response?.longitude) {
+          lat = response.latitude;
+          lng = response.longitude;
         }
+      } catch (error) {
+        console.warn('⚠️ Failed to get location in captureFrame:', error);
       }
-
-      if (!lat || isNaN(lat)) lat = 0;
-      if (!lng || isNaN(lng)) lng = 0;
     }
+
+    if (!lat || isNaN(lat)) lat = 0;
+    if (!lng || isNaN(lng)) lng = 0;
 
     updateState({
       error: false,
@@ -264,27 +248,12 @@ const NewScan = ({ navigation }) => {
 
   useFocusEffect(
     useCallback(() => {
-      // Disable iOS swipe gesture to go back, acting as a root screen
-      navigation.setOptions({ gestureEnabled: false });
-
-      // Exit the app instead of going back on Android
-      const backAction = () => {
-        BackHandler.exitApp();
-        return true; // Prevent default behavior
-      };
-
-      const backHandler = BackHandler.addEventListener(
-        'hardwareBackPress',
-        backAction,
-      );
-
       axiosSignal.current = new AbortController();
       getversion();
       setIsActive(true);
       lastActiveTimeRef.current = Date.now();
       initLocation();
       return () => {
-        backHandler.remove();
         axiosSignal.current?.abort();
         setIsActive(false);
       };
@@ -301,7 +270,7 @@ const NewScan = ({ navigation }) => {
           setShowModal(true);
           clearInterval(interval);
         }
-      }, 10000);
+      }, 1000);
     }
 
     return () => clearInterval(interval);
@@ -381,7 +350,7 @@ const NewScan = ({ navigation }) => {
         isActive={isActive}
         ref={camera}
         video={false}
-        photo
+        photo={false}
         style={StyleSheet.absoluteFill}
         frameProcessor={frameProcessor}
       />

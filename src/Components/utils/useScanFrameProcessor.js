@@ -162,9 +162,9 @@ export const useScanFrameProcessor = ({
           const centerToleranceX = pWidth * 0.22;
           const centerToleranceY = pHeight * 0.25;
 
-          const minFaceDim = pWidth * 0.19;
-          const maxFaceDimW = pWidth * 0.67;
-          const maxFaceDimH = pHeight * 0.45;
+          const minFaceDim = pWidth * 0.16;
+          const maxFaceDimW = pWidth * 0.82;
+          const maxFaceDimH = pHeight * 0.68;
 
           // 1. Edge Cutoff Check: Reject partially visible / clipped faces
           if (

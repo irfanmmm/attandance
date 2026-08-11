@@ -269,7 +269,7 @@ class FaceDetectorCommon() {
       contourModeValue = FaceDetectorOptions.CONTOUR_MODE_ALL
     }
 
-    val minFaceSize = (options?.get("minFaceSize") ?: 0.15) as Double
+    val minFaceSize = (options?.get("minFaceSize") ?: 0.22) as Double
     val optionsBuilder =
             FaceDetectorOptions.Builder()
                     .setPerformanceMode(performanceModeValue)
