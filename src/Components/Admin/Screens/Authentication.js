@@ -148,8 +148,17 @@ export default function Authentication({ route }) {
           //     compony_code: code,
         },
       });
-      console.log(data);
+      console.log(data, 'authenticaton');
       if (data?.message === 'success') {
+        if (data?.response) {
+          dispatch({
+            type: 'UPDATE_USER_DATA',
+            userData: {
+              ...state.userData,
+              token: data.response,
+            },
+          });
+        }
         try {
           await Keychain.setGenericPassword(input.username, input.password, {
             service: 'service_key',
@@ -186,26 +195,29 @@ export default function Authentication({ route }) {
         //   });
         // }
 
+        // update token
+
         dispatch({
           type: 'UPDATE_USER_DATA',
           userData: {
             ...state.userData,
             initialRoute: 'EmpManagement',
+            token: data?.response,
           },
         });
       } else {
-        toast.show('Something went wrong', { type: 'danger', duration: 2000 });
+        toast.show(data?.response || 'Something went wrong', { type: 'danger', duration: 2000 });
         setErr(true);
       }
 
       // const data = await response.json();
     } catch (err) {
-      toast.show(data?.message || 'Something went wrong', {
+      toast.show(data?.response || 'Something went wrong', {
         type: 'danger',
         duration: 2000,
       });
       // setError({ usernameErr: true, passwordErr: true });
-      console.log('Authentication error:', err.message);
+      console.log('Authentication error:', err.response);
       setErr(true);
     } finally {
       setLoader(false);

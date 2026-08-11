@@ -1,8 +1,8 @@
-export const BASE_URL = 'http://facekit.officekithr.net/facekit/';
-export const API_URL = 'http://facekit.officekithr.net/facekit/';
+// export const BASE_URL = 'http://facekit.officekithr.net/facekit/';
+// export const API_URL = 'http://facekit.officekithr.net/facekit/';
 
-// export const BASE_URL = 'http://52.66.55.51/uatfacekit/';
-// export const API_URL = 'http://52.66.55.51/uatfacekit/';
+export const BASE_URL = 'http://facekit.officekithr.net/uatfacekit/';
+export const API_URL = 'http://facekit.officekithr.net/uatfacekit/';
 
 // export const BASE_URL = 'http://10.25.25.104:5001/';
 // export const API_URL = 'http://10.25.25.104:5001/';

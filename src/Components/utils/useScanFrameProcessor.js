@@ -40,10 +40,6 @@ export const useScanFrameProcessor = ({
       'worklet';
       const now = Date.now();
 
-      // Capture dimensions early to avoid "closed frame" errors later
-      const frameWidth = frame.width;
-      const frameHeight = frame.height;
-
       // 1. Initial Guards
       if (
         !isLocationReady.value ||
@@ -60,6 +56,7 @@ export const useScanFrameProcessor = ({
       // 3. Face Detection
       const faces = xyzFrameProcessor?.call(frame);
 
+
       if (Array.isArray(faces) && faces.length > 0) {
         markActive();
 
@@ -74,41 +71,45 @@ export const useScanFrameProcessor = ({
         }
 
         const face = faces[0];
+        console.log(face.bounds, '******')
+
         if (!face?.bounds) {
           isProcessingFrame.value = false;
           return;
         }
 
-        const { x, y, width: w, height: h } = face.bounds;
-        const faceCenterX = x + w / 2;
-        const faceCenterY = y + h / 2;
 
-        const isPortraitFrame = frameHeight > frameWidth;
-        const fWidth = isPortraitFrame ? frameWidth : frameHeight;
-        const fHeight = isPortraitFrame ? frameHeight : frameWidth;
 
-        const frameCenterX = fWidth / 2;
-        const frameCenterY = fHeight / 2;
+        // const { x, y, width: w, height: h } = face.bounds;
+        // const faceCenterX = x + w / 2;
+        // const faceCenterY = y + h / 2;
 
-        const scale = Math.max(SCREEN_WIDTH / fWidth, SCREEN_HEIGHT / fHeight);
-        const allowedHalfSize = UI_FRAME_SIZE / scale / 2;
+        // const isPortraitFrame = frameHeight > frameWidth;
+        // const fWidth = isPortraitFrame ? frameWidth : frameHeight;
+        // const fHeight = isPortraitFrame ? frameHeight : frameWidth;
 
-        const isWithinSquare =
-          Math.abs(faceCenterX - frameCenterX) <= allowedHalfSize &&
-          Math.abs(faceCenterY - frameCenterY) <= allowedHalfSize;
+        // const frameCenterX = fWidth / 2;
+        // const frameCenterY = fHeight / 2;
 
-        if (!isWithinSquare) {
-          if (now - lastStatusUpdate.value > 1000) {
-            handleUpdateState(
-              'Please align your face within the frame',
-              false,
-              false,
-            );
-            lastStatusUpdate.value = now;
-          }
-          isProcessingFrame.value = false;
-          return;
-        }
+        // const scale = Math.max(SCREEN_WIDTH / fWidth, SCREEN_HEIGHT / fHeight);
+        // const allowedHalfSize = UI_FRAME_SIZE / scale / 2;
+
+        // const isWithinSquare =
+        //   Math.abs(faceCenterX - frameCenterX) <= allowedHalfSize &&
+        //   Math.abs(faceCenterY - frameCenterY) <= allowedHalfSize;
+
+        // if (!isWithinSquare) {
+        //   if (now - lastStatusUpdate.value > 1000) {
+        //     handleUpdateState(
+        //       'Please align your face within the frame',
+        //       false,
+        //       false,
+        //     );
+        //     lastStatusUpdate.value = now;
+        //   }
+        //   isProcessingFrame.value = false;
+        //   return;
+        // }
 
         try {
           isProcessingFrame.value = true;
