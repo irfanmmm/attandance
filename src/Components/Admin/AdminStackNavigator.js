@@ -77,11 +77,11 @@ const AdminStackNavigator = () => {
           name="AdminScan"
           component={AdminScan}
         />
-        <Stack.Screen
+        {/* <Stack.Screen
           options={{ headerShown: false }}
           name="EmpManagement"
           component={EmpManagement}
-        />
+        /> */}
         <Stack.Screen
           options={{ headerShown: false }}
           name="Report"

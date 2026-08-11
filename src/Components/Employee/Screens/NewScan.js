@@ -8,6 +8,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  BackHandler,
 } from 'react-native';
 import React, {
   useCallback,
@@ -263,12 +264,27 @@ const NewScan = ({ navigation }) => {
 
   useFocusEffect(
     useCallback(() => {
+      // Disable iOS swipe gesture to go back, acting as a root screen
+      navigation.setOptions({ gestureEnabled: false });
+
+      // Exit the app instead of going back on Android
+      const backAction = () => {
+        BackHandler.exitApp();
+        return true; // Prevent default behavior
+      };
+
+      const backHandler = BackHandler.addEventListener(
+        'hardwareBackPress',
+        backAction,
+      );
+
       axiosSignal.current = new AbortController();
       getversion();
       setIsActive(true);
       lastActiveTimeRef.current = Date.now();
       initLocation();
       return () => {
+        backHandler.remove();
         axiosSignal.current?.abort();
         setIsActive(false);
       };
@@ -285,7 +301,7 @@ const NewScan = ({ navigation }) => {
           setShowModal(true);
           clearInterval(interval);
         }
-      }, 1000);
+      }, 10000);
     }
 
     return () => clearInterval(interval);
