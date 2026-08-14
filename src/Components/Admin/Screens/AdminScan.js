@@ -20,8 +20,6 @@ import {
   Camera,
   runAsync,
   useCameraDevice,
-  useFrameProcessor,
-  VisionCameraProxy,
 } from 'react-native-vision-camera';
 import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
 import { useFocusEffect } from '@react-navigation/native';
@@ -35,14 +33,9 @@ import { useAxios } from '../../utils/useAxios';
 import { useToast } from 'react-native-toast-notifications';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { crop } from 'vision-camera-cropper';
-import { useRunOnJS, useSharedValue } from 'react-native-worklets-core';
 import RNFS from 'react-native-fs';
 
 
-
-const xyzFrameProcessor = VisionCameraProxy.initFrameProcessorPlugin('xyz', {
-  model: 'fast',
-});
 
 const POSE_SEQUENCE = [
   { id: 'CENTER', label: 'Look straight at the camera', yawRange: [-12, 12] },
@@ -68,11 +61,6 @@ export default function AdminScan({ navigation, route }) {
   const { fetchData } = useAxios();
   const toast = useToast();
 
-
-  const isProcessingFrame = useSharedValue(false);
-  const frameBase64 = useSharedValue(null);
-  const frameRollAngle = useSharedValue(0);
-  const hasFaceInFrame = useSharedValue(false);
 
   const [poseIndex, setPoseIndex] = useState(0);
   const capturedPosesRef = useRef([]); // [base64, base64, base64]
@@ -103,16 +91,20 @@ export default function AdminScan({ navigation, route }) {
   const isUploadingRef = useRef(false);
 
   const retakeEmployeeFace = async base64 => {
+    if (isUploadingRef.current) return;
+    isUploadingRef.current = true;
     try {
       const postPayload = {
         employeecode: employeecode,
         base64: base64,
       };
 
+      abortControllerRef.current = new AbortController();
       const data = await fetchData({
         url: 'edit-employee-face',
         method: 'POST',
         data: postPayload,
+        signal: abortControllerRef.current.signal,
       });
 
       if (data?.status) {
@@ -124,6 +116,10 @@ export default function AdminScan({ navigation, route }) {
       }
     } catch (err) {
       console.log('Edit face error:', err?.message);
+      setLoading(false);
+      setFailed(true);
+    } finally {
+      isUploadingRef.current = false;
     }
   };
 
@@ -318,6 +314,8 @@ export default function AdminScan({ navigation, route }) {
   // };
 
   const submitSingleFace = async base64ToUse => {
+    if (isUploadingRef.current) return;
+    isUploadingRef.current = true;
     try {
       setStatus('Saving face profile...');
 
@@ -331,10 +329,12 @@ export default function AdminScan({ navigation, route }) {
         fullname: fullname,
       };
 
+      abortControllerRef.current = new AbortController();
       const response = await fetchData({
         url: 'add-employee-face',
         method: 'POST',
         data: postPayload,
+        signal: abortControllerRef.current.signal,
       });
 
       if (response?.message === 'success') {
@@ -355,26 +355,22 @@ export default function AdminScan({ navigation, route }) {
       setLoading(false);
       setStatus('Failed to verify, try again!');
     } finally {
-      isProcessingFrame.value = false;
+      isUploadingRef.current = false;
     }
   };
 
+  // Takes a normal full-frame photo (no on-device face detection/cropping) and
+  // sends it to the backend as-is — validate_face_image() on the server does
+  // the face detection, quality checks, and cropping.
   const takePicture = async () => {
     if (!cameraRef.current || isUploadingRef.current) return;
-
-    if (!hasFaceInFrame.value || !frameBase64.value) {
-      toast.show('No face detected. Please align your face in the frame.', {
-        type: 'danger',
-      });
-      setStatus('No face detected — align your face and try again');
-      setFailed(true);
-      return;
-    }
 
     setFailed(false);
     setLoading(true);
     try {
-      const base64ToUse = frameBase64.value;
+      setStatus('Capturing photo...');
+      const photo = await cameraRef.current.takePhoto({ flash: 'off' });
+      const base64ToUse = await RNFS.readFile(photo.path, 'base64');
 
       if (isEdit) {
         setStatus('Verifying identity...');
@@ -385,10 +381,10 @@ export default function AdminScan({ navigation, route }) {
       setStatus('Saving face profile...');
       await submitSingleFace(base64ToUse);
     } catch (error) {
-      setStatus('Failed to verify, try again!');
+      console.log('Capture error:', error);
+      setStatus('Failed to capture photo, try again!');
       setLoading(false);
       setFailed(true);
-      setIsProcessing(false);
     }
   };
 
@@ -397,38 +393,6 @@ export default function AdminScan({ navigation, route }) {
   const format = device?.formats?.find(
     f => (f.videoWidth === 1280 && f.videoHeight === 720) || (f.videoWidth === 720 && f.videoHeight === 1280),
   );
-
-
-  const frameProcessor = useFrameProcessor(frame => {
-    'worklet';
-
-    const facesResult = xyzFrameProcessor?.call(frame, { shouldCrop: 'true' });
-
-    const faces = Array.isArray(facesResult)
-      ? facesResult
-      : typeof facesResult === 'object' && Array.isArray(facesResult?.facesData)
-        ? facesResult.facesData
-        : typeof facesResult === 'object' && facesResult !== null && facesResult.bounds
-          ? [facesResult]
-          : [];
-
-    const face = faces[0];
-    const numFaces = faces.length;
-
-    if (numFaces >= 1 && face) {
-      hasFaceInFrame.value = true;
-
-      const croppedBase64 = face?.croppedBase64;
-      if (croppedBase64) {
-        frameBase64.value = croppedBase64;
-        frameRollAngle.value = face?.rollAngle ?? face?.headEulerAngleZ ?? 0;
-      }
-    } else {
-      if (!frameBase64.value) {
-        hasFaceInFrame.value = false;
-      }
-    }
-  }, []);
 
 
   if (!device) {
@@ -480,7 +444,6 @@ export default function AdminScan({ navigation, route }) {
         ref={cameraRef}
         photo
         video={false}
-        frameProcessor={frameProcessor}
         isActive={isActive && hasPermission}
         device={device}
       />

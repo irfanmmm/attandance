@@ -9,6 +9,7 @@ import {
   TouchableWithoutFeedback,
   Platform,
   BackHandler,
+  Alert,
 } from 'react-native';
 import React, { useRef, useState, useContext, useEffect } from 'react';
 import { Fonts, SIZE } from '../../utils/Styles';
@@ -29,6 +30,18 @@ export default function Report({ navigation }) {
   const { state, dispatch } = useContext(Context);
   const [isLogOut, setLogOut] = useState(false);
   const { fetchData } = useAxios();
+
+  const handleLogout = () => {
+    dispatch({
+      type: 'UPDATE_USER_DATA',
+      userData: {
+        is_logged: false,
+        token: null,
+        company_code: '',
+      },
+    });
+    storage.clearAll();
+  };
 
   const [input, setInput] = useState('');
   const inputRef = useRef(null);

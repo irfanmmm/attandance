@@ -47,11 +47,15 @@
 		</dict>
 	</dict>
 	<key>NSCameraUsageDescription</key>
-	<string>This app uses the camera to scan your face for secure identity verification. Your face data is processed on-device only and not stored or shared.</string>
+	<string>FaceKit requires camera access to scan and verify your face for secure identity attendance check-in (e.g., matching your live face scan with your employee profile).</string>
 	<key>NSFaceIDUsageDescription</key>
-	<string>We need camera  access to scan you face</string>
+	<string>FaceKit uses Face ID for fast and secure user authentication into your employee account.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string></string>
+	<string>FaceKit uses your location when active to verify your geofenced location for attendance check-ins (e.g., confirming you are physically present at your assigned office site).</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>FaceKit uses your location to verify attendance check-ins at authorized work locations.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>FaceKit uses your location to verify attendance check-ins at authorized work locations.</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UIAppFonts</key>

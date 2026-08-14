@@ -196,18 +196,6 @@ export default function Login({ navigation }) {
               color={'#FFFFFF'}
             />
           </View>
-          <Text allowFontScaling={false} style={styles.registerText}>
-            New User?{' '}
-            <Text
-              allowFontScaling={false}
-              style={{ color: '#153CD8' }}
-              onPress={() => {
-                navigation.navigate('Register');
-              }}
-            >
-              Create an account
-            </Text>
-          </Text>
         </View>
       </KeyboardAwareScrollView>
       {/* </TouchableWithoutFeedback> */}
@@ -225,8 +213,8 @@ const styles = StyleSheet.create({
   brandIconContainer: {
     width: SIZE(220),
     height: SIZE(46),
-    marginBottom: SIZE(60),
-    marginTop: SIZE(150),
+    marginBottom: SIZE(30),
+    marginTop: SIZE(60),
   },
   brandIcon: {
     width: '100%',
@@ -263,14 +251,6 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.Regular,
     alignSelf: 'flex-start',
     marginLeft: SIZE(30),
-    // marginLeft: SIZE(-120),
-  },
-  registerText: {
-    fontSize: SIZE(16),
-    textAlign: 'center',
-    marginTop: SIZE(20),
-    color: '#000000',
-    lineHeight: SIZE(18),
   },
   inputContainer: {
     justifyContent: 'center',

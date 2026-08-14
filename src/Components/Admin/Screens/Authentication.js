@@ -12,6 +12,7 @@ import {
   Pressable,
   Image,
   Platform,
+  Alert,
 } from 'react-native';
 import React, { useState, useRef, useContext, useEffect } from 'react';
 import { Fonts, SIZE } from '../../utils/Styles';
