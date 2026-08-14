@@ -59,6 +59,7 @@ const NewScan = ({ navigation }) => {
   const [faceObj, setFaceObj] = useState(null);
 
   const isCapturingRef = useRef(false);
+  const processingStartRef = useRef(null);
 
 
   const [status, setStatus] = useState(
@@ -70,10 +71,25 @@ const NewScan = ({ navigation }) => {
   const settings = useSettings();
   const { callLocation } = useLocationShared();
 
-  const updateState = async updates => {
+  // Stable (zero-dependency) - only touches refs and React setState setters,
+  // both of which are guaranteed stable across renders. Keeping this a stable
+  // reference lets handleUpdateState below stay stable too, see comment there.
+  const updateState = useCallback(async updates => {
     Object.entries(updates).forEach(([key, value]) => {
       switch (key) {
         case 'loading':
+          // Only start the watchdog clock on the false->true transition. The
+          // worklet's own ~2.5s self-heal re-sends loading:true repeatedly
+          // while a capture attempt is stuck, and restarting the clock on
+          // every one of those meant the 6s watchdog below could never
+          // actually elapse.
+          if (value) {
+            if (!processingStartRef.current) {
+              processingStartRef.current = Date.now();
+            }
+          } else {
+            processingStartRef.current = null;
+          }
           setLoading(value);
           break;
         case 'status':
@@ -85,21 +101,66 @@ const NewScan = ({ navigation }) => {
         default:
       }
     });
-  };
+  }, []);
 
+  // useRunOnJS memoizes via the dependency array (like useMemo) - omitting it
+  // (as this previously did) means React recreates the underlying native JSI
+  // binding on EVERY render. Vision Camera's useFrameProcessor docs warn that
+  // an unstable dependency forces the Camera to reset its whole Frame
+  // Processor Context, which on Android especially caused visible stutter and
+  // could drop an in-flight processFace() call while stuck mid-capture,
+  // leaving isProcessingFrame stuck true with no matching JS call ever
+  // completing (the "stuck Processing your face" bug). Passing real
+  // dependency arrays here keeps these bindings stable across renders.
   const handleUpdateState = useRunOnJS((status, loading, error) => {
     updateState({ status, loading, error });
-  });
+  }, [updateState]);
 
   const markActive = useRunOnJS(() => {
     lastActiveTimeRef.current = Date.now();
-  });
+  }, []);
 
   const captureFrame = async (base64, rollAngle = 0) => {
-    if (!base64 || isCapturingRef.current) {
-      isProcessingFrame.value = false;
+    // Unconditional diagnostic: confirms whether the worklet->JS bridge call
+    // is reaching JS at all for this attempt, and with what payload size.
+    // Cheap and safe to leave in - if "stuck" recurs, logcat will show
+    // whether this line fires every attempt (bridge OK, something downstream
+    // fails every time) or stops firing entirely (bridge call itself is lost).
+    console.log(`📸 captureFrame invoked, base64Len=${base64?.length ?? 0}, isCapturing=${isCapturingRef.current}`);
+
+    if (isCapturingRef.current) {
+      // A capture is already in flight - its own try/finally will settle the
+      // UI state when it completes, so leave status/loading alone here.
       return;
     }
+
+    if (!base64) {
+      // The worklet only calls processFace when it has a croppedBase64, so
+      // reaching here with nothing usable means the value was lost/corrupted
+      // crossing the worklet->JS bridge. The worklet already set the UI to
+      // "Processing your face..." before this call - without resetting it
+      // here, the screen is stuck on that text forever with the API never
+      // called, since nothing else will touch this state until the face
+      // leaves and re-enters the frame.
+      console.warn('⚠️ captureFrame: received empty/invalid base64, resetting scan state');
+      isProcessingFrame.value = false;
+      updateState({
+        loading: false,
+        error: false,
+        status: 'Please align your face within the frame',
+      });
+      return;
+    }
+
+    // Claim the in-flight slot synchronously, before any `await`, so no other
+    // frame's captureFrame call can slip through the guard above while this
+    // one is still doing its location fetch. Logs confirmed multiple
+    // "isCapturing=false" invocations landing within the same ~1s window -
+    // this was a genuine race: the flag used to only get set after the
+    // location-fetch await (up to 1200ms) below, leaving a window where
+    // concurrent frames all saw isCapturingRef.current as false and each
+    // launched their own overlapping request.
+    isCapturingRef.current = true;
 
     let lat = location.value?.latitude || 0;
     let lng = location.value?.longitude || 0;
@@ -128,8 +189,6 @@ const NewScan = ({ navigation }) => {
       loading: true,
     });
 
-    isCapturingRef.current = true;
-
     try {
       const postPayload = {
         latitude: lat,
@@ -137,12 +196,24 @@ const NewScan = ({ navigation }) => {
         base64: base64,
       };
 
-      const data = await fetchData({
-        url: 'compare-face',
-        method: 'POST',
-        data: postPayload,
-        signal: axiosSignal.current?.signal,
-      });
+      // Hard local timeout, independent of axios's own `timeout` option -
+      // logs confirmed a real request can hang past 15s+ with the awaited
+      // promise never settling at all (neither resolving nor rejecting),
+      // which left isCapturingRef stuck true forever since the `finally`
+      // below only runs once this await settles. This guarantees captureFrame
+      // always completes within ~10s regardless of what the network/axios
+      // layer does.
+      const data = await Promise.race([
+        fetchData({
+          url: 'compare-face',
+          method: 'POST',
+          data: postPayload,
+          signal: axiosSignal.current?.signal,
+        }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Request timed out')), 10000),
+        ),
+      ]);
 
 
       if (data?.message === 'success') {
@@ -175,6 +246,11 @@ const NewScan = ({ navigation }) => {
         err.message === 'canceled'
       ) {
         console.log('⏹️ Request aborted');
+        updateState({
+          loading: false,
+          error: false,
+          status: 'Please align your face within the frame',
+        });
         return;
       }
 
@@ -200,9 +276,18 @@ const NewScan = ({ navigation }) => {
     }
   };
 
+  // captureFrame closes over settings/callLocation/fetchData/navigation, which
+  // are not worth threading through a dependency array - instead keep a ref
+  // to the latest closure (updated every render, cheap) and give processFace
+  // itself a permanently stable identity via an empty dependency array, so
+  // its native JSI binding (see comment above handleUpdateState) is only ever
+  // created once.
+  const captureFrameRef = useRef(captureFrame);
+  captureFrameRef.current = captureFrame;
+
   const processFace = useRunOnJS((base64, rollAngle) => {
-    captureFrame(base64, rollAngle);
-  });
+    captureFrameRef.current(base64, rollAngle);
+  }, []);
 
   const { permission, initLocation } = useScanPermissions({
     settings,
@@ -213,6 +298,18 @@ const NewScan = ({ navigation }) => {
     isProcessingFrame,
   });
 
+  // Stable for the same reason as updateState above - onFaceStateChange /
+  // onFaceBoundsChange are read by notifyFaceState / notifyFaceBounds inside
+  // useScanFrameProcessor, and must stay stable to keep the frame processor
+  // itself stable across renders.
+  const handleFaceStateChange = useCallback(detected => {
+    setIsFaceDetected(detected);
+  }, []);
+
+  const handleFaceBoundsChange = useCallback(face => {
+    setFaceObj(face);
+  }, []);
+
   const { frameProcessor } = useScanFrameProcessor({
     isLocationReady,
     isModalVisible,
@@ -220,14 +317,8 @@ const NewScan = ({ navigation }) => {
     markActive,
     handleUpdateState,
     processFace,
-    onFaceStateChange: detected => {
-      setIsFaceDetected(detected);
-    },
-    onFaceBoundsChange: face => {
-      setFaceObj(face);
-    },
-
-
+    onFaceStateChange: handleFaceStateChange,
+    onFaceBoundsChange: handleFaceBoundsChange,
   });
 
   const getversion = async () => {
@@ -276,6 +367,29 @@ const NewScan = ({ navigation }) => {
     return () => clearInterval(interval);
   }, [showModal, isActive]);
 
+  // Watchdog: recover if "Processing your face..." gets stuck (e.g. a dropped
+  // worklet->JS bridge call or a hung request) instead of relying on the user
+  // moving out of frame and back in to force a reset.
+  useEffect(() => {
+    const watchdog = setInterval(() => {
+      if (
+        processingStartRef.current &&
+        Date.now() - processingStartRef.current > 6000
+      ) {
+        console.log('⏱️ Processing watchdog: resetting stuck scan state');
+        processingStartRef.current = null;
+        isCapturingRef.current = false;
+        isProcessingFrame.value = false;
+        updateState({
+          loading: false,
+          error: false,
+          status: 'Please align your face within the frame',
+        });
+      }
+    }, 1000);
+    return () => clearInterval(watchdog);
+  }, [isProcessingFrame, updateState]);
+
   const navigateToAdmin = () => {
     navigation.navigate('Authentication', {
       isNewScan: true,
@@ -288,6 +402,14 @@ const NewScan = ({ navigation }) => {
       ?? device?.formats?.find(f => f.videoWidth === 1280 && f.videoHeight === 720),
     [device],
   );
+
+  // Cap the frame processor rate so the ML face-detection work run per frame
+  // has a realistic time budget on lower-end Android CPUs, instead of racing
+  // at the format's max supported fps and dropping/lagging frames.
+  const fps = useMemo(() => {
+    if (!format?.minFps || !format?.maxFps) return undefined;
+    return Math.max(format.minFps, Math.min(30, format.maxFps));
+  }, [format]);
 
   if (!device) {
     return (
@@ -347,6 +469,7 @@ const NewScan = ({ navigation }) => {
       <Camera
         device={device}
         format={format}
+        fps={fps}
         isActive={isActive}
         ref={camera}
         video={false}

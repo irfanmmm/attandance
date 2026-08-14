@@ -12,7 +12,10 @@ const UI_FRAME_SIZE = 317; // 310 + 7 (from styles)
 const xyzFrameProcessor = VisionCameraProxy.initFrameProcessorPlugin('xyz', {
   performanceMode: 'fast',
   landmarkMode: 'all',
-  contourMode: 'all',
+  // Contours (dense per-face point mesh) are ML Kit's most expensive mode and
+  // are never read anywhere below (only bounds/landmarks/angles/eye-open are
+  // used) - leaving this on 'all' costs real per-frame CPU on every device.
+  contourMode: 'none',
   classificationMode: 'all',
   trackingEnabled: 'true',
 });
@@ -46,17 +49,22 @@ export const useScanFrameProcessor = ({
 
   const lastNotifyBoundsTime = useSharedValue(0);
 
+  // useRunOnJS memoizes via this dependency array; leaving it off previously
+  // meant a new native binding was created on every render, which forces
+  // useFrameProcessor below to reset the Camera's whole Frame Processor
+  // Context every render (see the matching comment in NewScan.js). Callers
+  // must pass stable onFaceStateChange/onFaceBoundsChange for this to hold.
   const notifyFaceState = useRunOnJS(detected => {
     if (onFaceStateChange) {
       onFaceStateChange(detected);
     }
-  });
+  }, [onFaceStateChange]);
 
   const notifyFaceBounds = useRunOnJS(bounds => {
     if (onFaceBoundsChange) {
       onFaceBoundsChange(bounds);
     }
-  });
+  }, [onFaceBoundsChange]);
 
 
   const frameProcessor = useFrameProcessor(
@@ -350,7 +358,7 @@ export const useScanFrameProcessor = ({
         isProcessingFrame.value = false;
       }
     },
-    [markActive, handleUpdateState, processFace, notifyFaceState],
+    [markActive, handleUpdateState, processFace, notifyFaceState, notifyFaceBounds],
   );
 
   return {
